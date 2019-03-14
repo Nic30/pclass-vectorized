@@ -11,7 +11,7 @@
 
 // https://stackoverflow.com/questions/24594026/initialize-m256i-from-64-high-or-low-bits-of-four-m128i-variables
 // https://openproceedings.org/EDBT/2014/paper_107.pdf
-class BPlusTree {
+class BTree {
 public:
 	using rule_id_t = uint16_t;
 	using rule_spec_t = std::pair<std::array<uint32_t, 2>, rule_id_t>;
@@ -50,7 +50,7 @@ public:
 
 	Node * root;
 
-	BPlusTree() :
+	BTree() :
 			root(nullptr) {
 	}
 

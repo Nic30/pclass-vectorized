@@ -1,4 +1,4 @@
-#include "bplus_tree.h"
+#include <partition_sort/b_tree.h>
 using namespace std;
 
 void print_avx2_hex256(__m256i ymm) {
@@ -10,8 +10,40 @@ void print_avx2_hex256(__m256i ymm) {
 }
 
 // https://www.geeksforgeeks.org/b-tree-set-1-insert-2/
-bool BPlusTree::add(const rule_spec_t & rule) {
+bool BTree::add(const rule_spec_t & rule) {
+    // If tree is empty
+    if (root == nullptr) {
+        // Allocate memory for root
+        root = new Node();
+        root->keys[0] = rule.first[0];  // Insert key
+        root->keys[1] = rule.first[1];  // Insert key
+        root->key_mask = 1;
+    } else {
+        // If root is full, then tree grows in height
+        if (root->key_mask == (1 << 8) -1) {
+            // Allocate memory for new root
+        	Node *s = new Node;
+        	s->is_leaf = false;
 
+            // Make old root as child of new root
+            s->child_index[0] = root->_Mempool_t::getId(&root);
+
+            // Split the old root and move 1 key to the new root
+            s->splitChild(0, root);
+
+            // New root has two children now.  Decide which of the
+            // two children is going to have new key
+            int i = 0;
+            if (s->keys[0] < k)
+                i++;
+            s->C[i]->insertNonFull(k);
+
+            // Change root
+            root = s;
+        }
+        else  // If root is not full, call insertNonFull for root
+            root->insertNonFull(k);
+    }
 }
 
 
@@ -29,7 +61,7 @@ inline __m256i    __attribute__((__always_inline__))
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 
-BPlusTree::rule_id_t BPlusTree::search(const value_t & val) {
+BTree::rule_id_t BTree::search(const value_t & val) {
 	Node * n = root;
 	if (n) {
 		__m256i formated_val = _mm256_set1_epi32(val);
@@ -54,7 +86,7 @@ BPlusTree::rule_id_t BPlusTree::search(const value_t & val) {
 //	_mm256_storeu_si256(middle, x);
 //}
 
-unsigned BPlusTree::search_avx2(const Node & node, __m256i  const value) {
+unsigned BTree::search_avx2(const Node & node, __m256i  const value) {
 	// compare the two halves of the cache line.
 	// load 256b to avx
 	__m256i cmp1 = _mm256_load_si256(&node.keys[0]);

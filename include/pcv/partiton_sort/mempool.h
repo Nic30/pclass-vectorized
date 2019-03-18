@@ -13,32 +13,33 @@ template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
 class StaticMempool final {
 
 	// Singly Linked List node
-	struct Item;
-	struct alignas(64) Item {
+	struct Info;
+	struct Info {
 		// the T type is not used as we do not want to call constructor for unallocated memory
-		std::array<uint8_t, sizeof(T)> obj;
 		// index of the next free node
-		Item * next_free;
+		Info * next_free;
 	};
+
 	// Singly Linked List
-	static std::array<Item, ITEM_CNT> mempool;
+	static std::array<std::array<uint8_t, sizeof(T)>, ITEM_CNT> mempool;
+	static std::array<Info, ITEM_CNT> mempool_info;
+
 	// pointer of the first item in the list of the free items
-	static Item * m_first_free;
+	static Info * m_first_free;
 	// sentinel for the allocation
-	static constexpr auto END = mempool.end();
 
 	// spinlock for allocation and deallocation
-	static __attribute__((aligned(64)))    std::atomic_flag lock;
+	static __attribute__((aligned(64)))     std::atomic_flag lock;
 
 	// staic constructor of this mempool which initializes the pointers
 	// in the singly linked list
 	static void init() {
-		m_first_free = &mempool[0];
-		for (auto &item : mempool) {
+		m_first_free = &mempool_info[0];
+		for (auto &item : mempool_info) {
 			item.next_free = (&item) + 1;
 		}
 
-		mempool[mempool.size() - 1].next_free = END;
+		mempool_info[mempool_info.size() - 1].next_free = mempool_info.end();
 	}
 
 	static constexpr void acquire_lock() {
@@ -59,19 +60,20 @@ public:
 		if (m_first_free == nullptr) {
 			init();
 		}
-		if (m_first_free == END)
+		if (m_first_free == mempool_info.end())
 			throw std::bad_alloc(); // out of memory
 
-		auto* obj = reinterpret_cast<void*>(&m_first_free->obj[0]);
+		auto* obj = reinterpret_cast<void*>(&mempool[m_first_free
+				- &mempool_info[0]][0]);
 		m_first_free = m_first_free->next_free;
 		release_lock();
 
 		return obj;
 	}
 
-	static void release(void* addr) {
+	static void release(T* addr) {
 		acquire_lock();
-		auto item = reinterpret_cast<Item*>(addr);
+		auto item = &mempool_info[addr - reinterpret_cast<T*>(&mempool[0][0])];
 		item->next_free = m_first_free;
 		m_first_free = item;
 		release_lock();
@@ -82,10 +84,10 @@ public:
 	~StaticMempool() {
 		// count free items
 		// and check if all items were removed before deleting of this mempool
-		if (m_first_free != END) {
+		if (m_first_free != mempool_info.end()) {
 			auto * item = m_first_free;
 			size_t cnt = 0;
-			while (item != END) {
+			while (item != mempool_info.end()) {
 				cnt++;
 			}
 			if (cnt == ITEM_CNT)
@@ -95,39 +97,44 @@ public:
 	}
 
 //protected:
-	static constexpr void * getById(size_t id) {
-		return &(mempool[id].obj);
+	static constexpr T * getById(size_t id) {
+		return reinterpret_cast<T*>(&(mempool[id][0]));
 	}
 
-	static constexpr size_t getId(void * addr) {
-		return (addr - &mempool[0]) / sizeof(Item);
+	static constexpr size_t getId(T * addr) {
+		return (addr - reinterpret_cast<T*>(&mempool[0][0]));
 	}
 
 };
 
 // static declarations for StaticMempool
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
-std::array<typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Item, ITEM_CNT> StaticMempool<T,
-		ITEM_CNT, THREAD_SAFE>::mempool;
+std::array<std::array<uint8_t, sizeof(T)>, ITEM_CNT> StaticMempool<T, ITEM_CNT,
+		THREAD_SAFE>::mempool;
 
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
-typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Item * StaticMempool<T, ITEM_CNT, THREAD_SAFE>::m_first_free(
-		nullptr);
+std::array<typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Info, ITEM_CNT> StaticMempool<
+		T, ITEM_CNT, THREAD_SAFE>::mempool_info;
 
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
-std::atomic_flag StaticMempool<T, ITEM_CNT, THREAD_SAFE>::lock = ATOMIC_FLAG_INIT;
+typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Info * StaticMempool<T,
+		ITEM_CNT, THREAD_SAFE>::m_first_free(nullptr);
 
-template<typename T, std::size_t object_cnt, bool THREAD_SAFE=false>
+template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
+std::atomic_flag StaticMempool<T, ITEM_CNT, THREAD_SAFE>::lock =
+		ATOMIC_FLAG_INIT;
+
+template<typename T, std::size_t object_cnt, bool THREAD_SAFE = false>
 class ObjectWithStaticMempool {
 public:
 	using _Mempool_t = StaticMempool<T, object_cnt, THREAD_SAFE>;
 
-	static void* operator new(__attribute__((unused))          std::size_t sz) {
+	static void* operator new(__attribute__((unused))           std::size_t sz) {
 		return StaticMempool<T, object_cnt, THREAD_SAFE>::get();
 	}
 
 	static void operator delete(void* ptr) {
-		StaticMempool<T, object_cnt, THREAD_SAFE>::release(ptr);
+		StaticMempool<T, object_cnt, THREAD_SAFE>::release(reinterpret_cast<T*>(ptr));
 	}
 	static void* operator new[](std::size_t count) = delete;
 };

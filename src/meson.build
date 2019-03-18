@@ -12,6 +12,9 @@ src = [
 	#'packet_classifiers_vectorized.cpp',
 	
 	'partiton_sort/b_tree.cpp',
+	'partiton_sort/b_tree_print.cpp',
+	'partiton_sort/b_tree_insert.cpp',
+	'partiton_sort/b_tree_search.cpp',
 ]
 
 EXTRA_CXX_ARGS = [

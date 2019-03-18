@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace pcv {
+
 /*
  * 8*32b a > b
  *
@@ -99,4 +101,6 @@ BTree::SearchResult BTree::search_avx2(const Node & node, value_t val) {
 	r.in_range = false; // [TODO]
 	assert(r.val_index < Node::MAX_DEGREE + 1);
 	return r;
+}
+
 }

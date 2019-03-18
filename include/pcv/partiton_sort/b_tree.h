@@ -7,31 +7,15 @@
 #include <array>
 #include <limits>
 
-#include "../partiton_sort/mempool.h"
+#include <pcv/partiton_sort/mempool.h>
+#include <pcv/partiton_sort/range.h>
 
+namespace pcv {
 // https://stackoverflow.com/questions/24594026/initialize-m256i-from-64-high-or-low-bits-of-four-m128i-variables
 // https://openproceedings.org/EDBT/2014/paper_107.pdf
 class BTree {
 public:
 	using rule_id_t = uint16_t;
-
-	template<typename T>
-	class Range1d {
-	public:
-		T low, high;
-		Range1d(T low, T high) :
-				low(low), high(high) {
-		}
-		/*
-		 * @note overlap not checked
-		 * */
-		bool operator<(const Range1d & other) const {
-			return high <= other.low;
-		}
-		bool operator>(const Range1d & other) const {
-			return low >= other.high;
-		}
-	};
 
 	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, 1>, rule_id_t>;
 	using value_t = uint32_t;
@@ -187,3 +171,5 @@ public:
 
 	~BTree();
 };
+
+}

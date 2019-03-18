@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <atomic>
 
+namespace pcv {
+
 /**
  * The template used override the new/delete operators to use statically callocated memory
  **/
@@ -138,3 +140,5 @@ public:
 	}
 	static void* operator new[](std::size_t count) = delete;
 };
+
+}

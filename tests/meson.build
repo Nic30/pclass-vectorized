@@ -1,7 +1,8 @@
 
 boost_deps = dependency('boost', modules: ['unit_test_framework', ])
 tests = [
-  ['b_tree', 'simple test of b-tree impl']
+  ['b_tree', 'simple test of b-tree impl'],
+  ['layered_b_tree', 'tests for layering mechanism of the of b-tree impl'],
 ]
 
 foreach t : tests

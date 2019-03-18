@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace pcv {
+
 // A utility function to insert a new key in this node
 // The assumption is, the node must be non-full when this
 // function is called
@@ -131,4 +133,6 @@ void BTree::Node::splitChild(int i, Node & y) {
 	// Increment count of keys in this node
 	set_key_cnt(key_cnt + 1);
 	//assert(key_cnt >= MIN_DEGREE);
+}
+
 }

@@ -2,6 +2,8 @@
 
 using namespace std;
 
+namespace pcv {
+
 void print_avx2_hex256(__m256i ymm) {
 	array<uint64_t, sizeof(__m256i) / sizeof(u_int32_t)> buffer;
 	_mm256_storeu_si256((__m256i*)&buffer[0], ymm);
@@ -53,4 +55,6 @@ void BTree::Node::set_child(unsigned index, Node * child) {
 
 BTree::~BTree() {
 	delete root;
+}
+
 }

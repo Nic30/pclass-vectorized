@@ -3,6 +3,8 @@
 
 using namespace std;
 
+namespace pcv {
+
 void BTree::print_to_stream(ostream & str, Node & n) {
 	auto id = Node::_Mempool_t::getId(&n);
 	/*
@@ -82,4 +84,6 @@ BTree::operator string() {
 	stringstream ss;
 	ss << *this;
 	return ss.str();
+}
+
 }

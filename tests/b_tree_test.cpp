@@ -2,14 +2,11 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE pcv_test
 
-#include <boost/test/unit_test.hpp>
-#include <functional>
-#include <iostream>
-#include <fstream>
-#include <stdint.h>
+#include "test_common.h"
 
 #include <pcv/partiton_sort/b_tree.h>
-#define BOOST_CHECK_EQUAL_MESSAGE(L, R, M)      { BOOST_TEST_INFO(M); BOOST_CHECK_EQUAL(L, R); }
+
+using namespace pcv;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
@@ -39,7 +36,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 BOOST_AUTO_TEST_CASE( simple_insert ) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = BTree::Range1d<uint32_t>;
+	using R1d = Range1d<uint32_t>;
 	rule_t r1 = { { R1d(1, 1), }, 1 };
 	rule_t r2 = { { R1d(3, 6), }, 2 };
 	rule_t r3 = { { R1d(7, 10), }, 3 };
@@ -61,7 +58,7 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = BTree::Range1d<uint32_t>;
+	using R1d = Range1d<uint32_t>;
 	for (size_t i = 0; i < N; i++) {
 		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), }, i };
 		t.insert(r);

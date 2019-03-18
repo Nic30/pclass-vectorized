@@ -19,7 +19,9 @@ public:
 	class Range1d {
 	public:
 		T low, high;
-		Range1d(T low, T high): low(low), high(high) {}
+		Range1d(T low, T high) :
+				low(low), high(high) {
+		}
 		/*
 		 * @note overlap not checked
 		 * */
@@ -38,7 +40,6 @@ public:
 	static const index_t INVALID_INDEX;
 	static const rule_id_t INVALID_RULE;
 
-
 	class Node: public ObjectWithStaticMempool<Node, 256, false> {
 	public:
 		// perf-critical: ensure this is 64-byte aligned.
@@ -48,6 +49,7 @@ public:
 		__m64 dim_index;
 		// the value of rule
 		std::array<index_t, 8> value;
+		std::array<index_t, 8> next_level;
 		// 9*2B child index
 		std::array<index_t, 9> child_index;
 		// if bit in mask is set the key is present
@@ -64,24 +66,63 @@ public:
 			keys[0] = keys[1] = _mm256_set1_epi32(
 					std::numeric_limits<uint32_t>::max());
 			dim_index = _m_from_int64(std::numeric_limits<uint64_t>::max());
+			std::fill(value.begin(), value.end(), INVALID_INDEX);
+			std::fill(next_level.begin(), next_level.end(), INVALID_INDEX);
 			std::fill(child_index.begin(), child_index.end(), INVALID_INDEX);
 			set_key_cnt(0);
 			is_leaf = true;
 			parent_index = INVALID_INDEX;
 		}
 		template<typename T>
-		Range1d<T> get_key(uint8_t index) {
-			assert(sizeof(T) == sizeof(uint32_t));
-			auto low = reinterpret_cast<uint32_t*>(&keys[0])[index];
-			auto high = reinterpret_cast<uint32_t*>(&keys[1])[index];
-			return Range1d<T>(low, high);
-		}
+		class KeyInfo {
+		public:
+			Range1d<T> key;
+			index_t value;
+			index_t next_level;
+
+			KeyInfo(Range1d<T> key, index_t value, index_t next_level) :
+					key(key), value(value), next_level(next_level) {
+			}
+
+			bool operator<(const KeyInfo & other) {
+				return key < other.key;
+			}
+			bool operator<(const Range1d<T> & other_key) {
+				return key < other_key;
+			}
+			bool operator>(const KeyInfo & other) {
+				return key > other.key;
+			}
+			bool operator>(const Range1d<T> & other_key) {
+				return key > other_key;
+			}
+
+			bool in_range(value_t val) {
+				return val >= key.low and val <= key.high;
+			}
+		};
 		template<typename T>
-		void set_key(uint8_t index, Range1d<T> key) {
+		KeyInfo<T> get_key(uint8_t index) const {
 			assert(sizeof(T) == sizeof(uint32_t));
-			reinterpret_cast<uint32_t*>(&keys[0])[index] = key.low;
-			reinterpret_cast<uint32_t*>(&keys[1])[index] = key.high;
+			auto low = reinterpret_cast<const uint32_t*>(&keys[0])[index];
+			auto high = reinterpret_cast<const uint32_t*>(&keys[1])[index];
+			return {
+				Range1d<T>(low, high),
+				value[index],
+				next_level[index]
+			};
 		}
+
+		template<typename T>
+		void set_key(uint8_t index, KeyInfo<T> key_info) {
+			assert(sizeof(T) == sizeof(uint32_t));
+			reinterpret_cast<uint32_t*>(&keys[0])[index] = key_info.key.low;
+			reinterpret_cast<uint32_t*>(&keys[1])[index] = key_info.key.high;
+
+			this->value[index] = key_info.value;
+			this->next_level[index] = key_info.next_level;
+		}
+
 		void set_child(unsigned index, Node * child);
 		// A utility function to split the child y of this node
 		// Note that y must be full when this function is called
@@ -93,9 +134,9 @@ public:
 		// function is called
 		void insertNonFull(const rule_spec_t & rule);
 
-
 		static Node & by_index(const index_t index);
 		Node & child(const index_t index);
+		Node * get_next_layer(unsigned index);
 	};
 
 	Node * root;
@@ -115,6 +156,20 @@ public:
 	bool discard(const rule_spec_t & rule);
 	void insert(const rule_spec_t & rule);
 
+	/*
+	 * If the searched value is in range it means that the search in B-tree is finished
+	 * and the val_index is index of item in this node where the search ended
+	 * Otherwise the val_index is index of the children node which should be searched
+	 * */
+	class SearchResult {
+	public:
+		unsigned val_index;
+		bool in_range;
+		SearchResult() :
+				val_index(-1), in_range(false) {
+		}
+	};
 	// returns from 0 (if value < keys[0]) to 16 (if value >= keys[15])
-	static unsigned search_avx2(const Node & node, __m256i   const value);
+	static SearchResult search_avx2(const Node & node, value_t val);
+	static SearchResult search_seq(const Node & node, value_t val);
 };

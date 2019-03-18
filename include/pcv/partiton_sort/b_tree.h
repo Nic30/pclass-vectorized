@@ -40,7 +40,7 @@ public:
 	static const index_t INVALID_INDEX;
 	static const rule_id_t INVALID_RULE;
 
-	class Node: public ObjectWithStaticMempool<Node, 256, false> {
+	class Node: public ObjectWithStaticMempool<Node, 65536, false> {
 	public:
 		// perf-critical: ensure this is 64-byte aligned.
 		// 8*4B values
@@ -59,8 +59,8 @@ public:
 		bool is_leaf;
 		uint16_t parent_index;
 
-		static constexpr size_t MIN_DEGREE = 4;
-		static constexpr size_t MAX_DEGREE = 8;
+		static constexpr size_t MIN_DEGREE = 2;
+		static constexpr size_t MAX_DEGREE = 4;
 
 		Node() {
 			keys[0] = keys[1] = _mm256_set1_epi32(
@@ -124,19 +124,24 @@ public:
 		}
 
 		void set_child(unsigned index, Node * child);
-		// A utility function to split the child y of this node
-		// Note that y must be full when this function is called
+		/* A utility function to split the child y of this node
+		 * Note that y must be full when this function is called
+		 * @param i index of key which should be transfered to this node
+		 * @param y the child node
+		 */
 		void splitChild(int i, Node & y);
 
 		void set_key_cnt(size_t key_cnt);
-		// A utility function to insert a new key in this node
-		// The assumption is, the node must be non-full when this
-		// function is called
+		/* A utility function to insert a new key in this node
+		 * The assumption is, the node must be non-full when this
+		 * function is called
+		 */
 		void insertNonFull(const rule_spec_t & rule);
 
 		static Node & by_index(const index_t index);
 		Node & child(const index_t index);
 		Node * get_next_layer(unsigned index);
+		~Node();
 	};
 
 	Node * root;
@@ -172,4 +177,13 @@ public:
 	// returns from 0 (if value < keys[0]) to 16 (if value >= keys[15])
 	static SearchResult search_avx2(const Node & node, value_t val);
 	static SearchResult search_seq(const Node & node, value_t val);
+
+	void print_to_stream(std::ostream & str, Node & n);
+
+	// serialize graph to string in dot format
+	friend std::ostream & operator<<(std::ostream & str, BTree & t);
+
+	operator std::string();
+
+	~BTree();
 };

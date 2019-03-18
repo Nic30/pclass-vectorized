@@ -101,8 +101,8 @@ public:
 		return reinterpret_cast<T*>(&(mempool[id][0]));
 	}
 
-	static constexpr size_t getId(T * addr) {
-		return (addr - reinterpret_cast<T*>(&mempool[0][0]));
+	static constexpr size_t getId(const T * addr) {
+		return (addr - reinterpret_cast<const T*>(&mempool[0][0]));
 	}
 
 };

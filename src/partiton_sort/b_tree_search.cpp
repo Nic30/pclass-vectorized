@@ -10,18 +10,25 @@ namespace pcv {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline __m256i       __attribute__((__always_inline__))
-      _mm256_cmpgt_epu32(
-		__m256i     const a, __m256i       const b) {
+inline __m256i   __attribute__((__always_inline__))
+        _mm256_cmpgt_epu32(
+		__m256i       const a, __m256i         const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i     const fix_val = _mm256_set1_epi32(offset);
+	__m256i       const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 
 BTree::rule_id_t BTree::search(const value_t & val) {
+	vector<value_t> v = { val, };
+	return search(v);
+}
+
+BTree::rule_id_t BTree::search(const std::vector<value_t> & _val) {
 	rule_id_t res = INVALID_RULE;
 	Node * n = root;
+	unsigned i = 0;
 	while (n) {
+		auto val = _val[i];
 		//auto s = search_avx2(*n, val);
 		auto s = search_seq(*n, val);
 		if (s.in_range) {
@@ -31,6 +38,7 @@ BTree::rule_id_t BTree::search(const value_t & val) {
 				res = v;
 				// search in next layer if there is some
 				n = n->get_next_layer(s.val_index);
+				i++;
 			}
 		} else if (n->is_leaf) {
 			// did not found any suitable item in this node and there is nothing to search further
@@ -39,7 +47,6 @@ BTree::rule_id_t BTree::search(const value_t & val) {
 			n = &n->child(s.val_index);
 		}
 	}
-
 	return res;
 }
 
@@ -56,7 +63,7 @@ BTree::SearchResult BTree::search_seq(const Node & node, value_t val) {
 	BTree::SearchResult r;
 	// [TODO] bin search
 	for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
-		Node::KeyInfo<uint32_t> cur = node.get_key<uint32_t>(r.val_index);
+		KeyInfo cur = node.get_key<uint32_t>(r.val_index);
 		if (val < cur.key.low) {
 			break;
 		} else if (cur.in_range(val)) {
@@ -87,7 +94,7 @@ BTree::SearchResult BTree::search_avx2(const Node & node, value_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i     const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i       const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 

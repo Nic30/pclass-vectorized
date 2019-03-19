@@ -22,8 +22,7 @@ void BTree::Node::insertNonFull(const rule_spec_t & rule) {
 		}
 
 		// Insert the new key at found location
-		set_key<uint32_t>(i + 1,
-				KeyInfo<uint32_t>(k, rule.second, INVALID_INDEX));
+		set_key<uint32_t>(i + 1, KeyInfo(k, rule.second, INVALID_INDEX));
 		set_key_cnt(key_cnt + 1);
 	} else {
 		// If this node is not leaf
@@ -54,9 +53,7 @@ void BTree::insert(const rule_spec_t & rule) {
 	if (root == nullptr) {
 		// Allocate memory for root
 		root = new Node();
-		root->set_key(0,
-				Node::KeyInfo<uint32_t>(rule.first[0], rule.second,
-						INVALID_INDEX)); // Insert key
+		root->set_key<uint32_t>(0, KeyInfo(rule.first[0], rule.second, INVALID_INDEX)); // Insert key
 		root->set_key_cnt(1);
 		root->value[0] = rule.second;
 	} else {
@@ -99,8 +96,7 @@ void BTree::Node::splitChild(int i, Node & y) {
 
 	// Copy the last (MIN_DEGREE-1) keys of y to z
 	for (int j = 0; j < int(MIN_DEGREE) - 1; j++) {
- 		z->set_key<uint32_t>(j,
-				y.get_key<uint32_t>(MIN_DEGREE + j + 1));
+		z->set_key<uint32_t>(j, y.get_key<uint32_t>(MIN_DEGREE + j + 1));
 	}
 
 	if (not y.is_leaf) {

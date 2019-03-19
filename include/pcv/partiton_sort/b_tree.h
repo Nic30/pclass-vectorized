@@ -6,9 +6,11 @@
 #include <stdio.h>
 #include <array>
 #include <limits>
+#include <vector>
 
 #include <pcv/partiton_sort/mempool.h>
 #include <pcv/partiton_sort/range.h>
+#include <pcv/partiton_sort/key_info.h>
 
 namespace pcv {
 // https://stackoverflow.com/questions/24594026/initialize-m256i-from-64-high-or-low-bits-of-four-m128i-variables
@@ -20,6 +22,8 @@ public:
 	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, 1>, rule_id_t>;
 	using value_t = uint32_t;
 	using index_t = uint16_t;
+
+	using KeyInfo = _KeyInfo<uint32_t, BTree::index_t, BTree::value_t>;
 
 	static const index_t INVALID_INDEX;
 	static const rule_id_t INVALID_RULE;
@@ -43,8 +47,8 @@ public:
 		bool is_leaf;
 		uint16_t parent_index;
 
-		static constexpr size_t MIN_DEGREE = 2;
-		static constexpr size_t MAX_DEGREE = 4;
+		static constexpr size_t MIN_DEGREE = 4;
+		static constexpr size_t MAX_DEGREE = 8;
 
 		Node() {
 			keys[0] = keys[1] = _mm256_set1_epi32(
@@ -57,36 +61,9 @@ public:
 			is_leaf = true;
 			parent_index = INVALID_INDEX;
 		}
+
 		template<typename T>
-		class KeyInfo {
-		public:
-			Range1d<T> key;
-			index_t value;
-			index_t next_level;
-
-			KeyInfo(Range1d<T> key, index_t value, index_t next_level) :
-					key(key), value(value), next_level(next_level) {
-			}
-
-			bool operator<(const KeyInfo & other) {
-				return key < other.key;
-			}
-			bool operator<(const Range1d<T> & other_key) {
-				return key < other_key;
-			}
-			bool operator>(const KeyInfo & other) {
-				return key > other.key;
-			}
-			bool operator>(const Range1d<T> & other_key) {
-				return key > other_key;
-			}
-
-			bool in_range(value_t val) {
-				return val >= key.low and val <= key.high;
-			}
-		};
-		template<typename T>
-		KeyInfo<T> get_key(uint8_t index) const {
+		KeyInfo get_key(uint8_t index) const {
 			assert(sizeof(T) == sizeof(uint32_t));
 			auto low = reinterpret_cast<const uint32_t*>(&keys[0])[index];
 			auto high = reinterpret_cast<const uint32_t*>(&keys[1])[index];
@@ -98,7 +75,7 @@ public:
 		}
 
 		template<typename T>
-		void set_key(uint8_t index, KeyInfo<T> key_info) {
+		void set_key(uint8_t index, KeyInfo key_info) {
 			assert(sizeof(T) == sizeof(uint32_t));
 			reinterpret_cast<uint32_t*>(&keys[0])[index] = key_info.key.low;
 			reinterpret_cast<uint32_t*>(&keys[1])[index] = key_info.key.high;
@@ -108,6 +85,8 @@ public:
 		}
 
 		void set_child(unsigned index, Node * child);
+		void set_next_layer(unsigned index, Node * next_layer_root);
+
 		/* A utility function to split the child y of this node
 		 * Note that y must be full when this function is called
 		 * @param i index of key which should be transfered to this node
@@ -135,9 +114,18 @@ public:
 	}
 
 	/*
+	 * Search in onde level of the tree
+	 *
 	 * @return rule index or the INVALID_RULE constant
 	 * */
 	rule_id_t search(const value_t & val);
+
+	/*
+	 * Search in all levels of the tree
+	 *
+	 * [TODO] use array
+	 * */
+	rule_id_t search(const std::vector<value_t> & val);
 
 	/*
 	 * @return true if the rule was removed

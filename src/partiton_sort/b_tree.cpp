@@ -47,11 +47,13 @@ BTree::Node::~Node() {
 	}
 }
 
-
 void BTree::Node::set_child(unsigned index, Node * child) {
 	child_index[index] = Node::_Mempool_t::getId(child);
 }
 
+void BTree::Node::set_next_layer(unsigned index, Node * next_layer_root) {
+	next_level[index] = Node::_Mempool_t::getId(next_layer_root);
+}
 
 BTree::~BTree() {
 	delete root;

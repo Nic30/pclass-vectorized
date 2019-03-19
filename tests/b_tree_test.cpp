@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 BOOST_AUTO_TEST_CASE( simple_search ) {
 	BTree t;
 	t.root = new BTree::Node();
-	BTree::Node::KeyInfo<uint32_t> k( { 4, 6 }, 10, BTree::INVALID_INDEX);
+	BTree::KeyInfo k( { 4, 6 }, 10, BTree::INVALID_INDEX);
 
 	t.root->set_key<uint32_t>(0, k);
 	t.root->set_key_cnt(1);

@@ -15,11 +15,17 @@
 namespace pcv {
 // https://stackoverflow.com/questions/24594026/initialize-m256i-from-64-high-or-low-bits-of-four-m128i-variables
 // https://openproceedings.org/EDBT/2014/paper_107.pdf
+
+/*
+ * The B-Tree with multidimensional key
+ *
+ * This is B-tree divide to several layers. Each layer performs the lookup in single dimmension only.
+ * */
 class BTree {
 public:
 	using rule_id_t = uint16_t;
-
-	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, 1>, rule_id_t>;
+	static constexpr size_t D = 2;
+	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, D>, rule_id_t>;
 	using value_t = uint32_t;
 	using index_t = uint16_t;
 
@@ -104,6 +110,43 @@ public:
 		static Node & by_index(const index_t index);
 		Node & child(const index_t index);
 		Node * get_next_layer(unsigned index);
+		/* Find index of the key in this node
+		 * */
+		int findKey(const Range1d<value_t> k);
+		// A wrapper function to remove the key k in subtree rooted with
+		// this node.
+		void remove(Range1d<uint32_t> k, int lvl, const rule_spec_t & _k);
+		// A function to remove the key present in idx-th position in
+		// this node which is a leaf
+		void removeFromLeaf(unsigned idx);
+
+		/**
+		 * A function to remove the key present in idx-th position in
+		 * this node which is a non-leaf node
+		 *
+		 * @param idx index of the key to remove
+		 * @param lvl actual level of the tree (to obtain correct key from the rule_spec vector)
+		 * @param _k full key vector which is removed
+		 */
+		void removeFromNonLeaf(unsigned idx, unsigned lvl, const rule_spec_t & _k);
+		// A function to borrow a key from child(idx-1) and insert it
+		// into child(idx)
+		void borrowFromPrev(int idx);
+		// A function to borrow a key from the child(idx+1) and place
+		// it in child(idx)
+		void borrowFromNext(int idx);
+		// A function to merge child(idx) with child(idx+1)
+		// child(idx+1) is freed after merging
+		void merge(int idx);
+		// A function to fill child child(idx) which has less than t-1 keys
+		void fill(int idx);
+
+		// A function to get predecessor of keys[idx]
+		KeyInfo getPred(unsigned idx);
+		// A function to get successor of keys[idx]
+		KeyInfo getSucc(unsigned idx);
+
+
 		~Node();
 	};
 
@@ -127,10 +170,9 @@ public:
 	 * */
 	rule_id_t search(const std::vector<value_t> & val);
 
-	/*
-	 * @return true if the rule was removed
-	 * */
-	bool discard(const rule_spec_t & rule);
+	// A wrapper function to remove the key k in subtree rooted with
+	// this node.
+	void remove(const rule_spec_t & k);
 	void insert(const rule_spec_t & rule);
 
 	/*

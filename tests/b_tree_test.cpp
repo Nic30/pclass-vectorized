@@ -37,9 +37,9 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = Range1d<uint32_t>;
-	rule_t r1 = { { R1d(1, 1), }, 1 };
-	rule_t r2 = { { R1d(3, 6), }, 2 };
-	rule_t r3 = { { R1d(7, 10), }, 3 };
+	rule_t r1 = { { R1d(1, 1), R1d(0, 0), }, 1 };
+	rule_t r2 = { { R1d(3, 6), R1d(0, 0), }, 2 };
+	rule_t r3 = { { R1d(7, 10), R1d(0, 0), }, 3 };
 
 	t.insert(r1);
 	t.insert(r2);
@@ -60,7 +60,7 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	using rule_t = BTree::rule_spec_t;
 	using R1d = Range1d<uint32_t>;
 	for (size_t i = 0; i < N; i++) {
-		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), }, i };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0),}, i };
 		t.insert(r);
 	}
 
@@ -78,6 +78,37 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 			BOOST_CHECK_EQUAL_MESSAGE(res, i,
 					"searching:" << s << " i:" << i << " i2:" << i2);
 		}
+	}
+}
+
+void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
+	BTree t;
+	using rule_t = BTree::rule_spec_t;
+	using R1d = Range1d<uint32_t>;
+	for (size_t i = 0; i < N; i++) {
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0),}, i };
+		t.insert(r);
+	}
+
+	//std::stringstream ss;
+	//ss << "b_tree_" << STEP << "_" << RANGE_SIZE << "_" << N << ".dot";
+	//std::ofstream o(ss.str());
+	//o << t;
+
+	// test all values possible in the tree
+	for (size_t i = 0; i < N; i++) {
+		for (size_t i2 = 0; i2 < RANGE_SIZE; i2++) {
+			auto s = (i * STEP + i2);
+			//std::cout << s  << " expecting " << i << std::endl;
+			auto res = t.search(s);
+			BOOST_CHECK_EQUAL_MESSAGE(res, i,
+					"searching:" << s << " i:" << i << " i2:" << i2);
+		}
+	}
+
+	for (size_t i = 0; i < N; i++) {
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0),}, i };
+		t.remove(r);
 	}
 }
 

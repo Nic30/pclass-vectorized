@@ -20,6 +20,9 @@ public:
 	bool operator<(const Range1d<T> & other_key) {
 		return key < other_key;
 	}
+	bool operator<(const T & other_key) {
+		return key < other_key;
+	}
 	bool operator>(const _KeyInfo & other) {
 		return key > other.key;
 	}

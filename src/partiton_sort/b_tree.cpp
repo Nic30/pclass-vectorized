@@ -36,6 +36,13 @@ BTree::Node * BTree::Node::get_next_layer(unsigned index) {
 		return &by_index(i);
 }
 
+int BTree::Node::findKey(const Range1d<value_t> k) {
+	int i = 0;
+	while (i < key_cnt && get_key<uint32_t>(i) < k)
+		++i;
+	return i;
+}
+
 BTree::Node::~Node() {
 	if (not is_leaf) {
 		for (uint8_t i = 0; i < key_cnt + 1; i++) {

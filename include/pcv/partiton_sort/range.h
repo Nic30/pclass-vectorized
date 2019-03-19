@@ -15,9 +15,16 @@ public:
 	bool operator<(const Range1d & other) const {
 		return high <= other.low;
 	}
+	bool operator<(const T & other) const {
+		return high <= other;
+	}
 	bool operator>(const Range1d & other) const {
 		return low >= other.high;
 	}
+	bool operator==(const Range1d & other) const {
+		return low == other.low and high == other.high;
+	}
+
 };
 
 }

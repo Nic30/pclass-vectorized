@@ -1,4 +1,4 @@
-# pclass-vectorized
+# pclass-vectorized [![Build Status](https://travis-ci.org/Nic30/pclass-vectorized.svg?branch=master)](https://travis-ci.org/Nic30/pclass-vectorized)
 Simple library of vectorized packet classification algorithms
 
 

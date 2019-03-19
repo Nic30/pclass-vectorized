@@ -146,7 +146,6 @@ void BTree::Node::remove(Range1d<uint32_t> k, int lvl, const rule_spec_t & _k) {
 		else
 			removeFromNonLeaf(idx, lvl, _k);
 	} else {
-
 		// If this node is a leaf node, then the key is not present in tree
 		if (is_leaf) {
 			throw std::runtime_error("The key is does not exist in the tree");

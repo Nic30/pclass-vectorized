@@ -12,6 +12,7 @@
 #include <iterator>
 #include <functional>
 #include <regex>
+#include <iomanip>
 
 using namespace std;
 namespace pcv {
@@ -23,6 +24,61 @@ Rule_Ipv4::Rule_Ipv4() :
 				std::numeric_limits < uint16_t > ::max()), proto(0,
 				std::numeric_limits < uint16_t > ::max()) {
 
+}
+
+std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r) {
+	// @42.38.199.209/32	111.195.251.32/32	0 : 65535	1521 : 1521	0x06/0xFF
+	auto print_ipv4 = [&](const Range1d<uint32_t> & ip) {
+		size_t prefix_len = 32;
+		while (prefix_len > 0) {
+			auto m = 1 << (32 - prefix_len);
+			if ((ip.low & m ) == (ip.high & m)) {
+				break;
+			}
+			prefix_len--;
+		}
+		auto bytes = reinterpret_cast<const uint8_t*>(&ip.low);
+		for (int i = 3; i >= 0; i--) {
+			str << int(bytes[i]);
+			if (i != 0)
+			str << ".";
+		}
+		str << "/" << prefix_len;
+	};
+
+	auto print_range =
+			[&](const Range1d<uint16_t> & range, bool hex) {
+				auto f = str.flags();
+				if (hex) {
+					size_t prefix_mask = 0xff;
+					if (range.low != range.high)
+						prefix_mask = 0;
+					str << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << range.low <<
+					"/0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << prefix_mask;
+				} else {
+					str << range.low << " : " << range.high;
+				}
+				str.flags(f);
+			};
+
+	str << "@";
+	print_ipv4(r.sip);
+	str << "\t";
+	print_ipv4(r.dip);
+	str << "\t";
+	print_range(r.sport, false);
+	str << "\t";
+	print_range(r.dport, false);
+	str << "\t";
+	print_range(r.proto, true);
+
+	return str;
+}
+
+Rule_Ipv4::operator std::string() const {
+	stringstream ss;
+	ss << *this;
+	return ss.str();
 }
 
 RuleReader::RuleReader() :
@@ -142,7 +198,7 @@ void RuleReader::parse_port(Range1d<uint16_t>& Portrange, const string& from,
 void RuleReader::parse_protocol(Range1d<uint16_t>& Protocol,
 		const string& last_token) {
 	// Example : 0x06/0xFF
-	vector < string > split_slash = split(last_token, '/');
+	vector <string> split_slash = split(last_token, '/');
 
 	if (split_slash[1] != "0xFF") {
 		Protocol.low = 0;

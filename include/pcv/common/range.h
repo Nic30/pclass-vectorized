@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <assert.h>
 
 namespace pcv {
 
@@ -14,6 +15,7 @@ public:
 	}
 	Range1d(T low, T high) :
 			low(low), high(high) {
+		assert(low <= high);
 	}
 	/*
 	 * @note overlap not checked

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <iostream>
+#include <string>
 #include <pcv/common/range.h>
 
 namespace pcv {
@@ -17,6 +19,7 @@ public:
 
 class Rule_Ipv4: public iParsedRule {
 public:
+	// values stored in little-endian to be easily comparable on x86_64
 	Range1d<uint32_t> sip;
 	Range1d<uint32_t> dip;
 	Range1d<uint16_t> sport;
@@ -24,7 +27,9 @@ public:
 	Range1d<uint16_t> proto;
 
 	Rule_Ipv4();
-
+	// serialize rule to classbench format
+	friend std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r);
+	operator std::string() const;
 };
 
 class Rule_Ipv6: public iParsedRule {

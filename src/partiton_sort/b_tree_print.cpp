@@ -5,7 +5,7 @@ using namespace std;
 
 namespace pcv {
 
-void BTree::print_to_stream(ostream & str, Node & n) {
+void BTree::print_to_stream(ostream & str, const Node & n) const {
 	auto id = Node::_Mempool_t::getId(&n);
 	/*
 	 * <id>
@@ -49,7 +49,8 @@ void BTree::print_to_stream(ostream & str, Node & n) {
 	if (not n.is_leaf) {
 		// print child nodes
 		for (uint8_t i = 0; i < n.key_cnt + 1; i++) {
-			print_to_stream(str, n.child(i));
+			auto ch = n.child(i);
+			print_to_stream(str, *ch);
 		}
 		// print connections to them
 		for (uint8_t i = 0; i < n.key_cnt + 1; i++) {
@@ -71,7 +72,7 @@ void BTree::print_to_stream(ostream & str, Node & n) {
 }
 
 // serialize graph to string in dot format
-ostream & operator<<(ostream & str, BTree & t) {
+ostream & operator<<(ostream & str, const BTree & t) {
 	str << "digraph layered_btree {" << endl;
 	str << "    " << "node [shape=record];" << endl;
 	if (t.root)
@@ -80,7 +81,7 @@ ostream & operator<<(ostream & str, BTree & t) {
 	return str;
 }
 
-BTree::operator string() {
+BTree::operator string() const {
 	stringstream ss;
 	ss << *this;
 	return ss.str();

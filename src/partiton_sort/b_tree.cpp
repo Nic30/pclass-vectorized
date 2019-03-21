@@ -15,7 +15,25 @@ void print_avx2_hex256(__m256i ymm) {
 const BTree::index_t BTree::INVALID_INDEX = std::numeric_limits<index_t>::max();
 const BTree::index_t BTree::INVALID_RULE = INVALID_INDEX;
 
+BTree::Node::Node() {
+	assert(((uintptr_t)this) % 64 == 0);
+	keys[0] = keys[1] = _mm256_set1_epi32(std::numeric_limits<uint32_t>::max());
+	dim_index = _m_from_int64(std::numeric_limits<uint64_t>::max());
+	std::fill(value.begin(), value.end(), INVALID_INDEX);
+	clan_children();
+	set_key_cnt(0);
+	is_leaf = true;
+	parent_index = INVALID_INDEX;
+}
+
+void BTree::Node::clan_children() {
+	std::fill(next_level.begin(), next_level.end(), INVALID_INDEX);
+	std::fill(child_index.begin(), child_index.end(), INVALID_INDEX);
+}
+
+
 void BTree::Node::set_key_cnt(size_t key_cnt) {
+	assert(key_cnt <= MAX_DEGREE);
 	this->key_cnt = key_cnt;
 	key_mask = (1 << key_cnt) - 1;
 }
@@ -24,8 +42,18 @@ BTree::Node & BTree::Node::by_index(const index_t index) {
 	return *reinterpret_cast<Node*>(BTree::Node::_Mempool_t::getById(index));
 }
 
-BTree::Node & BTree::Node::child(const index_t index) {
-	return by_index(child_index[index]);
+BTree::Node * BTree::Node::child(const index_t index) {
+	if (child_index[index] == INVALID_INDEX)
+		return nullptr;
+	else
+		return &by_index(child_index[index]);
+}
+
+const BTree::Node * BTree::Node::child(const index_t index) const {
+	if (child_index[index] == INVALID_INDEX)
+		return nullptr;
+	else
+		return &by_index(child_index[index]);
 }
 
 BTree::Node * BTree::Node::get_next_layer(unsigned index) {
@@ -36,8 +64,16 @@ BTree::Node * BTree::Node::get_next_layer(unsigned index) {
 		return &by_index(i);
 }
 
-int BTree::Node::findKey(const Range1d<value_t> k) {
-	int i = 0;
+const BTree::Node * BTree::Node::get_next_layer(unsigned index) const {
+	auto i = next_level[index];
+	if (i == INVALID_INDEX)
+		return nullptr;
+	else
+		return &by_index(i);
+}
+
+unsigned BTree::Node::findKey(const Range1d<value_t> k) {
+	unsigned i = 0;
 	while (i < key_cnt && get_key<uint32_t>(i) < k)
 		++i;
 	return i;
@@ -46,7 +82,7 @@ int BTree::Node::findKey(const Range1d<value_t> k) {
 BTree::Node::~Node() {
 	if (not is_leaf) {
 		for (uint8_t i = 0; i < key_cnt + 1; i++) {
-			delete &child(i);
+			delete child(i);
 		}
 	}
 	for (uint8_t i = 0; i < key_cnt; i++) {
@@ -64,6 +100,7 @@ void BTree::Node::set_next_layer(unsigned index, Node * next_layer_root) {
 
 BTree::~BTree() {
 	delete root;
+	root = nullptr;
 }
 
 }

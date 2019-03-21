@@ -44,7 +44,7 @@ BTree::rule_id_t BTree::search(const std::vector<value_t> & _val) {
 			// did not found any suitable item in this node and there is nothing to search further
 			break;
 		} else {
-			n = &n->child(s.val_index);
+			n = n->child(s.val_index);
 		}
 	}
 	return res;

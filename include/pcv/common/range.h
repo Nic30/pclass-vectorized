@@ -9,6 +9,9 @@ class Range1d {
 public:
 	T low;
 	T high;
+	Range1d() :
+			low(0), high(0) {
+	}
 	Range1d(T low, T high) :
 			low(low), high(high) {
 	}

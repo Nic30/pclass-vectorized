@@ -3,8 +3,6 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <rte_common.h>
-#include "log.h"
 
 #define ACL_LEAD_CHAR		('@')
 #define ROUTE_LEAD_CHAR		('R')

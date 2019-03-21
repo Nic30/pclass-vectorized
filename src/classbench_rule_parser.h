@@ -1,7 +1,5 @@
 #pragma once
 #include <inttypes.h>
-#include <rte_acl.h>
-#include "dpdk_acl_field_defs.h"
 
 int add_rules(const char *rule_path, struct rte_acl_rule **proute_base,
 		unsigned int *proute_num, struct rte_acl_rule **pacl_base,

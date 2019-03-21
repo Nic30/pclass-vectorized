@@ -16,6 +16,7 @@ src = [
 	'partiton_sort/b_tree_insert.cpp',
 	'partiton_sort/b_tree_search.cpp',
 	'partiton_sort/b_tree_remove.cpp',
+	'rule_parser/classbench_rule_parser.cpp',
 ]
 
 EXTRA_CXX_ARGS = [

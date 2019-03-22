@@ -94,7 +94,7 @@ void BTree::Node::merge(unsigned idx) {
 	ch->set_key_cnt(ch->key_cnt + sib->key_cnt + 1);
 	set_key_cnt(key_cnt - 1);
 
-	sib->clan_children();
+	sib->clean_children();
 	delete sib;
 
 	//integrity_check(*this);
@@ -125,7 +125,7 @@ void BTree::Node::fill(unsigned idx) {
 	}
 }
 
-void BTree::Node::remove(Range1d<uint32_t> k, int lvl, const rule_spec_t & _k) {
+void BTree::Node::remove(Range1d<uint32_t> k) {
 	unsigned idx = findKey(k);
 
 	// The key to be removed is present in this node
@@ -135,7 +135,7 @@ void BTree::Node::remove(Range1d<uint32_t> k, int lvl, const rule_spec_t & _k) {
 		if (is_leaf) {
 			removeFromLeaf(idx);
 		} else {
-			removeFromNonLeaf(idx, lvl, _k);
+			removeFromNonLeaf(idx);
 		}
 	} else {
 		// If this node is a leaf node, then the key is not present in tree
@@ -159,14 +159,17 @@ void BTree::Node::remove(Range1d<uint32_t> k, int lvl, const rule_spec_t & _k) {
 		// child and so we recurse on the (idx-1)th child. Else, we recurse on the
 		// (idx)th child which now has at least t keys
 		if (flag && idx > key_cnt) {
-			child(idx - 1)->remove(k, lvl, _k);
+			child(idx - 1)->remove(k);
 		} else {
-			child(idx)->remove(k, lvl, _k);
+			child(idx)->remove(k);
 		}
 	}
 }
 
 void BTree::Node::removeFromLeaf(unsigned idx) {
+	assert(
+			get_next_layer(idx) == nullptr
+					and "The remove has to be performed in bottom-up order");
 	// Move all the keys after the idx-th pos one place backward
 	for (unsigned i = idx + 1; i < key_cnt; ++i)
 		move_key<uint32_t>(*this, i, *this, i - 1);
@@ -196,25 +199,7 @@ BTree::KeyInfo BTree::Node::getSucc(unsigned idx) {
 	return cur->get_key<uint32_t>(0);
 }
 
-size_t BTree::size() const {
-	if (root)
-		return root->size();
-	else
-		return 0;
-}
-
-size_t BTree::Node::size() const {
-	size_t s = key_cnt;
-	for (size_t i = 0; i < key_cnt + 1u; i++) {
-		auto ch = child(i);
-		if (ch)
-			s += ch->size();
-	}
-	return s;
-}
-
-void BTree::Node::removeFromNonLeaf(unsigned idx, unsigned lvl,
-		const rule_spec_t & _k) {
+void BTree::Node::removeFromNonLeaf(unsigned idx) {
 	auto k = get_key<uint32_t>(idx);
 
 	if (child(idx)->key_cnt >= MIN_DEGREE + 1) {
@@ -224,7 +209,7 @@ void BTree::Node::removeFromNonLeaf(unsigned idx, unsigned lvl,
 		// in child(idx)
 		auto pred = getPred(idx);
 		set_key<uint32_t>(idx, pred);
-		child(idx)->remove(pred.key, lvl, _k);
+		child(idx)->remove(pred.key);
 
 	} else if (child(idx + 1)->key_cnt >= MIN_DEGREE + 1) {
 		// If the child child(idx) has less that t keys, examine child(idx+1).
@@ -234,7 +219,7 @@ void BTree::Node::removeFromNonLeaf(unsigned idx, unsigned lvl,
 		// Recursively delete succ in child(idx+1)
 		auto succ = getSucc(idx);
 		set_key<uint32_t>(idx, succ);
-		child(idx + 1)->remove(succ.key, lvl, _k);
+		child(idx + 1)->remove(succ.key);
 
 	} else {
 
@@ -243,34 +228,52 @@ void BTree::Node::removeFromNonLeaf(unsigned idx, unsigned lvl,
 		// Now child(idx) contains 2t-1 keys
 		// Free child(idx+1) and recursively delete k from child(idx)
 		merge(idx);
-		child(idx)->remove(k.key, lvl, _k);
+		child(idx)->remove(k.key);
 	}
 }
 
 void BTree::remove(const rule_spec_t & k) {
-	if (!root) {
-		throw runtime_error("The tree is empty");
+	std::vector<std::pair<Node *, unsigned>> path;
+	search_path(k, path);
+	for (int i = D - 1; i >= 0; i--) {
+		auto d = dimension_order[i];
+		std::pair<Node *, unsigned> p;
+		if (i == 0) {
+			root = remove_1d(k.first[d], root);
+		} else {
+			p = path.at(i - 1);
+			auto n = remove_1d(k.first[d], p.first->get_next_layer(p.second));
+			p.first->set_next_layer(p.second, n);
+			if (n != nullptr) {
+				break;
+			}
+		}
 	}
+}
+
+BTree::Node * BTree::remove_1d(const Range1d<value_t> & k,
+		Node * current_root) {
+	assert(current_root && "The tree is empty");
 
 	// Call the remove function for root
-	auto v = k.first[0];
-	root->remove(v, 0, k);
+	current_root->remove(k);
 
 	// If the root node has 0 keys, make its first child as the new root
 	// if it has a child, otherwise set root as NULL
-	if (root->key_cnt == 0) {
-		auto tmp = root;
-		if (root->is_leaf) {
-			root = nullptr;
+	if (current_root->key_cnt == 0) {
+		auto tmp = current_root;
+		if (current_root->is_leaf) {
+			current_root = nullptr;
 		} else {
-			root = root->child(0);
+			current_root = current_root->child(0);
 		}
 		// Free the old root
-		tmp->clan_children();
+		tmp->clean_children();
 		delete tmp;
 	}
-	if (root)
-		integrity_check(*root);
+	if (current_root)
+		integrity_check(*current_root);
+	return current_root;
 }
 
 }

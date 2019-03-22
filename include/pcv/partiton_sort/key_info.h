@@ -14,24 +14,27 @@ public:
 			key(key), value(value), next_level(next_level) {
 	}
 
-	bool operator<(const _KeyInfo & other) {
+	bool operator<(const _KeyInfo & other) const {
 		return key < other.key;
 	}
-	bool operator<(const Range1d<T> & other_key) {
+	bool operator<(const Range1d<T> & other_key) const {
 		return key < other_key;
 	}
-	bool operator<(const T & other_key) {
+	bool operator<(const T & other_key) const {
 		return key < other_key;
 	}
-	bool operator>(const _KeyInfo & other) {
+	bool operator>(const _KeyInfo & other) const {
 		return key > other.key;
 	}
-	bool operator>(const Range1d<T> & other_key) {
+	bool operator>(const Range1d<T> & other_key) const {
 		return key > other_key;
 	}
 
-	bool in_range(value_t val) {
+	bool in_range(value_t val) const {
 		return val >= key.low and val <= key.high;
 	}
+
+	//bool is_overlaping(const Range1d<T> & other) {
+	//}
 };
 }

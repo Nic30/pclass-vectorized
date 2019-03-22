@@ -4,14 +4,36 @@ using namespace std;
 
 namespace pcv {
 
+BTree::Node::InsertCookie::InsertCookie(BTree & tree) :
+		dimensio_order(tree.dimension_order), level(0) {
+}
+
+Range1d<BTree::value_t> BTree::Node::InsertCookie::get_actual_key(
+		const rule_spec_t & rule) const {
+	auto d = dimensio_order.at(level);
+	return rule.first.at(d);
+}
+
+bool BTree::Node::InsertCookie::required_more_levels(
+		const rule_spec_t & rule) const {
+	if (level < dimensio_order.size()) {
+		for (size_t i = level; i < dimensio_order.size(); i++) {
+			if (not rule.first[dimensio_order[i]].is_wildcard())
+				return true;
+		}
+	}
+	return false;
+}
+
 // A utility function to insert a new key in this node
 // The assumption is, the node must be non-full when this
 // function is called
-void BTree::Node::insertNonFull(const rule_spec_t & rule) {
+void BTree::Node::insertNonFull(const rule_spec_t & rule,
+		InsertCookie & cookie) {
 	// Initialize index as index of rightmost element
 	int i = int(key_cnt) - 1;
 	// If this is a leaf node
-	auto k = rule.first[0];
+	auto k = cookie.get_actual_key(rule);
 	if (is_leaf) {
 		// The following loop does two things
 		// a) Finds the location of new key to be inserted
@@ -24,9 +46,16 @@ void BTree::Node::insertNonFull(const rule_spec_t & rule) {
 		// Insert the new key at found location
 		set_key<uint32_t>(i + 1, KeyInfo(k, rule.second, INVALID_INDEX));
 		set_key_cnt(key_cnt + 1);
+
+		// continue on next layer if requiered
+		if (cookie.required_more_levels(rule)) {
+			cookie.level++;
+			auto nl = get_next_layer(i + 1);
+			nl = Node::insert_to_root(nl, rule, cookie);
+			set_next_layer(i + 1, nl);
+		}
 	} else {
 		// If this node is not leaf
-
 		// Find the child which is going to have the new key
 		while (i >= 0 && get_key<uint32_t>(i) > k)
 			i--;
@@ -44,45 +73,66 @@ void BTree::Node::insertNonFull(const rule_spec_t & rule) {
 				i++;
 		}
 		assert(i >= 0);
-		child(i)->insertNonFull(rule);
+		child(i)->insertNonFull(rule, cookie);
 	}
 }
 
-// https://www.geeksforgeeks.org/b-tree-set-1-insert-2/
-void BTree::insert(const rule_spec_t & rule) {
-
+BTree::Node * BTree::Node::insert_to_root(Node * root, const rule_spec_t & rule,
+		Node::InsertCookie & cookie) {
+	auto k = cookie.get_actual_key(rule);
 	// If tree is empty
 	if (root == nullptr) {
 		// Allocate memory for root
 		root = new Node();
-		root->set_key<uint32_t>(0,
-				KeyInfo(rule.first[0], rule.second, INVALID_INDEX)); // Insert key
+		root->set_key<uint32_t>(0, KeyInfo(k, rule.second, INVALID_INDEX)); // Insert key
 		root->set_key_cnt(1);
 		root->value[0] = rule.second;
-	} else {
+		cookie.level++;
+		if (cookie.required_more_levels(rule)) {
+			auto nl = insert_to_root(nullptr, rule, cookie);
+			root->set_next_layer(0, nl);
+		}
+	} else if (root->key_cnt == Node::MAX_DEGREE) {
 		// If root is full, then tree grows in height
-		if (root->key_cnt == Node::MAX_DEGREE) {
-			// Allocate memory for new root
-			Node *s = new Node;
-			s->is_leaf = false;
+		// Allocate memory for new root
+		Node *s = new Node;
+		s->is_leaf = false;
 
-			// Make old root as child of new root
-			s->set_child(0, root);
-			// Split the old root and move 1 key to the new root
-			s->splitChild(0, *root);
+		// Make old root as child of new root
+		s->set_child(0, root);
+		// Split the old root and move 1 key to the new root
+		s->splitChild(0, *root);
 
-			// New root has two children now.  Decide which of the
-			// two children is going to have new key
-			s->insertNonFull(rule);
-			//int i = 0;
-			//if (s->get_key<uint32_t>(0) < rule.first[0])
-			//	i++;
-			//s->child(i).insertNonFull(rule);
-			// Change root
-			root = s;
-		} else
-			// If root is not full, call insertNonFull for root
-			root->insertNonFull(rule);
+		// New root has two children now.  Decide which of the
+		// two children is going to have new key
+		//s->insertNonFull(rule, cookie);
+		int i = 0;
+		if (s->get_key<uint32_t>(0) < k)
+			i++;
+		s->child(i)->insertNonFull(rule, cookie);
+		// Change root
+		root = s;
+	} else {
+		// If root is not full, call insertNonFull for root
+		root->insertNonFull(rule, cookie);
+	}
+	return root;
+}
+
+void BTree::insert(const rule_spec_t & rule, Node::InsertCookie & cookie) {
+	// search if there is some prefix already in decision tree because we do not
+	// want to duplicate keys which are already present
+	std::vector<std::pair<Node *, unsigned>> path;
+	search_path(rule, path);
+	if (path.size() > 0) {
+		cookie.level += path.size();
+		auto ins_root = root;
+		auto b = path.back();
+		ins_root = b.first->get_next_layer(b.second);
+		ins_root = Node::insert_to_root(ins_root, rule, cookie);
+		b.first->set_next_layer(b.second, ins_root);
+	} else {
+		root = Node::insert_to_root(root, rule, cookie);
 	}
 }
 

@@ -37,9 +37,11 @@ public:
 	static const index_t INVALID_INDEX;
 	static const rule_id_t INVALID_RULE;
 
+	std::array<int, D> dimension_order;
+
 	class alignas(64) Node: public ObjectWithStaticMempool<Node, 65536, false> {
 	public:
-		static constexpr size_t T = 3;
+		static constexpr size_t T = 4;
 		static constexpr size_t MIN_DEGREE = T - 1;
 		static constexpr size_t MAX_DEGREE = 2 * T - 1;
 		// perf-critical: ensure this is 64-byte aligned.
@@ -57,12 +59,11 @@ public:
 		uint8_t key_cnt;
 
 		bool is_leaf;
-		uint16_t parent_index;
 
 		Node(Node const&) = delete;
 		Node& operator=(Node const&) = delete;
 		Node();
-		void clan_children();
+		void clean_children();
 
 		template<typename T>
 		KeyInfo get_key(uint8_t index) const {
@@ -88,7 +89,13 @@ public:
 			this->next_level[index] = key_info.next_level;
 		}
 
+		/*
+		 * Set pointer to child node
+		 * */
 		void set_child(unsigned index, Node * child);
+		/*
+		 * Set pointer to next layer
+		 * */
 		void set_next_layer(unsigned index, Node * next_layer_root);
 
 		/* A utility function to split the child y of this node
@@ -98,12 +105,31 @@ public:
 		 */
 		void splitChild(unsigned i, Node & y);
 
+		/*
+		 * Set key_cnt and also update key_mask
+		 * */
 		void set_key_cnt(size_t key_cnt);
+
+		/*
+		 * Information about insert state
+		 * */
+		class InsertCookie {
+		public:
+			std::array<int, D> & dimensio_order;
+			uint8_t level;
+
+			InsertCookie(BTree & tree);
+			Range1d<value_t> get_actual_key(const rule_spec_t & rule) const;
+			bool required_more_levels(const rule_spec_t & rule) const;
+		};
+
 		/* A utility function to insert a new key in this node
 		 * The assumption is, the node must be non-full when this
 		 * function is called
 		 */
-		void insertNonFull(const rule_spec_t & rule);
+		void insertNonFull(const rule_spec_t & rule, InsertCookie & cookie);
+		static Node * insert_to_root(Node * root, const rule_spec_t & rule,
+				InsertCookie & cookie);
 
 		static Node & by_index(const index_t index);
 		Node * child(const index_t index);
@@ -115,7 +141,7 @@ public:
 		unsigned findKey(const Range1d<value_t> k);
 		// A wrapper function to remove the key k in subtree rooted with
 		// this node.
-		void remove(Range1d<uint32_t> k, int lvl, const rule_spec_t & _k);
+		void remove(Range1d<value_t> k);
 		// A function to remove the key present in idx-th position in
 		// this node which is a leaf
 		void removeFromLeaf(unsigned idx);
@@ -125,11 +151,8 @@ public:
 		 * this node which is a non-leaf node
 		 *
 		 * @param idx index of the key to remove
-		 * @param lvl actual level of the tree (to obtain correct key from the rule_spec vector)
-		 * @param _k full key vector which is removed
 		 */
-		void removeFromNonLeaf(unsigned idx, unsigned lvl,
-				const rule_spec_t & _k);
+		void removeFromNonLeaf(unsigned idx);
 		// A function to borrow a key from child(idx-1) and insert it
 		// into child(idx)
 		void borrowFromPrev(unsigned idx);
@@ -155,9 +178,7 @@ public:
 
 	BTree(BTree const&) = delete;
 	BTree& operator=(BTree const&) = delete;
-	BTree() :
-			root(nullptr) {
-	}
+	BTree();
 
 	/*
 	 * Search in onde level of the tree
@@ -173,10 +194,31 @@ public:
 	 * */
 	rule_id_t search(const std::vector<value_t> & val);
 
+	/*
+	 * Search the tuples <node, index in node> for each part of the rule
+	 * @note the items are in order specified by dimension_order array
+	 **/
+	void search_path(const rule_spec_t & rule,
+			std::vector<std::pair<Node *, unsigned>> & path);
+
+	/*
+	 * @attention The range can be removed only if noting depends on it in next level
+	 * */
+	Node * remove_1d(const Range1d<value_t> & k, Node * current_root);
 	// A wrapper function to remove the key k in subtree rooted with
 	// this node.
 	void remove(const rule_spec_t & k);
-	void insert(const rule_spec_t & rule);
+
+	inline void insert(const rule_spec_t & rule) {
+		Node::InsertCookie cookie(*this);
+		insert(rule, cookie);
+	}
+
+	/*
+	 * if insert fails there is last node stored in cookie
+	 * for reinsert
+	 * */
+	void insert(const rule_spec_t & rule, Node::InsertCookie & cookie);
 
 	/*
 	 * If the searched value is in range it means that the search in B-tree is finished
@@ -191,9 +233,6 @@ public:
 				val_index(-1), in_range(false) {
 		}
 	};
-	// returns from 0 (if value < keys[0]) to 16 (if value >= keys[15])
-	static SearchResult search_avx2(const Node & node, value_t val);
-	static SearchResult search_seq(const Node & node, value_t val);
 
 	size_t size() const;
 

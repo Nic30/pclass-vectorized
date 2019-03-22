@@ -64,9 +64,13 @@ public:
 	 * */
 	static size_t size() {
 		size_t unused = 0;
-		Info * i = m_first_free;
 		//std::cout << "end " << mempool_info.end() << std::endl;
 		acquire_lock();
+		Info * i = m_first_free;
+		if (m_first_free == nullptr) {
+			// this mempool was not even initialized yet
+			return 0;
+		}
 		while (i != mempool_info.end()) {
 			unused++;
 			i = i->next_free;
@@ -92,12 +96,13 @@ public:
 		auto* obj = reinterpret_cast<void*>(&mempool[indx][0]);
 		//std::cout << "allocate " << obj << " index" << indx << std::endl;
 		auto tmp = m_first_free->next_free;
+		assert(tmp != nullptr);
 		m_first_free->next_free = nullptr;
 
 		m_first_free = tmp;
-		//assert(m_first_free->next_free != nullptr);
-		//assert(m_first_free->next_free != m_first_free);
-		//assert(m_first_free->next_free->next_free != m_first_free);
+		assert(m_first_free->next_free != nullptr);
+		assert(m_first_free->next_free != m_first_free);
+		assert(m_first_free->next_free->next_free != m_first_free);
 
 		release_lock();
 		return obj;
@@ -192,7 +197,7 @@ class ObjectWithStaticMempool {
 public:
 	using _Mempool_t = StaticMempool<T, object_cnt, THREAD_SAFE>;
 
-	static void* operator new(__attribute__((unused))                         std::size_t sz) {
+	static void* operator new(__attribute__((unused)) std::size_t sz) {
 		return StaticMempool<T, object_cnt, THREAD_SAFE>::get();
 	}
 

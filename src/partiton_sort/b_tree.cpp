@@ -5,32 +5,38 @@ using namespace std;
 namespace pcv {
 
 void print_avx2_hex256(__m256i ymm) {
-	array<uint64_t, sizeof(__m256i) / sizeof(u_int32_t)> buffer;
+	array < uint64_t, sizeof(__m256i) / sizeof(u_int32_t)> buffer;
 	_mm256_storeu_si256((__m256i*)&buffer[0], ymm);
 	for (auto i: buffer) {
 		std::cout << i << " ";
 	}
 }
 
-const BTree::index_t BTree::INVALID_INDEX = std::numeric_limits<index_t>::max();
+const BTree::index_t BTree::INVALID_INDEX = std::numeric_limits < index_t
+		> ::max();
 const BTree::index_t BTree::INVALID_RULE = INVALID_INDEX;
 
-BTree::Node::Node() {
-	assert(((uintptr_t)this) % 64 == 0);
-	keys[0] = keys[1] = _mm256_set1_epi32(std::numeric_limits<uint32_t>::max());
-	dim_index = _m_from_int64(std::numeric_limits<uint64_t>::max());
-	std::fill(value.begin(), value.end(), INVALID_INDEX);
-	clan_children();
-	set_key_cnt(0);
-	is_leaf = true;
-	parent_index = INVALID_INDEX;
+BTree::BTree() :
+		root(nullptr) {
+	for (size_t i = 0; i < dimension_order.size(); i++)
+		dimension_order[i] = i;
 }
 
-void BTree::Node::clan_children() {
+BTree::Node::Node() {
+	assert(((uintptr_t) this) % 64 == 0);
+	keys[0] = keys[1] = _mm256_set1_epi32(
+			std::numeric_limits < uint32_t > ::max());
+	dim_index = _m_from_int64(std::numeric_limits < uint64_t > ::max());
+	std::fill(value.begin(), value.end(), INVALID_INDEX);
+	clean_children();
+	set_key_cnt(0);
+	is_leaf = true;
+}
+
+void BTree::Node::clean_children() {
 	std::fill(next_level.begin(), next_level.end(), INVALID_INDEX);
 	std::fill(child_index.begin(), child_index.end(), INVALID_INDEX);
 }
-
 
 void BTree::Node::set_key_cnt(size_t key_cnt) {
 	assert(key_cnt <= MAX_DEGREE);
@@ -91,11 +97,34 @@ BTree::Node::~Node() {
 }
 
 void BTree::Node::set_child(unsigned index, Node * child) {
-	child_index[index] = Node::_Mempool_t::getId(child);
+	if (child == nullptr)
+		child_index[index] = INVALID_INDEX;
+	else
+		child_index[index] = Node::_Mempool_t::getId(child);
 }
 
 void BTree::Node::set_next_layer(unsigned index, Node * next_layer_root) {
-	next_level[index] = Node::_Mempool_t::getId(next_layer_root);
+	if (next_layer_root == nullptr)
+		next_level[index] = INVALID_INDEX;
+	else
+		next_level[index] = Node::_Mempool_t::getId(next_layer_root);
+}
+
+size_t BTree::size() const {
+	if (root)
+		return root->size();
+	else
+		return 0;
+}
+
+size_t BTree::Node::size() const {
+	size_t s = key_cnt;
+	for (size_t i = 0; i < key_cnt + 1u; i++) {
+		auto ch = child(i);
+		if (ch)
+			s += ch->size();
+	}
+	return s;
 }
 
 BTree::~BTree() {

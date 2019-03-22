@@ -33,8 +33,12 @@ public:
 		return low == other.low and high == other.high;
 	}
 
-	operator std::string() {
+	operator std::string() const {
 		return std::to_string(low) + ":" + std::to_string(high);
+	}
+
+	bool is_wildcard() const {
+		return low == 0 and high == T(0) - 1;
 	}
 
 };

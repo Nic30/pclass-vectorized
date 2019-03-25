@@ -5,11 +5,17 @@
 #include "test_common.h"
 
 #include <pcv/partiton_sort/b_tree.h>
+#include <pcv/partiton_sort/b_tree_search.h>
+
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv__testsuite )
+
+BTree::rule_id_t search(BTree & t, const std::vector<BTree::value_t> & v) {
+	return BTreeSearch<BTree>::search(t, v);
+}
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
 	BTree t;
@@ -30,37 +36,37 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	using V = vector<BTree::value_t>;
 	{
 		V v = { 0, 0 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
 	}
 	{
 		V v = { 4, 0 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, 9);
 	}
 	{
 		V v = { 4, 10 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, 10);
 	}
 	{
 		V v = { 4, 11 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, 10);
 	}
 	{
 		V v = { 4, 20 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, 10);
 	}
 	{
 		V v = { 4, 30 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, 9);
 	}
 	{
 		V v = { 3, 10 };
-		auto r = t.search(v);
+		auto r = search(t, v);
 		BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
 	}
 }

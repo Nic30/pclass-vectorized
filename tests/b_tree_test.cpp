@@ -5,15 +5,28 @@
 #include "test_common.h"
 
 #include <pcv/partiton_sort/b_tree.h>
+#include <pcv/partiton_sort/b_tree_search.h>
+#include <pcv/partiton_sort/b_tree_insert.h>
+#include <pcv/partiton_sort/b_tree_remove.h>
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
-
+void insert(BTree & t, BTree::rule_spec_t & r) {
+	BTreeInsert<BTree>::insert(t, r);
+}
 BTree::rule_id_t search(BTree & t, BTree::value_t s) {
 	vector<BTree::value_t> v = { s, };
-	return t.search(v);
+	return BTreeSearch<BTree>::search(t, v);
+}
+
+BTree::rule_id_t search(BTree & t,
+		const std::vector<typename BTree::value_t> & v) {
+	return BTreeSearch<BTree>::search(t, v);
+}
+void remove(BTree & t, const BTree::rule_spec_t & r) {
+	BTreeRemove<BTree>::remove(t, r);
 }
 
 void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
@@ -23,7 +36,7 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
-		t.insert(r);
+		insert(t, r);
 	}
 
 	//stringstream ss;
@@ -38,7 +51,7 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 			BTree::value_t s = (i * STEP + i2);
 			//cout << s  << " expecting " << i << endl;
 			vector<BTree::value_t> v = { s, };
-			auto res = t.search(v);
+			auto res = search(t, v);
 			BOOST_CHECK_EQUAL_MESSAGE(res, i,
 					"searching:" << s << " i:" << i << " i2:" << i2);
 		}
@@ -53,7 +66,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
-		t.insert(r);
+		insert(t, r);
 		integrity_check(*t.root);
 	}
 
@@ -66,7 +79,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
-		t.remove(r);
+		remove(t, r);
 		BOOST_CHECK_EQUAL(t.size(), 2 * (N - i - 1));
 		for (size_t i3 = i + 1; i3 < N; i3++) {
 			for (size_t i2 = 0; i2 < RANGE_SIZE; i2++) {
@@ -133,9 +146,9 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	rule_t r2 = { { R1d(3, 6), R1d(0, 0), }, 2 };
 	rule_t r3 = { { R1d(7, 10), R1d(0, 0), }, 3 };
 
-	t.insert(r1);
-	t.insert(r2);
-	t.insert(r3);
+	insert(t, r1);
+	insert(t, r2);
+	insert(t, r3);
 
 	BOOST_CHECK_EQUAL(search(t, 0), BTree::INVALID_RULE);
 	BOOST_CHECK_EQUAL(search(t, 1), 1);

@@ -5,12 +5,15 @@
 #include "test_common.h"
 
 #include <pcv/partiton_sort/b_tree.h>
+#include <pcv/partiton_sort/b_tree_insert.h>
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
-
+void insert(BTree & t,  BTree::rule_spec_t & r) {
+	BTreeInsert<BTree>::insert(t, r);
+}
 void simple_colision_check(size_t N) {
 	size_t STEP = 10;
 	size_t SIZE = 4;
@@ -27,7 +30,7 @@ void simple_colision_check(size_t N) {
 		collide = t.does_rule_colide(r1);
 		BOOST_CHECK(not collide);
 
-		t.insert(r0);
+		insert(t, r0);
 
 		collide = t.does_rule_colide(r1);
 		BOOST_CHECK(collide);

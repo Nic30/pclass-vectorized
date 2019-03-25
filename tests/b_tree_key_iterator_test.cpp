@@ -5,24 +5,31 @@
 #include "test_common.h"
 
 #include <pcv/partiton_sort/b_tree.h>
+#include <pcv/partiton_sort/b_tree_insert.h>
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
+using rule_t = BTree::rule_spec_t;
+using R1d = Range1d<BTree::value_t>;
+
+void insert(BTree & t,  BTree::rule_spec_t & r) {
+	BTreeInsert<BTree>::insert(t, r);
+}
+
 BOOST_AUTO_TEST_CASE( iterate_100_ranges ) {
 	size_t N = 100;
 	BTree t;
-	using rule_t = BTree::rule_spec_t;
-	using R1d = Range1d<uint32_t>;
+
 	for (size_t i = 0; i < N; i++) {
 		rule_t r = { { R1d(i, i), R1d(0, 0), }, i };
-		t.insert(r);
+		insert(t, r);
 	}
 
 	size_t i = 0;
-	for (auto k : t.iter_keys()) {
+	for (auto k : BTreeSearch<BTree>::iter_keys(t)) {
 		BOOST_CHECK_EQUAL(k.key.low, i);
 		BOOST_CHECK_EQUAL(k.key.high, i);
 		i++;
@@ -38,10 +45,10 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges_backward ) {
 	using R1d = Range1d<uint32_t>;
 	for (size_t i = 0; i < N; i++) {
 		rule_t r = { { R1d(i, i), R1d(0, 0), }, i };
-		t.insert(r);
+		insert(t, r);
 	}
 
-	auto _it = t.iter_keys();
+	auto _it = BTreeSearch<BTree>::iter_keys(t);
 	auto it = _it.begin();
 	for (size_t i = 0; i < N - 1; i++) {
 		BOOST_CHECK_EQUAL((*it).key.low, i);

@@ -14,23 +14,8 @@
 //#include <pcv/partiton_sort/mempool_mockup.h>
 #include <pcv/partiton_sort/mempool.h>
 #include <pcv/partiton_sort/key_info.h>
-#include <pcv/partiton_sort/key_iterator.h>
 
 namespace pcv {
-
-/*
- * If the searched value is in range it means that the search in B-tree is finished
- * and the val_index is index of item in this node where the search ended
- * Otherwise the val_index is index of the children node which should be searched
- **/
-class SearchResult {
-public:
-	unsigned val_index;
-	bool in_range;
-	SearchResult() :
-			val_index(-1), in_range(false) {
-	}
-};
 
 /*
  * The B-Tree with multidimensional key
@@ -44,7 +29,7 @@ public:
 	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, D>, rule_id_t>;
 	using value_t = uint32_t;
 	using index_t = uint16_t;
-	using KeyInfo = _KeyInfo<uint32_t, BTree::index_t, BTree::value_t>;
+	using KeyInfo = _KeyInfo<BTree::value_t, BTree::index_t>;
 
 	static const index_t INVALID_INDEX;
 	static const rule_id_t INVALID_RULE;
@@ -111,45 +96,10 @@ public:
 		 * */
 		void set_next_layer(unsigned index, Node * next_layer_root);
 
-		/* A utility function to split the child y of this node
-		 * Note that y must be full when this function is called
-		 * @param i index of key which should be transfered to this node
-		 * @param y the child node
-		 **/
-		void splitChild(unsigned i, Node & y);
-
 		/*
 		 * Set key_cnt and also update key_mask
 		 * */
 		void set_key_cnt(size_t key_cnt);
-
-		/*
-		 * Information about insert state
-		 * */
-		class InsertCookie {
-		public:
-			std::array<int, D> & dimensio_order;
-			uint8_t level;
-
-			InsertCookie(BTree & tree);
-			Range1d<value_t> get_actual_key(const rule_spec_t & rule) const;
-			bool required_more_levels(const rule_spec_t & rule) const;
-		};
-
-		/* A utility function to insert a new key in this node
-		 * The assumption is, the node must be non-full when this
-		 * function is called
-		 * */
-		void insertNonFull(const rule_spec_t & rule, InsertCookie & cookie);
-		/*
-		 * @note the rule must not collide with anything in the tree
-		 * @param root root of tree where the rule should be inserted (can be nullptr)
-		 * @param rule rule to insert
-		 * @param cookie which sotores the state of insertion
-		 * @return new root of the tree
-		 * */
-		static Node * insert_to_root(Node * root, const rule_spec_t & rule,
-				InsertCookie & cookie);
 
 		// get node from mempool from its index
 		static inline Node & by_index(const index_t index) {
@@ -164,55 +114,11 @@ public:
 		// get root node of the next layer starting from this node on specified index
 		Node * get_next_layer(unsigned index);
 		const Node * get_next_layer(unsigned index) const;
-		// Find index of the key in this node
-		unsigned findKey(const Range1d<value_t> k);
-		/* A wrapper function to remove the key k in subtree rooted with
-		 * this node.
-		 * */
-		void remove(Range1d<value_t> k);
-		/* A function to remove the key present in idx-th position in
-		 * this node which is a leaf
-		 * */
-		void removeFromLeaf(unsigned idx);
-
-		/**
-		 * A function to remove the key present in idx-th position in
-		 * this node which is a non-leaf node
-		 *
-		 * @param idx index of the key to remove
-		 */
-		void removeFromNonLeaf(unsigned idx);
-		/* A function to borrow a key from child(idx-1) and insert it
-		 * into child(idx)
-		 * */
-		void borrowFromPrev(unsigned idx);
-		// A function to borrow a key from the child(idx+1) and place
-		// it in child(idx)
-		void borrowFromNext(unsigned idx);
-		// A function to merge child(idx) with child(idx+1)
-		// child(idx+1) is freed after merging
-		void merge(unsigned idx);
-		// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
-		void fill(unsigned idx);
-
-		// A function to get position of successor of keys[idx]
-		// @return next node and next index of key in it
-		// 		if there is no key after this one returns {nullptr, 0};
-		std::pair<Node*, unsigned> getSucc_global(unsigned idx);
-		std::pair<Node*, unsigned> getPred_global(unsigned idx);
-
-		// A function to get predecessor of keys[idx] (only in the local subtree)
-		KeyInfo getPred(unsigned idx);
-		// A function to get successor of keys[idx] (only in the local subtree)
-		KeyInfo getSucc(unsigned idx);
 
 		size_t size() const;
 		~Node();
 	}__attribute__((aligned(64)));
 
-	using KeyIterator = _KeyIterator<Node, KeyInfo, value_t>;
-	KeyIterator iter_keys();
-	KeyIterator iter_keys(Node * start, unsigned start_i);
 	Node * root;
 
 	BTree(BTree const&) = delete;
@@ -220,45 +126,11 @@ public:
 	BTree();
 
 	/*
-	 * Search in all levels of the tree
-	 *
-	 * [TODO] use array
-	 * */
-	rule_id_t search(const std::vector<value_t> & val);
-	/*
-	 * Search the tuples <node, index in node> for each part of the rule
-	 * @note the items are in order specified by dimension_order array
-	 **/
-	void search_path(const rule_spec_t & rule,
-			std::vector<std::pair<Node *, unsigned>> & path);
-
-	/*
 	 * Check if the rule collides wit any other rule in the tree
 	 *
 	 * @note the rule however can overwrite other rule or can use its prefix without the collision
 	 * */
 	bool does_rule_colide(const rule_spec_t & rule);
-
-	/*
-	 * @attention The range can be removed only if noting depends on it in next level
-	 * */
-	Node * remove_1d(const Range1d<value_t> & k, Node * current_root);
-	/*
-	 * A wrapper function to remove the key k in subtree rooted with
-	 * this node.
-	 */
-	void remove(const rule_spec_t & k);
-
-	inline void insert(const rule_spec_t & rule) {
-		Node::InsertCookie cookie(*this);
-		insert(rule, cookie);
-	}
-
-	/*
-	 * if insert fails there is last node stored in cookie
-	 * for reinsert
-	 * */
-	void insert(const rule_spec_t & rule, Node::InsertCookie & cookie);
 
 	// get number of keys stored on all levels in tree (!= number of stored rules)
 	size_t size() const;

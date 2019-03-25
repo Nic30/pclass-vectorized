@@ -4,14 +4,6 @@ using namespace std;
 
 namespace pcv {
 
-void print_avx2_hex256(__m256i ymm) {
-	array<uint64_t, sizeof(__m256i) / sizeof(u_int32_t)> buffer;
-	_mm256_storeu_si256((__m256i*)&buffer[0], ymm);
-	for (auto i: buffer) {
-		std::cout << i << " ";
-	}
-}
-
 const BTree::index_t BTree::INVALID_INDEX = std::numeric_limits<index_t>::max();
 const BTree::index_t BTree::INVALID_RULE = INVALID_INDEX;
 
@@ -71,13 +63,6 @@ const BTree::Node * BTree::Node::get_next_layer(unsigned index) const {
 		return nullptr;
 	else
 		return &by_index(i);
-}
-
-unsigned BTree::Node::findKey(const Range1d<value_t> k) {
-	unsigned i = 0;
-	while (i < key_cnt && get_key<uint32_t>(i) < k)
-		++i;
-	return i;
 }
 
 BTree::Node::~Node() {

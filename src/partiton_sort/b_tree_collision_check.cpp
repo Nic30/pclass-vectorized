@@ -1,5 +1,5 @@
 #include <pcv/partiton_sort/b_tree.h>
-#include <pcv/partiton_sort/b_tree_search_extra.h>
+#include <pcv/partiton_sort/b_tree_search.h>
 
 using namespace std;
 
@@ -28,7 +28,7 @@ std::pair<BTree::Node*, unsigned> search_closest_lower_or_equal_key(
 			return {n, s.val_index};
 		} else if (n->is_leaf) {
 			if (not s.in_range) {
-				BTree::KeyIterator _it(n, 0);
+				BTreeSearch<BTree>::KeyIterator _it(n, 0);
 				auto it = _it.begin();
 				--it;
 				return {it.actual, it.index};
@@ -64,10 +64,10 @@ bool BTree::does_rule_colide(const rule_spec_t & rule) {
 		} else {
 			Range1d<BTree::value_t> p_low_next;
 			if (p_low.first) {
-				BTree::KeyIterator _it(p_low.first, p_low.second);
+				BTreeSearch<BTree>::KeyIterator _it(p_low.first, p_low.second);
 				p_low_next = (*_it.begin()).key;
 			} else {
-				BTree::KeyIterator _it(root, 0);
+				BTreeSearch<BTree>::KeyIterator _it(root, 0);
 				p_low_next = (*_it.begin()).key;
 			}
 			if (p_low_next.overlaps(d_val)) {

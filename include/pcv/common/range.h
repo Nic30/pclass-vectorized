@@ -32,6 +32,9 @@ public:
 	bool operator==(const Range1d & other) const {
 		return low == other.low and high == other.high;
 	}
+	bool operator!=(const Range1d & other) const {
+		return low != other.low or high != other.high;
+	}
 
 	operator std::string() const {
 		return std::to_string(low) + ":" + std::to_string(high);

@@ -1,4 +1,5 @@
 #include <pcv/partiton_sort/b_tree.h>
+#include <pcv/partiton_sort/b_tree_search_extra.h>
 
 using namespace std;
 
@@ -10,10 +11,10 @@ namespace pcv {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline __m256i                             __attribute__((__always_inline__))                             _mm256_cmpgt_epu32(
-		__m256i                             const a, __m256i                             const b) {
+inline __m256i                      __attribute__((__always_inline__))                     _mm256_cmpgt_epu32(
+		__m256i                     const a, __m256i                     const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i                             const fix_val = _mm256_set1_epi32(offset);
+	__m256i                     const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 
@@ -31,9 +32,9 @@ BTree::rule_id_t BTree::search(const value_t & val) {
 //	_mm256_storeu_si256(middle, x);
 //}
 
-BTree::SearchResult search_seq(const BTree::Node & node,
+SearchResult search_seq(const BTree::Node & node,
 		const Range1d<BTree::value_t> val) {
-	BTree::SearchResult r;
+	SearchResult r;
 	for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
 		BTree::KeyInfo cur = node.get_key<uint32_t>(r.val_index);
 		if (val < cur.key.low) {
@@ -46,8 +47,8 @@ BTree::SearchResult search_seq(const BTree::Node & node,
 	return r;
 }
 
-BTree::SearchResult search_seq(const BTree::Node & node, BTree::value_t val) {
-	BTree::SearchResult r;
+SearchResult search_seq(const BTree::Node & node, BTree::value_t val) {
+	SearchResult r;
 	for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
 		BTree::KeyInfo cur = node.get_key<uint32_t>(r.val_index);
 		if (val < cur.key.low) {
@@ -60,7 +61,7 @@ BTree::SearchResult search_seq(const BTree::Node & node, BTree::value_t val) {
 	return r;
 }
 
-BTree::SearchResult search_avx2(const BTree::Node & node, BTree::value_t val) {
+SearchResult search_avx2(const BTree::Node & node, BTree::value_t val) {
 	__m256i value = _mm256_set1_epi32(val);
 	// compare the two halves of the cache line.
 	// load 256b to avx
@@ -79,7 +80,7 @@ BTree::SearchResult search_avx2(const BTree::Node & node, BTree::value_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i                             const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i                                                  const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -88,33 +89,11 @@ BTree::SearchResult search_avx2(const BTree::Node & node, BTree::value_t val) {
 	uint32_t mask = _mm256_movemask_epi8(cmp); // PMOVMSKB
 	auto next_index = _tzcnt_u32(mask) / 2; // TZCNT
 
-	BTree::SearchResult r;
+	SearchResult r;
 	r.val_index = next_index;
 	r.in_range = false; // [TODO]
 	assert(r.val_index < BTree::Node::MAX_DEGREE + 1);
 	return r;
-}
-
-/*
- * Search the value or range in single level of the tree
- *
- * @return pair<node where key resides, index of the key in node>
- * */
-template<typename value_t>
-std::pair<BTree::Node*, unsigned> search_possition_1d(BTree::Node * n,
-		const value_t val) {
-	while (n) {
-		//auto s = search_avx2(*n, val);
-		auto s = search_seq(*n, val);
-		if (s.in_range) {
-			return {n, s.val_index};
-		} else if (n->is_leaf) {
-			return {nullptr, 0};
-		} else {
-			n = n->child(s.val_index);
-		}
-	}
-	return {nullptr, 0};
 }
 
 BTree::rule_id_t BTree::search(const std::vector<value_t> & _val) {
@@ -158,8 +137,12 @@ void BTree::search_path(const rule_spec_t & rule,
 	}
 }
 
-BTree::Node::KeyIterator BTree::Node::iter_keys() {
-	return KeyIterator(this);
+BTree::KeyIterator BTree::iter_keys() {
+	return KeyIterator(root);
+}
+
+BTree::KeyIterator BTree::iter_keys(Node * start, unsigned start_i) {
+	return KeyIterator(start, start_i);
 }
 
 unsigned index_of_child(BTree::Node *p, BTree::Node * ch) {
@@ -170,12 +153,14 @@ unsigned index_of_child(BTree::Node *p, BTree::Node * ch) {
 	}
 	return i;
 }
+
 pair<BTree::Node*, unsigned> get_most_left(BTree::Node * n) {
 	while (not n->is_leaf) {
 		n = n->child(0);
 	}
 	return {n, 0};
 }
+
 pair<BTree::Node*, unsigned> get_most_left_after(BTree::Node * p,
 		BTree::Node * ch) {
 	while (p != nullptr) {
@@ -196,14 +181,64 @@ std::pair<BTree::Node*, unsigned> BTree::Node::getSucc_global(unsigned idx) {
 			// move forward in this node
 			return {this, idx + 1};
 		} else {
-			// just move to parent key
-			return {parent, index_of_child(parent, this)};
+			Node * p = parent;
+			Node * n = this;
+			while (p) {
+				auto i = index_of_child(p, n);
+				if (i == p->key_cnt) {
+					// this is on end of parent and successor is somewhere up
+					n = p;
+					p = p->parent;
+				} else {
+					// just move to parent key
+					return {p, i};
+				}
+			}
+			return {nullptr, 0};
 		}
-	} else if (idx < key_cnt) {
+	} else if (child(idx + 1)) {
 		// move on lowest in right sibling
 		return get_most_left(child(idx + 1));
 	} else {
 		return get_most_left_after(parent, this);
+	}
+}
+
+std::pair<BTree::Node*, unsigned> BTree::Node::getPred_global(unsigned idx) {
+	if (is_leaf) {
+		if (idx > 0) {
+			// move backward in this node
+			return {this, idx - 1};
+		} else {
+			// move to parent and check if there is key on left
+			// if there is not this is the 1st child and the value can be on the parent of the parent
+			Node * p = parent, *n = this;
+			while (p) {
+				size_t i = index_of_child(p, n);
+				if (i > 0) {
+					// key in parent before the keys of this node
+					return {p, i - 1};
+				}
+				// go one level up
+				n = p;
+				p = p->parent;
+			}
+
+			assert(p == nullptr);
+			// we are on top on first item there is nowhere to go
+			return {nullptr, 0};
+		}
+	} else {
+		// in internal node
+		// there has to be previous node because otherwise this would be a leaf node
+		// move to children on the bootom left
+
+		// the indexing of children is shifted against the indexing of the keys by -1
+		auto ch = child(idx);
+		while (not ch->is_leaf) {
+			ch = ch->child(ch->key_cnt);
+		}
+		return {ch, ch->key_cnt - 1};
 	}
 }
 

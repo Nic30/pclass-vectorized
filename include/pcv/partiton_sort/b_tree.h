@@ -14,8 +14,23 @@
 //#include <pcv/partiton_sort/mempool_mockup.h>
 #include <pcv/partiton_sort/mempool.h>
 #include <pcv/partiton_sort/key_info.h>
+#include <pcv/partiton_sort/key_iterator.h>
 
 namespace pcv {
+
+/*
+ * If the searched value is in range it means that the search in B-tree is finished
+ * and the val_index is index of item in this node where the search ended
+ * Otherwise the val_index is index of the children node which should be searched
+ **/
+class SearchResult {
+public:
+	unsigned val_index;
+	bool in_range;
+	SearchResult() :
+			val_index(-1), in_range(false) {
+	}
+};
 
 /*
  * The B-Tree with multidimensional key
@@ -29,7 +44,6 @@ public:
 	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, D>, rule_id_t>;
 	using value_t = uint32_t;
 	using index_t = uint16_t;
-
 	using KeyInfo = _KeyInfo<uint32_t, BTree::index_t, BTree::value_t>;
 
 	static const index_t INVALID_INDEX;
@@ -58,49 +72,6 @@ public:
 
 		bool is_leaf;
 		Node * parent;
-
-		class KeyIterator {
-		public:
-			class State {
-			public:
-				Node * actual;
-				unsigned index;
-
-				bool operator!=(const State & other) const {
-					return actual != other.actual or index != other.index;
-				}
-
-				void operator++() {
-					std::tie(actual, index) = actual->getSucc_global(index);
-				}
-
-				KeyInfo operator*() {
-					return actual->get_key<value_t>(index);
-				}
-
-			};
-
-			State _end;
-			State _begin;
-
-			KeyIterator(Node * root) {
-				_begin.actual = root;
-				_begin.index = 0;
-				while (_begin.actual->child(0)) {
-					_begin.actual = _begin.actual->child(0);
-				}
-				_end.actual = nullptr;
-				_end.index = 0;
-			}
-
-			constexpr State & end() {
-				return _end;
-			}
-
-			constexpr State & begin() {
-				return _begin;
-			}
-		};
 
 		Node(Node const&) = delete;
 		Node& operator=(Node const&) = delete;
@@ -224,11 +195,11 @@ public:
 		// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
 		void fill(unsigned idx);
 
-		KeyIterator iter_keys();
 		// A function to get position of successor of keys[idx]
 		// @return next node and next index of key in it
 		// 		if there is no key after this one returns {nullptr, 0};
 		std::pair<Node*, unsigned> getSucc_global(unsigned idx);
+		std::pair<Node*, unsigned> getPred_global(unsigned idx);
 
 		// A function to get predecessor of keys[idx] (only in the local subtree)
 		KeyInfo getPred(unsigned idx);
@@ -239,6 +210,9 @@ public:
 		~Node();
 	}__attribute__((aligned(64)));
 
+	using KeyIterator = _KeyIterator<Node, KeyInfo, value_t>;
+	KeyIterator iter_keys();
+	KeyIterator iter_keys(Node * start, unsigned start_i);
 	Node * root;
 
 	BTree(BTree const&) = delete;
@@ -258,7 +232,6 @@ public:
 	 * [TODO] use array
 	 * */
 	rule_id_t search(const std::vector<value_t> & val);
-
 	/*
 	 * Search the tuples <node, index in node> for each part of the rule
 	 * @note the items are in order specified by dimension_order array
@@ -293,20 +266,6 @@ public:
 	 * for reinsert
 	 * */
 	void insert(const rule_spec_t & rule, Node::InsertCookie & cookie);
-
-	/*
-	 * If the searched value is in range it means that the search in B-tree is finished
-	 * and the val_index is index of item in this node where the search ended
-	 * Otherwise the val_index is index of the children node which should be searched
-	 **/
-	class SearchResult {
-	public:
-		unsigned val_index;
-		bool in_range;
-		SearchResult() :
-				val_index(-1), in_range(false) {
-		}
-	};
 
 	// get number of keys stored on all levels in tree (!= number of stored rules)
 	size_t size() const;

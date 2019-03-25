@@ -25,9 +25,6 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges ) {
 	for (auto k : t.iter_keys()) {
 		BOOST_CHECK_EQUAL(k.key.low, i);
 		BOOST_CHECK_EQUAL(k.key.high, i);
-		if (i == 99) {
-			std::cout << endl;
-		}
 		i++;
 	}
 	BOOST_CHECK_EQUAL(i, N);

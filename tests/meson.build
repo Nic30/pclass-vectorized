@@ -3,6 +3,7 @@ boost_deps = dependency('boost', modules: ['unit_test_framework', ])
 tests = [
   ['b_tree', 'simple test of b-tree impl'],
   ['b_tree_key_iterator', 'b-tree key iterator test'],
+  ['b_tree_collision_check', 'test of methods for collision checking between the values stored in tree'],
   ['mempool', 'tests of static memory mempool'],
   ['classbench_rule_parser', 'tests for functionality of classbench rule parser'],
   ['layered_b_tree', 'tests for layering mechanism of the of b-tree impl'],

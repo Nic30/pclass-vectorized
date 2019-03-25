@@ -40,6 +40,11 @@ public:
 		return std::to_string(low) + ":" + std::to_string(high);
 	}
 
+	bool overlaps(const Range1d & other) const {
+		return (low <= other.low and high >= other.low)
+				or (other.low <= low and other.high >= high);
+	}
+
 	bool is_wildcard() const {
 		return low == 0 and high == T(0) - 1;
 	}

@@ -18,11 +18,6 @@ inline __m256i                      __attribute__((__always_inline__))          
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 
-BTree::rule_id_t BTree::search(const value_t & val) {
-	vector<value_t> v = { val, };
-	return search(v);
-}
-
 //void preprocess_avx2(union b_node* const node) {
 //	__m256i   const perm_mask = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
 //	__m256i * const middle = (__m256i *) &node->i32[4];

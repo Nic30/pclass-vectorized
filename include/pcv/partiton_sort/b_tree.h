@@ -220,13 +220,6 @@ public:
 	BTree();
 
 	/*
-	 * Search in onde level of the tree
-	 *
-	 * @return rule index or the INVALID_RULE constant
-	 * */
-	rule_id_t search(const value_t & val);
-
-	/*
 	 * Search in all levels of the tree
 	 *
 	 * [TODO] use array

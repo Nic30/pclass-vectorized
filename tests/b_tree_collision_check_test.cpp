@@ -35,7 +35,6 @@ void simple_colision_check(size_t N) {
 		collide = t.does_rule_colide(r0);
 		BOOST_CHECK(not collide);
 	}
-
 }
 
 BOOST_AUTO_TEST_CASE(colision_1_item_in_1_node) {
@@ -45,6 +44,7 @@ BOOST_AUTO_TEST_CASE(colision_1_item_in_1_node) {
 BOOST_AUTO_TEST_CASE(colision_4_item_in_1_node) {
 	simple_colision_check(4);
 }
+
 BOOST_AUTO_TEST_CASE(colision_500_nodes) {
 	simple_colision_check(500);
 }

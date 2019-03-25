@@ -11,10 +11,10 @@ namespace pcv {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline __m256i                      __attribute__((__always_inline__))                     _mm256_cmpgt_epu32(
-		__m256i                     const a, __m256i                     const b) {
+inline __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
+		__m256i const a, __m256i const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i                     const fix_val = _mm256_set1_epi32(offset);
+	__m256i const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 
@@ -75,7 +75,7 @@ SearchResult search_avx2(const BTree::Node & node, BTree::value_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i                                                  const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 

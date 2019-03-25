@@ -8,21 +8,19 @@
 #include <limits>
 #include <vector>
 #include <set>
+#include <tuple>
 
-//#include <pcv/partiton_sort/mempool_mockup.h>
 #include <pcv/common/range.h>
+//#include <pcv/partiton_sort/mempool_mockup.h>
 #include <pcv/partiton_sort/mempool.h>
 #include <pcv/partiton_sort/key_info.h>
 
 namespace pcv {
 
-// https://stackoverflow.com/questions/24594026/initialize-m256i-from-64-high-or-low-bits-of-four-m128i-variables
-// https://openproceedings.org/EDBT/2014/paper_107.pdf
-
 /*
  * The B-Tree with multidimensional key
  *
- * This is B-tree divide to several layers. Each layer performs the lookup in single dimmension only.
+ * This is B-tree divide to several layers. Each layer performs the lookup in single dimension only.
  * */
 class alignas(64) BTree {
 public:
@@ -59,6 +57,50 @@ public:
 		uint8_t key_cnt;
 
 		bool is_leaf;
+		Node * parent;
+
+		class KeyIterator {
+		public:
+			class State {
+			public:
+				Node * actual;
+				unsigned index;
+
+				bool operator!=(const State & other) const {
+					return actual != other.actual or index != other.index;
+				}
+
+				void operator++() {
+					std::tie(actual, index) = actual->getSucc_global(index);
+				}
+
+				KeyInfo operator*() {
+					return actual->get_key<value_t>(index);
+				}
+
+			};
+
+			State _end;
+			State _begin;
+
+			KeyIterator(Node * root) {
+				_begin.actual = root;
+				_begin.index = 0;
+				while (_begin.actual->child(0)) {
+					_begin.actual = _begin.actual->child(0);
+				}
+				_end.actual = nullptr;
+				_end.index = 0;
+			}
+
+			constexpr State & end() {
+				return _end;
+			}
+
+			constexpr State & begin() {
+				return _begin;
+			}
+		};
 
 		Node(Node const&) = delete;
 		Node& operator=(Node const&) = delete;
@@ -102,7 +144,7 @@ public:
 		 * Note that y must be full when this function is called
 		 * @param i index of key which should be transfered to this node
 		 * @param y the child node
-		 */
+		 **/
 		void splitChild(unsigned i, Node & y);
 
 		/*
@@ -126,24 +168,40 @@ public:
 		/* A utility function to insert a new key in this node
 		 * The assumption is, the node must be non-full when this
 		 * function is called
-		 */
+		 * */
 		void insertNonFull(const rule_spec_t & rule, InsertCookie & cookie);
+		/*
+		 * @note the rule must not collide with anything in the tree
+		 * @param root root of tree where the rule should be inserted (can be nullptr)
+		 * @param rule rule to insert
+		 * @param cookie which sotores the state of insertion
+		 * @return new root of the tree
+		 * */
 		static Node * insert_to_root(Node * root, const rule_spec_t & rule,
 				InsertCookie & cookie);
 
-		static Node & by_index(const index_t index);
+		// get node from mempool from its index
+		static inline Node & by_index(const index_t index) {
+			return *reinterpret_cast<Node*>(BTree::Node::_Mempool_t::getById(
+					index));
+		}
+
+		// get child node on specified index
 		Node * child(const index_t index);
 		const Node * child(const index_t index) const;
+
+		// get root node of the next layer starting from this node on specified index
 		Node * get_next_layer(unsigned index);
 		const Node * get_next_layer(unsigned index) const;
-		/* Find index of the key in this node
-		 * */
+		// Find index of the key in this node
 		unsigned findKey(const Range1d<value_t> k);
-		// A wrapper function to remove the key k in subtree rooted with
-		// this node.
+		/* A wrapper function to remove the key k in subtree rooted with
+		 * this node.
+		 * */
 		void remove(Range1d<value_t> k);
-		// A function to remove the key present in idx-th position in
-		// this node which is a leaf
+		/* A function to remove the key present in idx-th position in
+		 * this node which is a leaf
+		 * */
 		void removeFromLeaf(unsigned idx);
 
 		/**
@@ -153,8 +211,9 @@ public:
 		 * @param idx index of the key to remove
 		 */
 		void removeFromNonLeaf(unsigned idx);
-		// A function to borrow a key from child(idx-1) and insert it
-		// into child(idx)
+		/* A function to borrow a key from child(idx-1) and insert it
+		 * into child(idx)
+		 * */
 		void borrowFromPrev(unsigned idx);
 		// A function to borrow a key from the child(idx+1) and place
 		// it in child(idx)
@@ -165,9 +224,15 @@ public:
 		// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
 		void fill(unsigned idx);
 
-		// A function to get predecessor of keys[idx]
+		KeyIterator iter_keys();
+		// A function to get position of successor of keys[idx]
+		// @return next node and next index of key in it
+		// 		if there is no key after this one returns {nullptr, 0};
+		std::pair<Node*, unsigned> getSucc_global(unsigned idx);
+
+		// A function to get predecessor of keys[idx] (only in the local subtree)
 		KeyInfo getPred(unsigned idx);
-		// A function to get successor of keys[idx]
+		// A function to get successor of keys[idx] (only in the local subtree)
 		KeyInfo getSucc(unsigned idx);
 
 		size_t size() const;
@@ -202,11 +267,20 @@ public:
 			std::vector<std::pair<Node *, unsigned>> & path);
 
 	/*
+	 * Check if the rule collides wit any other rule in the tree
+	 *
+	 * @note the rule however can overwrite other rule or can use its prefix without the collision
+	 * */
+	bool does_rule_colide(const rule_spec_t & rule);
+
+	/*
 	 * @attention The range can be removed only if noting depends on it in next level
 	 * */
 	Node * remove_1d(const Range1d<value_t> & k, Node * current_root);
-	// A wrapper function to remove the key k in subtree rooted with
-	// this node.
+	/*
+	 * A wrapper function to remove the key k in subtree rooted with
+	 * this node.
+	 */
 	void remove(const rule_spec_t & k);
 
 	inline void insert(const rule_spec_t & rule) {
@@ -224,7 +298,7 @@ public:
 	 * If the searched value is in range it means that the search in B-tree is finished
 	 * and the val_index is index of item in this node where the search ended
 	 * Otherwise the val_index is index of the children node which should be searched
-	 * */
+	 **/
 	class SearchResult {
 	public:
 		unsigned val_index;
@@ -234,21 +308,22 @@ public:
 		}
 	};
 
+	// get number of keys stored on all levels in tree (!= number of stored rules)
 	size_t size() const;
 
 	void print_to_stream(std::ostream & str, const Node & n) const;
 
 	// serialize graph to string in dot format
 	friend std::ostream & operator<<(std::ostream & str, const BTree & t);
-
 	operator std::string() const;
 
 	~BTree();
+
 }__attribute__((aligned(64)));
 
 /*
  * Move key, value and next level pointer between two places
- **/
+ * */
 template<typename KEY_t>
 inline void move_key(BTree::Node & src, uint8_t src_i, BTree::Node & dst,
 		uint8_t dst_i) {
@@ -268,8 +343,11 @@ inline void transfer_items(BTree::Node & src, unsigned src_start,
 
 	// Copying the child pointers
 	if (not dst.is_leaf) {
-		for (unsigned i = src_start; i <= end; ++i)
-			dst.child_index[i + dst_start] = src.child_index[i];
+		for (unsigned i = src_start; i <= end; ++i) {
+			auto ch = src.child(i);
+			dst.set_child(i + dst_start, ch);
+			//dst.child_index[i + dst_start] = src.child_index[i];
+		}
 	}
 }
 
@@ -281,10 +359,14 @@ inline void shift_items_on_right_to_left(BTree::Node & n, uint8_t start) {
 	for (unsigned i = start + 1; i < n.key_cnt; ++i)
 		move_key<uint32_t>(n, i, n, i - 1);
 
-	for (unsigned i = start + 2; i <= n.key_cnt; ++i)
+	for (unsigned i = start + 2; i <= n.key_cnt; ++i) {
 		n.child_index[i - 1] = n.child_index[i];
+	}
 }
 
+/*
+ * Check if the pointers in node are valid (recursively)
+ * */
 static inline void integrity_check(BTree::Node & n,
 		std::set<BTree::Node*> * seen = nullptr) {
 	std::set<BTree::Node*> _seen;
@@ -295,14 +377,20 @@ static inline void integrity_check(BTree::Node & n,
 
 	for (size_t i = 0; i < n.key_cnt; i++) {
 		n.get_key<uint32_t>(i);
+		auto nl = n.get_next_layer(i);
+		if (nl) {
+			assert(nl->parent == nullptr);
+			integrity_check(*nl, seen);
+		}
+	}
+	for (size_t i = 0; i <= n.key_cnt; i++) {
 		auto ch = n.child(i);
-		if (ch)
+		if (ch) {
+			assert(ch->parent == &n);
 			integrity_check(*ch, seen);
+		}
 	}
 
-	auto ch2 = n.child(n.key_cnt);
-	if (ch2)
-		integrity_check(*ch2, seen);
 }
 
 }

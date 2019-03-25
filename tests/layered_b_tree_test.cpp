@@ -15,12 +15,12 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	BTree t;
 	using K = BTree::KeyInfo;
 
-	t.root = new BTree::Node();
+	t.root = new BTree::Node;
 	K k( { 4, 6 }, 9, BTree::INVALID_INDEX);
 
 	t.root->set_key<uint32_t>(0, k);
 	t.root->set_key_cnt(1);
-	auto nl = new BTree::Node();
+	auto nl = new BTree::Node;
 	nl->set_key_cnt(1);
 	t.root->set_next_layer(0, nl);
 

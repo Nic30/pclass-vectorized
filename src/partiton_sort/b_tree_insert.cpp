@@ -83,13 +83,13 @@ BTree::Node * BTree::Node::insert_to_root(Node * root, const rule_spec_t & rule,
 	// If tree is empty
 	if (root == nullptr) {
 		// Allocate memory for root
-		root = new Node();
+		root = new Node;
 		root->set_key<uint32_t>(0, KeyInfo(k, rule.second, INVALID_INDEX)); // Insert key
 		root->set_key_cnt(1);
 		root->value[0] = rule.second;
 		cookie.level++;
 		if (cookie.required_more_levels(rule)) {
-			auto nl = insert_to_root(nullptr, rule, cookie);
+			auto nl = insert_to_root(root->get_next_layer(0), rule, cookie);
 			root->set_next_layer(0, nl);
 		}
 	} else if (root->key_cnt == Node::MAX_DEGREE) {
@@ -155,7 +155,8 @@ void BTree::Node::splitChild(unsigned i, Node & y) {
 	if (not y.is_leaf) {
 		for (unsigned j = 0; j < MIN_DEGREE + 1; j++) {
 			// Copy the last t children of y to z
-			z->child_index[j] = y.child_index[MIN_DEGREE + j + 1];
+			auto ch = y.child(MIN_DEGREE + j + 1);
+			z->set_child(j, ch);
 		}
 	}
 
@@ -165,8 +166,10 @@ void BTree::Node::splitChild(unsigned i, Node & y) {
 	assert(key_cnt < MAX_DEGREE);
 	// Since this node is going to have a new child,
 	// create space of new child
-	for (int j = key_cnt; j >= int(i + 1); j--)
-		child_index[j + 1] = child_index[j];
+	for (int j = key_cnt; j >= int(i + 1); j--) {
+		auto ch = y.child(j);
+		z->set_child(j + 1, ch);
+	}
 
 	// Link the new child to this node
 	set_child(i + 1, z);

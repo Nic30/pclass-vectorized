@@ -14,6 +14,9 @@ void BTree::print_to_stream(ostream & str, const Node & n) const {
 	 **/
 
 	str << "node" << id << " [label=\"{ <label> " << id << " ";
+	if (n.parent) {
+		str << "(parent:" << Node::_Mempool_t::getId(n.parent) << ")";
+	}
 	// print keys
 	str << "|{";
 	for (size_t i = 0; i < Node::MAX_DEGREE; i++) {

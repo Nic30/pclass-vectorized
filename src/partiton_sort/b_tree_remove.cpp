@@ -29,7 +29,9 @@ void BTree::Node::borrowFromPrev(unsigned idx) {
 
 	// Moving sibling's last child as child(idx)'s first child
 	if (!ch->is_leaf) {
-		ch->child_index[0] = sib->child_index[sib->key_cnt];
+		auto _ch = sib->child(sib->key_cnt);
+		ch->set_child(0, _ch);
+		//ch->child_index[0] = sib->child_index[sib->key_cnt];
 	}
 	// Moving the key from the sibling to the parent
 	// This reduces the number of keys in the sibling
@@ -51,9 +53,11 @@ void BTree::Node::borrowFromNext(unsigned idx) {
 
 	// Sibling's first child is inserted as the last child
 	// into child(idx)
-	if (!(ch->is_leaf))
-		ch->child_index[ch->key_cnt + 1] = sib->child_index[0];
-
+	if (!(ch->is_leaf)) {
+		auto _ch = sib->child(0);
+		ch->set_child(ch->key_cnt + 1, _ch);
+		//ch->child_index[ch->key_cnt + 1] = sib->child_index[0];
+	}
 	//The first key from sib is inserted into keys[idx]
 	move_key<uint32_t>(*sib, 0, *this, idx);
 

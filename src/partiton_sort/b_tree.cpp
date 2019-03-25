@@ -5,15 +5,14 @@ using namespace std;
 namespace pcv {
 
 void print_avx2_hex256(__m256i ymm) {
-	array < uint64_t, sizeof(__m256i) / sizeof(u_int32_t)> buffer;
+	array<uint64_t, sizeof(__m256i) / sizeof(u_int32_t)> buffer;
 	_mm256_storeu_si256((__m256i*)&buffer[0], ymm);
 	for (auto i: buffer) {
 		std::cout << i << " ";
 	}
 }
 
-const BTree::index_t BTree::INVALID_INDEX = std::numeric_limits < index_t
-		> ::max();
+const BTree::index_t BTree::INVALID_INDEX = std::numeric_limits<index_t>::max();
 const BTree::index_t BTree::INVALID_RULE = INVALID_INDEX;
 
 BTree::BTree() :
@@ -23,14 +22,14 @@ BTree::BTree() :
 }
 
 BTree::Node::Node() {
-	assert(((uintptr_t) this) % 64 == 0);
-	keys[0] = keys[1] = _mm256_set1_epi32(
-			std::numeric_limits < uint32_t > ::max());
-	dim_index = _m_from_int64(std::numeric_limits < uint64_t > ::max());
+	assert(((uintptr_t ) this) % 64 == 0);
+	keys[0] = keys[1] = _mm256_set1_epi32(std::numeric_limits<uint32_t>::max());
+	dim_index = _m_from_int64(std::numeric_limits<uint64_t>::max());
 	std::fill(value.begin(), value.end(), INVALID_INDEX);
 	clean_children();
 	set_key_cnt(0);
 	is_leaf = true;
+	parent = nullptr;
 }
 
 void BTree::Node::clean_children() {
@@ -42,10 +41,6 @@ void BTree::Node::set_key_cnt(size_t key_cnt) {
 	assert(key_cnt <= MAX_DEGREE);
 	this->key_cnt = key_cnt;
 	key_mask = (1 << key_cnt) - 1;
-}
-
-BTree::Node & BTree::Node::by_index(const index_t index) {
-	return *reinterpret_cast<Node*>(BTree::Node::_Mempool_t::getById(index));
 }
 
 BTree::Node * BTree::Node::child(const index_t index) {
@@ -99,8 +94,10 @@ BTree::Node::~Node() {
 void BTree::Node::set_child(unsigned index, Node * child) {
 	if (child == nullptr)
 		child_index[index] = INVALID_INDEX;
-	else
+	else {
 		child_index[index] = Node::_Mempool_t::getId(child);
+		child->parent = this;
+	}
 }
 
 void BTree::Node::set_next_layer(unsigned index, Node * next_layer_root) {
@@ -123,6 +120,11 @@ size_t BTree::Node::size() const {
 		auto ch = child(i);
 		if (ch)
 			s += ch->size();
+	}
+	for (size_t i = 0; i < key_cnt; i++) {
+		auto nl = get_next_layer(i);
+		if (nl)
+			s += nl->size();
 	}
 	return s;
 }

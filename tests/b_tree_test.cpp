@@ -61,7 +61,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
 		t.remove(r);
-		BOOST_CHECK_EQUAL(t.size(), N - i - 1);
+		BOOST_CHECK_EQUAL(t.size(), 2 * (N - i - 1));
 		for (size_t i3 = i + 1; i3 < N; i3++) {
 			for (size_t i2 = 0; i2 < RANGE_SIZE; i2++) {
 				auto s = (i3 * STEP + i2);
@@ -92,12 +92,13 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 		BOOST_CHECK_EQUAL_MESSAGE(res, BTree::INVALID_INDEX,
 				"searching:" << s << " i:" << i);
 	}
-	BOOST_CHECK_EQUAL(BTree::Node::_Mempool_t::size(), allocated_node_cnt_before);
+	BOOST_CHECK_EQUAL(BTree::Node::_Mempool_t::size(),
+			allocated_node_cnt_before);
 }
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
 	BTree t;
-	t.root = new BTree::Node();
+	t.root = new BTree::Node;
 	BTree::KeyInfo k( { 4, 6 }, 10, BTree::INVALID_INDEX);
 
 	t.root->set_key<uint32_t>(0, k);

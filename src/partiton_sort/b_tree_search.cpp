@@ -10,10 +10,10 @@ namespace pcv {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
-		__m256i const a, __m256i const b) {
+inline __m256i                             __attribute__((__always_inline__))                             _mm256_cmpgt_epu32(
+		__m256i                             const a, __m256i                             const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i const fix_val = _mm256_set1_epi32(offset);
+	__m256i                             const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 
@@ -79,7 +79,7 @@ BTree::SearchResult search_avx2(const BTree::Node & node, BTree::value_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i                             const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -152,9 +152,58 @@ void BTree::search_path(const rule_spec_t & rule,
 			break;
 		// some matching rule found on path from the root in this node
 		// search in next layer if there is some
-		path.push_back({r.first, r.second});
+		path.push_back( { r.first, r.second });
 		n = r.first->get_next_layer(r.second);
 		i++;
+	}
+}
+
+BTree::Node::KeyIterator BTree::Node::iter_keys() {
+	return KeyIterator(this);
+}
+
+unsigned index_of_child(BTree::Node *p, BTree::Node * ch) {
+	size_t i = 0;
+	for (; p != nullptr and i <= p->key_cnt; i++) {
+		if (p->child(i) == ch)
+			break;
+	}
+	return i;
+}
+pair<BTree::Node*, unsigned> get_most_left(BTree::Node * n) {
+	while (not n->is_leaf) {
+		n = n->child(0);
+	}
+	return {n, 0};
+}
+pair<BTree::Node*, unsigned> get_most_left_after(BTree::Node * p,
+		BTree::Node * ch) {
+	while (p != nullptr) {
+		// move up to a parent node
+		size_t my_index = index_of_child(p, ch);
+		if (my_index + 1 < p->key_cnt) {
+			return get_most_left(p->child(my_index + 1));
+		} else {
+			ch = p;
+			p = p->parent;
+		}
+	}
+	return {nullptr, 0};
+}
+std::pair<BTree::Node*, unsigned> BTree::Node::getSucc_global(unsigned idx) {
+	if (is_leaf) {
+		if (int(idx) < int(key_cnt) - 1) {
+			// move forward in this node
+			return {this, idx + 1};
+		} else {
+			// just move to parent key
+			return {parent, index_of_child(parent, this)};
+		}
+	} else if (idx < key_cnt) {
+		// move on lowest in right sibling
+		return get_most_left(child(idx + 1));
+	} else {
+		return get_most_left_after(parent, this);
 	}
 }
 

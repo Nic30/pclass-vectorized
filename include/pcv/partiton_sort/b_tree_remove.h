@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 
-#include <pcv/partiton_sort/b_tree.h>
 #include <pcv/partiton_sort/b_tree_search.h>
 
 namespace pcv {

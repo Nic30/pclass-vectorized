@@ -11,7 +11,6 @@ src = [
 	#'log.h',
 	#'packet_classifiers_vectorized.cpp',
 	
-	'partiton_sort/b_tree.cpp',
 	'rule_parser/classbench_rule_parser.cpp',
 ]
 

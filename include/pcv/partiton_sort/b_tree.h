@@ -33,8 +33,9 @@ public:
 	using index_t = uint16_t;
 	using KeyInfo = _KeyInfo<BTree::value_t, BTree::index_t>;
 
-	static const index_t INVALID_INDEX;
-	static const rule_id_t INVALID_RULE;
+	static constexpr index_t INVALID_INDEX =
+			std::numeric_limits<index_t>::max();
+	static constexpr rule_id_t INVALID_RULE = INVALID_INDEX;
 
 	std::array<int, D> dimension_order;
 
@@ -62,8 +63,21 @@ public:
 
 		Node(Node const&) = delete;
 		Node& operator=(Node const&) = delete;
-		Node();
-		void clean_children();
+		Node() {
+			assert(((uintptr_t ) this) % 64 == 0);
+			keys[0] = keys[1] = _mm256_set1_epi32(
+					std::numeric_limits<uint32_t>::max());
+			dim_index = _m_from_int64(std::numeric_limits<uint64_t>::max());
+			std::fill(value.begin(), value.end(), INVALID_INDEX);
+			clean_children();
+			set_key_cnt(0);
+			is_leaf = true;
+			parent = nullptr;
+		}
+		inline void clean_children() {
+			std::fill(next_level.begin(), next_level.end(), INVALID_INDEX);
+			std::fill(child_index.begin(), child_index.end(), INVALID_INDEX);
+		}
 
 		KeyInfo get_key(uint8_t index) const {
 			assert(index < MAX_DEGREE);
@@ -88,16 +102,33 @@ public:
 		/*
 		 * Set pointer to child node
 		 * */
-		void set_child(unsigned index, Node * child);
+		void set_child(unsigned index, Node * child) {
+			if (child == nullptr)
+				child_index[index] = INVALID_INDEX;
+			else {
+				child_index[index] = Node::_Mempool_t::getId(child);
+				child->parent = this;
+			}
+		}
+
 		/*
 		 * Set pointer to next layer
 		 * */
-		void set_next_layer(unsigned index, Node * next_layer_root);
+		void set_next_layer(unsigned index, Node * next_layer_root) {
+			if (next_layer_root == nullptr)
+				next_level[index] = INVALID_INDEX;
+			else
+				next_level[index] = Node::_Mempool_t::getId(next_layer_root);
+		}
 
 		/*
 		 * Set key_cnt and also update key_mask
 		 * */
-		void set_key_cnt(size_t key_cnt);
+		void set_key_cnt(size_t key_cnt) {
+			assert(key_cnt <= MAX_DEGREE);
+			this->key_cnt = key_cnt;
+			key_mask = (1 << key_cnt) - 1;
+		}
 
 		// get node from mempool from its index
 		static inline Node & by_index(const index_t index) {
@@ -106,14 +137,44 @@ public:
 		}
 
 		// get child node on specified index
-		Node * child(const index_t index);
-		const Node * child(const index_t index) const;
+		Node * child(const index_t index) {
+			return const_cast<Node*>(const_cast<const Node *>(this)->child(
+					index));
+		}
+		const Node * child(const index_t index) const {
+			if (child_index[index] == INVALID_INDEX)
+				return nullptr;
+			else
+				return &by_index(child_index[index]);
+		}
 
 		// get root node of the next layer starting from this node on specified index
-		Node * get_next_layer(unsigned index);
-		const Node * get_next_layer(unsigned index) const;
+		Node * get_next_layer(unsigned index) {
+			return const_cast<Node*>(const_cast<const Node *>(this)->get_next_layer(
+					index));
+		}
+		const Node * get_next_layer(unsigned index) const {
+			auto i = next_level[index];
+			if (i == INVALID_INDEX)
+				return nullptr;
+			else
+				return &by_index(i);
+		}
 
-		size_t size() const;
+		size_t size() const {
+			size_t s = key_cnt;
+			for (size_t i = 0; i < key_cnt + 1u; i++) {
+				auto ch = child(i);
+				if (ch)
+					s += ch->size();
+			}
+			for (size_t i = 0; i < key_cnt; i++) {
+				auto nl = get_next_layer(i);
+				if (nl)
+					s += nl->size();
+			}
+			return s;
+		}
 
 		/*
 		 * Move key, value and next level pointer between two places
@@ -184,17 +245,35 @@ public:
 			}
 		}
 
-		~Node();
+		~Node() {
+			if (not is_leaf) {
+				for (uint8_t i = 0; i < key_cnt + 1; i++) {
+					delete child(i);
+				}
+			}
+			for (uint8_t i = 0; i < key_cnt; i++) {
+				delete get_next_layer(i);
+			}
+		}
 	}__attribute__((aligned(64)));
 
 	Node * root;
 
 	BTree(BTree const&) = delete;
 	BTree& operator=(BTree const&) = delete;
-	BTree();
+	BTree() :
+			root(nullptr) {
+		for (size_t i = 0; i < dimension_order.size(); i++)
+			dimension_order[i] = i;
+	}
 
 	// get number of keys stored on all levels in tree (!= number of stored rules)
-	size_t size() const;
+	size_t size() const {
+		if (root)
+			return root->size();
+		else
+			return 0;
+	}
 
 	// serialize graph to string in dot format
 	friend std::ostream & operator<<(std::ostream & str, const BTree & t) {
@@ -206,7 +285,10 @@ public:
 		return ss.str();
 	}
 
-	~BTree();
+	~BTree() {
+		delete root;
+		root = nullptr;
+	}
 
 }__attribute__((aligned(64)));
 

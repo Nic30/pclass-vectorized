@@ -11,6 +11,7 @@ using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
+using BTree = _BTree<uint16_t, 2>;
 
 using rule_t = BTree::rule_spec_t;
 using R1d = Range1d<BTree::value_t>;
@@ -42,7 +43,7 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges_backward ) {
 	size_t N = 100;
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = Range1d<uint32_t>;
+	using R1d = BTree::val_range_t;
 	for (size_t i = 0; i < N; i++) {
 		rule_t r = { { R1d(i, i), R1d(0, 0), }, i };
 		insert(t, r);

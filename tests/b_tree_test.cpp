@@ -13,6 +13,8 @@ using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
+using BTree = _BTree<uint16_t, 2>;
+
 void insert(BTree & t, BTree::rule_spec_t & r) {
 	BTreeInsert<BTree>::insert(t, r);
 }
@@ -32,7 +34,7 @@ void remove(BTree & t, const BTree::rule_spec_t & r) {
 void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = Range1d<uint32_t>;
+	using R1d = BTree::val_range_t;
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
@@ -62,7 +64,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	size_t allocated_node_cnt_before = BTree::Node::_Mempool_t::size();
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = Range1d<uint32_t>;
+	using R1d = BTree::val_range_t;
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
@@ -141,7 +143,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 BOOST_AUTO_TEST_CASE( simple_insert ) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = Range1d<uint32_t>;
+	using R1d = BTree::val_range_t;
 	rule_t r1 = { { R1d(1, 1), R1d(0, 0), }, 1 };
 	rule_t r2 = { { R1d(3, 6), R1d(0, 0), }, 2 };
 	rule_t r3 = { { R1d(7, 10), R1d(0, 0), }, 3 };

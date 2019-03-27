@@ -12,6 +12,7 @@ using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv__testsuite )
+using BTree = _BTree<uint16_t, 2>;
 
 BTree::rule_id_t search(BTree & t, const std::vector<BTree::value_t> & v) {
 	return BTreeSearch<BTree>::search(t, v);

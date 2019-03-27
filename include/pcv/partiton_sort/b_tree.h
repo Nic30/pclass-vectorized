@@ -24,14 +24,16 @@ namespace pcv {
  *
  * This is B-tree divide to several layers. Each layer performs the lookup in single dimension only.
  * */
-class alignas(64) BTree {
+template<typename Key_t, size_t _D>
+class alignas(64) _BTree {
 public:
 	using rule_id_t = uint16_t;
-	static constexpr size_t D = 2;
-	using rule_spec_t = std::pair<std::array<Range1d<uint32_t>, D>, rule_id_t>;
-	using value_t = uint32_t;
+	static constexpr size_t D = _D;
+	using val_range_t = Range1d<Key_t>;
+	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
+	using value_t = Key_t;
 	using index_t = uint16_t;
-	using KeyInfo = _KeyInfo<BTree::value_t, BTree::index_t>;
+	using KeyInfo = _KeyInfo<value_t, index_t>;
 
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
@@ -132,8 +134,7 @@ public:
 
 		// get node from mempool from its index
 		static inline Node & by_index(const index_t index) {
-			return *reinterpret_cast<Node*>(BTree::Node::_Mempool_t::getById(
-					index));
+			return *reinterpret_cast<Node*>(Node::_Mempool_t::getById(index));
 		}
 
 		// get child node on specified index
@@ -180,7 +181,7 @@ public:
 		 * Move key, value and next level pointer between two places
 		 * @note this node is source
 		 * */
-		inline void move_key(uint8_t src_i, BTree::Node & dst, uint8_t dst_i) {
+		inline void move_key(uint8_t src_i, Node & dst, uint8_t dst_i) {
 			dst.set_key(dst_i, this->get_key(src_i));
 		}
 
@@ -259,9 +260,9 @@ public:
 
 	Node * root;
 
-	BTree(BTree const&) = delete;
-	BTree& operator=(BTree const&) = delete;
-	BTree() :
+	_BTree(_BTree const&) = delete;
+	_BTree& operator=(_BTree const&) = delete;
+	_BTree() :
 			root(nullptr) {
 		for (size_t i = 0; i < dimension_order.size(); i++)
 			dimension_order[i] = i;
@@ -276,8 +277,8 @@ public:
 	}
 
 	// serialize graph to string in dot format
-	friend std::ostream & operator<<(std::ostream & str, const BTree & t) {
-		return BTreePrinter<BTree>::print_top(str, t);
+	friend std::ostream & operator<<(std::ostream & str, const _BTree & t) {
+		return BTreePrinter<_BTree>::print_top(str, t);
 	}
 	operator std::string() const {
 		std::stringstream ss;
@@ -285,7 +286,7 @@ public:
 		return ss.str();
 	}
 
-	~BTree() {
+	~_BTree() {
 		delete root;
 		root = nullptr;
 	}

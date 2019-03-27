@@ -9,11 +9,13 @@
 #include <vector>
 #include <set>
 #include <tuple>
+#include <sstream>
 
 #include <pcv/common/range.h>
 //#include <pcv/partiton_sort/mempool_mockup.h>
 #include <pcv/partiton_sort/mempool.h>
 #include <pcv/partiton_sort/key_info.h>
+#include <pcv/partiton_sort/b_tree_printer.h>
 
 namespace pcv {
 
@@ -131,8 +133,14 @@ public:
 	void print_to_stream(std::ostream & str, const Node & n) const;
 
 	// serialize graph to string in dot format
-	friend std::ostream & operator<<(std::ostream & str, const BTree & t);
-	operator std::string() const;
+	friend std::ostream & operator<<(std::ostream & str, const BTree & t) {
+		return BTreePrinter<BTree>::print_top(str, t);
+	}
+	operator std::string() const {
+		std::stringstream ss;
+		ss << *this;
+		return ss.str();
+	}
 
 	~BTree();
 

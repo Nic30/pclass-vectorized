@@ -24,7 +24,7 @@ namespace pcv {
  *
  * This is B-tree divide to several layers. Each layer performs the lookup in single dimension only.
  * */
-template<typename Key_t, size_t _D>
+template<typename Key_t, size_t _D, size_t _T=4>
 class alignas(64) _BTree {
 public:
 	using rule_id_t = uint16_t;
@@ -43,7 +43,7 @@ public:
 
 	class alignas(64) Node: public ObjectWithStaticMempool<Node, 65536, false> {
 	public:
-		static constexpr size_t T = 4;
+		static constexpr size_t T = _T;
 		static constexpr size_t MIN_DEGREE = T - 1;
 		static constexpr size_t MAX_DEGREE = 2 * T - 1;
 		// perf-critical: ensure this is 64-byte aligned.

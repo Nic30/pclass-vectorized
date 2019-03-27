@@ -16,6 +16,111 @@ public:
 	}
 };
 
+namespace search_fn {
+/*
+ * 8*32b a > b
+ *
+ * @param a the signed integer vector
+ * @param b the unsigned integer vector
+ * */
+inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
+		__m256i const a, __m256i const b) {
+	constexpr uint32_t offset = 0x1 << 31;
+	__m256i const fix_val = _mm256_set1_epi32(offset);
+	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
+}
+/*
+ * 16*16b a > b
+ *
+ * @param a the signed integer vector
+ * @param b the unsigned integer vector
+ * */
+inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
+		__m256i const a, __m256i const b) {
+	constexpr uint32_t offset = 0x1 << 31;
+	__m256i const fix_val = _mm256_set1_epi16(offset);
+	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
+}
+
+
+template<typename T>
+static SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
+		const Range1d<T> & val) {
+	SearchResult r;
+	for (r.val_index = 0; r.val_index < key_cnt; r.val_index++) {
+		auto low = reinterpret_cast<const T*>(&keys[0])[r.val_index];
+		auto high = reinterpret_cast<const T*>(&keys[1])[r.val_index];
+		auto cur = Range1d<T>(low, high);
+		if (val < cur.low) {
+			break;
+		} else if (cur == val) {
+			r.in_range = true;
+			break;
+		}
+	}
+	return r;
+}
+
+template<typename T>
+static SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
+		T val) {
+	SearchResult r;
+	for (r.val_index = 0; r.val_index < key_cnt; r.val_index++) {
+		auto low = reinterpret_cast<const T*>(&keys[0])[r.val_index];
+		if (val < low) {
+			break;
+		} else {
+			auto high = reinterpret_cast<const T*>(&keys[1])[r.val_index];
+			auto cur = Range1d<T>(low, high);
+			if (cur.in_range(val)) {
+				r.in_range = true;
+				break;
+			}
+		}
+	}
+	return r;
+}
+
+template<typename T>
+SearchResult search_avx2(const __m256i * keys, T val);
+
+template<>
+SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
+	__m256i value = _mm256_set1_epi32(val);
+	// compare the two halves of the cache line.
+	// load 256b to avx
+	__m256i cmp1 = _mm256_load_si256(&keys[0]);
+	__m256i cmp2 = _mm256_load_si256(&keys[1]);
+
+	// 8* > u32
+	cmp1 = _mm256_cmpgt_epu32(cmp1, value);
+	cmp2 = _mm256_cmpgt_epu32(cmp2, value);
+
+	// merge the comparisons back together.
+	//
+	// a permute is required to get the pack results back into order
+	// because AVX-256 introduced that unfortunate two-lane interleave.
+	//
+	// alternately, you could pre-process your data to remove the need
+	// for the permute.
+
+	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
+	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
+
+	// finally create a move mask and count trailing
+	// zeroes to get an index to the next node.
+	uint32_t mask = _mm256_movemask_epi8(cmp); // PMOVMSKB
+	auto next_index = _tzcnt_u32(mask) / 2; // TZCNT
+
+	SearchResult r;
+	r.val_index = next_index;
+	r.in_range = false; // [TODO]
+	return r;
+}
+
+}
+
 template<typename BTree>
 class BTreeSearch {
 public:
@@ -77,18 +182,6 @@ public:
 	};
 
 	/*
-	 * 8*32b a > b
-	 *
-	 * @param a the signed integer vector
-	 * @param b the unsigned integer vector
-	 * */
-	inline static __m256i  __attribute__((__always_inline__))  _mm256_cmpgt_epu32(
-			__m256i  const a, __m256i  const b) {
-		constexpr uint32_t offset = 0x1 << 31;
-		__m256i  const fix_val = _mm256_set1_epi32(offset);
-		return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
-	}
-	/*
 	 * Search the value or range in single level of the tree
 	 *
 	 * @return pair<node where key resides, index of the key in node>
@@ -97,8 +190,8 @@ public:
 	static std::pair<Node*, unsigned> search_possition_1d(Node * n,
 			const Key_t val) {
 		while (n) {
-			//auto s = search_avx2(*n, val);
-			auto s = search_seq(*n, val);
+			//auto s = search_fn::search_avx2(n->keys, n->key_mask, val);
+			auto s = search_fn::search_seq(n->keys, n->key_cnt, val);
 			if (s.in_range) {
 				return {n, s.val_index};
 			} else if (n->is_leaf) {
@@ -254,69 +347,6 @@ public:
 		return i;
 	}
 
-	static SearchResult search_seq(const Node & node,
-			const Range1d<value_t> val) {
-		SearchResult r;
-		for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
-			KeyInfo cur = node.get_key(r.val_index);
-			if (val < cur.key.low) {
-				break;
-			} else if (cur.key == val) {
-				r.in_range = true;
-				break;
-			}
-		}
-		return r;
-	}
-
-	static SearchResult search_seq(const Node & node, value_t val) {
-		SearchResult r;
-		for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
-			KeyInfo cur = node.get_key(r.val_index);
-			if (val < cur.key.low) {
-				break;
-			} else if (cur.in_range(val)) {
-				r.in_range = true;
-				break;
-			}
-		}
-		return r;
-	}
-
-	SearchResult search_avx2(const Node & node, value_t val) {
-		__m256i value = _mm256_set1_epi32(val);
-		// compare the two halves of the cache line.
-		// load 256b to avx
-		__m256i cmp1 = _mm256_load_si256(&node.keys[0]);
-		__m256i cmp2 = _mm256_load_si256(&node.keys[1]);
-
-		// 8* > u32
-		cmp1 = _mm256_cmpgt_epu32(cmp1, value);
-		cmp2 = _mm256_cmpgt_epu32(cmp2, value);
-
-		// merge the comparisons back together.
-		//
-		// a permute is required to get the pack results back into order
-		// because AVX-256 introduced that unfortunate two-lane interleave.
-		//
-		// alternately, you could pre-process your data to remove the need
-		// for the permute.
-
-		__m256i  const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
-		__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
-		cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
-
-		// finally create a move mask and count trailing
-		// zeroes to get an index to the next node.
-		uint32_t mask = _mm256_movemask_epi8(cmp); // PMOVMSKB
-		auto next_index = _tzcnt_u32(mask) / 2; // TZCNT
-
-		SearchResult r;
-		r.val_index = next_index;
-		r.in_range = false; // [TODO]
-		assert(r.val_index < Node::MAX_DEGREE + 1);
-		return r;
-	}
 	/*
 	 * Search in all levels of the tree
 	 *
@@ -361,7 +391,7 @@ public:
 				break;
 			// some matching rule found on path from the root in this node
 			// search in next layer if there is some
-			path.push_back( std::pair<Node *, unsigned>(r.first, r.second));
+			path.push_back(std::pair<Node *, unsigned>(r.first, r.second));
 			n = r.first->get_next_layer(r.second);
 			i++;
 		}

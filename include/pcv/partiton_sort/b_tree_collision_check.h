@@ -22,7 +22,7 @@ private:
 			KeyInfo cur = node.get_key(r.val_index);
 			if (val < cur.key.low) {
 				break;
-			} else if (cur.in_range(val)) {
+			} else if (cur.key.in_range(val)) {
 				r.in_range = true;
 				break;
 			}

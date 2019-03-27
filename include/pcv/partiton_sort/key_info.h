@@ -29,10 +29,6 @@ public:
 	bool operator>(const Range1d<value_t> & other_key) const {
 		return key > other_key;
 	}
-
-	bool in_range(value_t val) const {
-		return val >= key.low and val <= key.high;
-	}
 };
 
 }

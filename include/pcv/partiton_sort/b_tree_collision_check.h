@@ -19,7 +19,7 @@ private:
 			value_t val) {
 		SearchResult r;
 		for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
-			KeyInfo cur = node.template get_key<value_t>(r.val_index);
+			KeyInfo cur = node.get_key(r.val_index);
 			if (val < cur.key.low) {
 				break;
 			} else if (cur.in_range(val)) {
@@ -71,7 +71,7 @@ public:
 			Range1d<value_t> lk;
 			bool lk_found = false;
 			if (p_low.first) {
-				lk = p_low.first->template get_key<value_t>(p_low.second).key;
+				lk = p_low.first->get_key(p_low.second).key;
 				lk_found = true;
 			}
 			if (lk_found and lk == d_val) {

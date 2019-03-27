@@ -24,14 +24,14 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	t.root = new BTree::Node;
 	K k( { 4, 6 }, 9, BTree::INVALID_INDEX);
 
-	t.root->set_key<uint32_t>(0, k);
+	t.root->set_key(0, k);
 	t.root->set_key_cnt(1);
 	auto nl = new BTree::Node;
 	nl->set_key_cnt(1);
 	t.root->set_next_layer(0, nl);
 
 	K k2( { 10, 20 }, 10, BTree::INVALID_INDEX);
-	nl->set_key<BTree::value_t>(0, k2);
+	nl->set_key(0, k2);
 
 	using V = vector<BTree::value_t>;
 	{

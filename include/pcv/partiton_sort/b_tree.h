@@ -65,25 +65,21 @@ public:
 		Node();
 		void clean_children();
 
-		template<typename T>
 		KeyInfo get_key(uint8_t index) const {
-			assert(sizeof(T) == sizeof(uint32_t));
 			assert(index < MAX_DEGREE);
-			auto low = reinterpret_cast<const uint32_t*>(&keys[0])[index];
-			auto high = reinterpret_cast<const uint32_t*>(&keys[1])[index];
+			auto low = reinterpret_cast<const value_t*>(&keys[0])[index];
+			auto high = reinterpret_cast<const value_t*>(&keys[1])[index];
 			return {
-				Range1d<T>(low, high),
+				Range1d<value_t>(low, high),
 				value[index],
 				next_level[index]
 			};
 		}
 
-		template<typename T>
-		void set_key(uint8_t index, KeyInfo key_info) {
-			assert(sizeof(T) == sizeof(uint32_t));
+		void set_key(uint8_t index, const KeyInfo & key_info) {
 			assert(index < MAX_DEGREE);
-			reinterpret_cast<uint32_t*>(&keys[0])[index] = key_info.key.low;
-			reinterpret_cast<uint32_t*>(&keys[1])[index] = key_info.key.high;
+			reinterpret_cast<value_t*>(&keys[0])[index] = key_info.key.low;
+			reinterpret_cast<value_t*>(&keys[1])[index] = key_info.key.high;
 
 			this->value[index] = key_info.value;
 			this->next_level[index] = key_info.next_level;
@@ -118,6 +114,76 @@ public:
 		const Node * get_next_layer(unsigned index) const;
 
 		size_t size() const;
+
+		/*
+		 * Move key, value and next level pointer between two places
+		 * @note this node is source
+		 * */
+		inline void move_key(uint8_t src_i, BTree::Node & dst, uint8_t dst_i) {
+			dst.set_key(dst_i, this->get_key(src_i));
+		}
+
+		/*
+		 * Copy keys, child pointers etc between the nodes
+		 *
+		 * @note this node is source
+		 * */
+		inline void transfer_items(unsigned src_start, Node & dst,
+				unsigned dst_start, unsigned key_cnt) {
+			// Copying the keys from
+			auto end = src_start + key_cnt;
+			for (unsigned i = src_start; i < end; ++i)
+				move_key(i, dst, i + dst_start);
+
+			// Copying the child pointers
+			if (not dst.is_leaf) {
+				for (unsigned i = src_start; i <= end; ++i) {
+					auto ch = child(i);
+					dst.set_child(i + dst_start, ch);
+					//dst.child_index[i + dst_start] = src.child_index[i];
+				}
+			}
+		}
+
+		/*
+		 * Shift block of keys to position -1
+		 * */
+		inline void shift_items_on_right_to_left(uint8_t start) {
+			for (unsigned i = start + 1; i < key_cnt; ++i)
+				move_key(i, *this, i - 1);
+
+			for (unsigned i = start + 2; i <= key_cnt; ++i) {
+				child_index[i - 1] = child_index[i];
+			}
+		}
+
+		/*
+		 * Check if the pointers in node are valid (recursively)
+		 * */
+		inline void integrity_check(std::set<Node*> * seen = nullptr) {
+			std::set<Node*> _seen;
+			if (seen == nullptr)
+				seen = &_seen;
+			assert(seen->find(this) == seen->end());
+			assert(key_cnt > 0);
+
+			for (size_t i = 0; i < key_cnt; i++) {
+				get_key(i);
+				auto nl = get_next_layer(i);
+				if (nl) {
+					assert(nl->parent == nullptr);
+					nl->integrity_check(seen);
+				}
+			}
+			for (size_t i = 0; i <= key_cnt; i++) {
+				auto ch = child(i);
+				if (ch) {
+					assert(ch->parent == this);
+					ch->integrity_check(seen);
+				}
+			}
+		}
+
 		~Node();
 	}__attribute__((aligned(64)));
 
@@ -129,8 +195,6 @@ public:
 
 	// get number of keys stored on all levels in tree (!= number of stored rules)
 	size_t size() const;
-
-	void print_to_stream(std::ostream & str, const Node & n) const;
 
 	// serialize graph to string in dot format
 	friend std::ostream & operator<<(std::ostream & str, const BTree & t) {
@@ -145,77 +209,5 @@ public:
 	~BTree();
 
 }__attribute__((aligned(64)));
-
-/*
- * Move key, value and next level pointer between two places
- * */
-template<typename KEY_t>
-inline void move_key(BTree::Node & src, uint8_t src_i, BTree::Node & dst,
-		uint8_t dst_i) {
-	dst.set_key<KEY_t>(dst_i, src.get_key<KEY_t>(src_i));
-}
-
-/*
- * Copy keys, child pointers etc between the nodes
- * */
-template<typename KEY_t>
-inline void transfer_items(BTree::Node & src, unsigned src_start,
-		BTree::Node & dst, unsigned dst_start, unsigned key_cnt) {
-	// Copying the keys from
-	auto end = src_start + key_cnt;
-	for (unsigned i = src_start; i < end; ++i)
-		move_key<KEY_t>(src, i, dst, i + dst_start);
-
-	// Copying the child pointers
-	if (not dst.is_leaf) {
-		for (unsigned i = src_start; i <= end; ++i) {
-			auto ch = src.child(i);
-			dst.set_child(i + dst_start, ch);
-			//dst.child_index[i + dst_start] = src.child_index[i];
-		}
-	}
-}
-
-/*
- * Shift block of keys to position -1
- * */
-template<typename KEY_t>
-inline void shift_items_on_right_to_left(BTree::Node & n, uint8_t start) {
-	for (unsigned i = start + 1; i < n.key_cnt; ++i)
-		move_key<uint32_t>(n, i, n, i - 1);
-
-	for (unsigned i = start + 2; i <= n.key_cnt; ++i) {
-		n.child_index[i - 1] = n.child_index[i];
-	}
-}
-
-/*
- * Check if the pointers in node are valid (recursively)
- * */
-static inline void integrity_check(BTree::Node & n,
-		std::set<BTree::Node*> * seen = nullptr) {
-	std::set<BTree::Node*> _seen;
-	if (seen == nullptr)
-		seen = &_seen;
-	assert(seen->find(&n) == seen->end());
-	assert(n.key_cnt > 0);
-
-	for (size_t i = 0; i < n.key_cnt; i++) {
-		n.get_key<uint32_t>(i);
-		auto nl = n.get_next_layer(i);
-		if (nl) {
-			assert(nl->parent == nullptr);
-			integrity_check(*nl, seen);
-		}
-	}
-	for (size_t i = 0; i <= n.key_cnt; i++) {
-		auto ch = n.child(i);
-		if (ch) {
-			assert(ch->parent == &n);
-			integrity_check(*ch, seen);
-		}
-	}
-
-}
 
 }

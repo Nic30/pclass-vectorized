@@ -61,14 +61,13 @@ public:
 			// The following loop does two things
 			// a) Finds the location of new key to be inserted
 			// b) Moves all greater keys to one place ahead
-			while (i >= 0 && node.template get_key<value_t>(i) > k) {
-				move_key<value_t>(node, i, node, i + 1);
+			while (i >= 0 && node.get_key(i) > k) {
+				node.move_key(i, node, i + 1);
 				i--;
 			}
 
 			// Insert the new key at found location
-			node.template set_key<value_t>(i + 1,
-					KeyInfo(k, rule.second, BTree::INVALID_INDEX));
+			node.set_key(i + 1, KeyInfo(k, rule.second, BTree::INVALID_INDEX));
 			node.set_key_cnt(node.key_cnt + 1);
 
 			// continue on next layer if requiered
@@ -81,7 +80,7 @@ public:
 		} else {
 			// If this node is not leaf
 			// Find the child which is going to have the new key
-			while (i >= 0 && node.template get_key<value_t>(i) > k)
+			while (i >= 0 && node.get_key(i) > k)
 				i--;
 
 			i++;
@@ -93,7 +92,7 @@ public:
 				// After split, the middle key of C[i] goes up and
 				// C[i] is splitted into two. See which of the two
 				// is going to have the new key
-				if (node.template get_key<value_t>(i) < k)
+				if (node.get_key(i) < k)
 					i++;
 			}
 			assert(i >= 0);
@@ -116,8 +115,7 @@ public:
 		if (root == nullptr) {
 			// Allocate memory for root
 			root = new Node;
-			root->template set_key<uint32_t>(0,
-					KeyInfo(k, rule.second, BTree::INVALID_INDEX)); // Insert key
+			root->set_key(0, KeyInfo(k, rule.second, BTree::INVALID_INDEX)); // Insert key
 			root->set_key_cnt(1);
 			root->value[0] = rule.second;
 			cookie.level++;
@@ -140,7 +138,7 @@ public:
 			// two children is going to have new key
 			//s->insertNonFull(rule, cookie);
 			int i = 0;
-			if (s->template get_key<value_t>(0) < k)
+			if (s->get_key(0) < k)
 				i++;
 			Node * c = s->child(i);
 			insertNonFull(*c, rule, cookie);
@@ -192,7 +190,7 @@ public:
 
 		// Copy the last (MIN_DEGREE-1) keys of y to z
 		for (unsigned j = 0; j < Node::MIN_DEGREE; j++) {
-			move_key<value_t>(y, Node::MIN_DEGREE + j + 1, *z, j);
+			y.move_key(Node::MIN_DEGREE + j + 1, *z, j);
 		}
 
 		if (not y.is_leaf) {
@@ -220,10 +218,10 @@ public:
 		// A key of y will move to this node. Find location of
 		// new key and move all greater keys one space ahead
 		for (int j = int(node.key_cnt) - 1; j >= int(i); j--)
-			move_key<value_t>(node, j, node, j + 1);
+			node.move_key(j, node, j + 1);
 
 		// Copy the middle key of y to this node
-		move_key<value_t>(y, node.MIN_DEGREE, node, i);
+		y.move_key(node.MIN_DEGREE, node, i);
 
 		// Increment count of keys in this node
 		node.set_key_cnt(node.key_cnt + 1);

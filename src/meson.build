@@ -12,7 +12,6 @@ src = [
 	#'packet_classifiers_vectorized.cpp',
 	
 	'partiton_sort/b_tree.cpp',
-	'partiton_sort/b_tree_search.cpp',
 	'rule_parser/classbench_rule_parser.cpp',
 ]
 

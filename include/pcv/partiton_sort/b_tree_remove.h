@@ -51,7 +51,7 @@ public:
 			delete tmp;
 		}
 		if (current_root)
-			integrity_check(*current_root);
+			current_root->integrity_check();
 		return current_root;
 	}
 
@@ -62,7 +62,7 @@ public:
 		unsigned idx = BTreeSearch<BTree>::findKey(node, k);
 
 		// The key to be removed is present in this node
-		if (idx < node.key_cnt && node.template get_key<value_t>(idx).key== k) {
+		if (idx < node.key_cnt && node.get_key(idx).key == k) {
 			// If the node is a leaf node - removeFromLeaf is called
 			// Otherwise, removeFromNonLeaf function is called
 			if (node.is_leaf) {
@@ -74,15 +74,15 @@ public:
 			// If this node is a leaf node, then the key is not present in tree
 			if (node.is_leaf) {
 				throw std::runtime_error(
-				std::string("The key ") + std::string(k)
-				+ " does not exist in the tree");
+						std::string("The key ") + std::string(k)
+								+ " does not exist in the tree");
 			}
 
 			// The key to be removed is present in the sub-tree rooted with this node
 			// The flag indicates whether the key is present in the sub-tree rooted
 			// with the last child of this node
 			bool flag = idx == node.key_cnt;
-			integrity_check(node);
+			node.integrity_check();
 			// If the child where the key is supposed to exist has less that t keys,
 			// we fill that child
 			if (node.child(idx)->key_cnt < Node::MIN_DEGREE + 1) {
@@ -105,11 +105,11 @@ public:
 	 * */
 	static void removeFromLeaf(Node & node, unsigned idx) {
 		assert(
-		node.get_next_layer(idx) == nullptr
-		and "The remove has to be performed in bottom-up order");
+				node.get_next_layer(idx) == nullptr
+						and "The remove has to be performed in bottom-up order");
 		// Move all the keys after the idx-th pos one place backward
 		for (unsigned i = idx + 1; i < node.key_cnt; ++i)
-		move_key<value_t>(node, i, node, i - 1);
+			node.move_key(i, node, i - 1);
 
 		// Reduce the count of keys
 		node.set_key_cnt(node.key_cnt - 1);
@@ -122,7 +122,7 @@ public:
 	 * @param idx index of the key to remove
 	 */
 	static void removeFromNonLeaf(Node & node, unsigned idx) {
-		auto k = node.template get_key<value_t>(idx);
+		auto k = node.get_key(idx);
 
 		if (node.child(idx)->key_cnt >= Node::MIN_DEGREE + 1) {
 			// If the child that precedes k (child(idx)) has atleast t keys,
@@ -130,7 +130,7 @@ public:
 			// child(idx). Replace k by pred. Recursively delete pred
 			// in child(idx)
 			auto pred = BTreeSearch<BTree>::getPred(node, idx);
-			node.template set_key<value_t>(idx, pred);
+			node.set_key(idx, pred);
 			auto c = node.child(idx);
 			remove(*c, pred.key);
 
@@ -141,7 +141,7 @@ public:
 			// Replace k by succ
 			// Recursively delete succ in child(idx+1)
 			auto succ = BTreeSearch<BTree>::getSucc(node, idx);
-			node.template set_key<value_t>(idx, succ);
+			node.set_key(idx, succ);
 			auto c = node.child(idx + 1);
 			remove(*c, succ.key);
 
@@ -170,15 +170,15 @@ public:
 		// Moving all key in child(idx) one step ahead
 		// If child(idx) is not a leaf, move all its child pointers one step ahead
 		for (int i = ch->key_cnt - 1; i >= 0; --i)
-		move_key<value_t>(*ch, i, *ch, i + 1);
+			ch->move_key(i, *ch, i + 1);
 
 		if (!ch->is_leaf) {
 			for (int i = ch->key_cnt; i >= 0; --i)
-			ch->child_index[i + 1] = ch->child_index[i];
+				ch->child_index[i + 1] = ch->child_index[i];
 		}
 
 		// Setting child's first key equal to keys[idx-1] from the current node
-		move_key<value_t>(node, idx - 1, *ch, 0);
+		node.move_key(idx - 1, *ch, 0);
 
 		// Moving sibling's last child as child(idx)'s first child
 		if (!ch->is_leaf) {
@@ -188,7 +188,7 @@ public:
 		}
 		// Moving the key from the sibling to the parent
 		// This reduces the number of keys in the sibling
-		move_key<value_t>(*sib, sib->key_cnt - 1, node, idx - 1);
+		sib->move_key(sib->key_cnt - 1, node, idx - 1);
 
 		ch->set_key_cnt(ch->key_cnt + 1);
 		sib->set_key_cnt(sib->key_cnt - 1);
@@ -200,7 +200,7 @@ public:
 		Node* sib = node.child(idx + 1);
 
 		// keys[idx] is inserted as the last key in child(idx)
-		move_key<value_t>(node, idx, *ch, ch->key_cnt);
+		node.move_key(idx, *ch, ch->key_cnt);
 
 		// Sibling's first child is inserted as the last child
 		// into child(idx)
@@ -210,16 +210,16 @@ public:
 			//ch->child_index[ch->key_cnt + 1] = sib->child_index[0];
 		}
 		//The first key from sib is inserted into keys[idx]
-		move_key<value_t>(*sib, 0, node, idx);
+		sib->move_key(0, node, idx);
 
 		// Moving all keys in sib one step behind
 		for (int i = 1; i < sib->key_cnt; ++i)
-		move_key<value_t>(*sib, i, *sib, i - 1);
+			sib->move_key(i, *sib, i - 1);
 
 		// Moving the child pointers one step behind
 		if (not sib->is_leaf) {
 			for (int i = 1; i <= sib->key_cnt; ++i)
-			sib->child_index[i - 1] = sib->child_index[i];
+				sib->child_index[i - 1] = sib->child_index[i];
 		}
 
 		// Increasing and decreasing the key count of child(idx) and child(idx+1)
@@ -234,18 +234,17 @@ public:
 		auto sib = node.child(idx + 1);
 		assert(idx <= node.key_cnt);
 
-		move_key<value_t>(node, idx, *ch, Node::MIN_DEGREE);
+		node.move_key(idx, *ch, Node::MIN_DEGREE);
 
 		// Copying the keys from child(idx+1) to child(idx) at the end
 		// Copying the child pointers from child(idx+1) to child(idx)
-		transfer_items<value_t>(*sib, 0, *ch, Node::MIN_DEGREE + 1,
-		sib->key_cnt);
+		sib->transfer_items(0, *ch, Node::MIN_DEGREE + 1, sib->key_cnt);
 
 		// Moving all keys after idx in the current node one step before -
 		// to fill the gap created by moving keys[idx] to child(idx)
 		// Moving the child pointers after (idx+1) in the current node one
 		// step before
-		shift_items_on_right_to_left<value_t>(node, idx);
+		node.shift_items_on_right_to_left(idx);
 
 		// Updating the key count of child and the current node
 		ch->set_key_cnt(ch->key_cnt + sib->key_cnt + 1);
@@ -255,7 +254,7 @@ public:
 		delete sib;
 
 		//integrity_check(*this);
-		integrity_check(*ch);
+		ch->integrity_check();
 	}
 	// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
 	static void fill(Node & node, unsigned idx) {
@@ -265,7 +264,7 @@ public:
 			borrowFromPrev(node, idx);
 
 		} else if (idx != node.key_cnt
-		&& node.child(idx + 1)->key_cnt >= Node::MIN_DEGREE + 1) {
+				&& node.child(idx + 1)->key_cnt >= Node::MIN_DEGREE + 1) {
 			// If the next child(idx+1) has more than t-1 keys, borrow a key
 			// from that child
 			borrowFromNext(node, idx);

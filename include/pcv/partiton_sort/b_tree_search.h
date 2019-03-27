@@ -40,7 +40,7 @@ public:
 				std::tie(actual, index) = getPred_global(*actual, index);
 			}
 			KeyInfo operator*() {
-				return actual->template get_key<value_t>(index);
+				return actual->get_key(index);
 			}
 
 		};
@@ -228,7 +228,7 @@ public:
 			cur = cur->child(cur->key_cnt);
 
 		// Return the last key of the leaf
-		return cur->template get_key<typename BTree::value_t>(cur->key_cnt - 1);
+		return cur->get_key(cur->key_cnt - 1);
 	}
 	// A function to get successor of keys[idx] (only in the local subtree)
 	static typename BTree::KeyInfo getSucc(Node & node, unsigned idx) {
@@ -238,7 +238,7 @@ public:
 			cur = cur->child(0);
 
 		// Return the first key of the leaf
-		return cur->template get_key<typename BTree::value_t>(0);
+		return cur->get_key(0);
 	}
 	static KeyIterator iter_keys(BTree & tree) {
 		return KeyIterator(tree.root);
@@ -249,7 +249,7 @@ public:
 	// Find index of the key in this node
 	static unsigned findKey(Node & node, const Range1d<value_t> k) {
 		unsigned i = 0;
-		while (i < node.key_cnt && node.template get_key<value_t>(i) < k)
+		while (i < node.key_cnt && node.get_key(i) < k)
 			++i;
 		return i;
 	}
@@ -258,7 +258,7 @@ public:
 			const Range1d<value_t> val) {
 		SearchResult r;
 		for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
-			KeyInfo cur = node.template get_key<value_t>(r.val_index);
+			KeyInfo cur = node.get_key(r.val_index);
 			if (val < cur.key.low) {
 				break;
 			} else if (cur.key == val) {
@@ -272,7 +272,7 @@ public:
 	static SearchResult search_seq(const Node & node, value_t val) {
 		SearchResult r;
 		for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
-			KeyInfo cur = node.template get_key<uint32_t>(r.val_index);
+			KeyInfo cur = node.get_key(r.val_index);
 			if (val < cur.key.low) {
 				break;
 			} else if (cur.in_range(val)) {

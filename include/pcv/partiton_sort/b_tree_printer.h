@@ -25,7 +25,7 @@ public:
 		str << "|{";
 		for (size_t i = 0; i < Node::MAX_DEGREE; i++) {
 			if (i < n.key_cnt) {
-				auto k = n.template get_key<uint32_t>(i);
+				auto k = n.get_key(i);
 				auto f = str.flags();
 				// << hex
 
@@ -84,7 +84,7 @@ public:
 		str << "digraph layered_btree {" << std::endl;
 		str << "    " << "node [shape=record];" << std::endl;
 		if (t.root)
-			t.print_to_stream(str, *t.root);
+			print_to_stream(str, *t.root);
 		str << "}";
 		return str;
 	}

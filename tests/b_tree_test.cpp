@@ -67,7 +67,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
 		insert(t, r);
-		integrity_check(*t.root);
+		t.root->integrity_check();
 	}
 
 	//stringstream ss;
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	t.root = new BTree::Node;
 	BTree::KeyInfo k( { 4, 6 }, 10, BTree::INVALID_INDEX);
 
-	t.root->set_key<uint32_t>(0, k);
+	t.root->set_key(0, k);
 	t.root->set_key_cnt(1);
 
 	auto r = search(t, 0);

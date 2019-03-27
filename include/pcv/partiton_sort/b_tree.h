@@ -125,13 +125,6 @@ public:
 	BTree& operator=(BTree const&) = delete;
 	BTree();
 
-	/*
-	 * Check if the rule collides wit any other rule in the tree
-	 *
-	 * @note the rule however can overwrite other rule or can use its prefix without the collision
-	 * */
-	bool does_rule_colide(const rule_spec_t & rule);
-
 	// get number of keys stored on all levels in tree (!= number of stored rules)
 	size_t size() const;
 

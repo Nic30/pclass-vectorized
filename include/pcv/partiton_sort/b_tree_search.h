@@ -37,7 +37,7 @@ inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
  * */
 inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
 		__m256i const a, __m256i const b) {
-	constexpr uint32_t offset = 0x1 << 31;
+	constexpr uint16_t offset = 0x1u << 15;
 	__m256i const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }

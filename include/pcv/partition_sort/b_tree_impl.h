@@ -1,9 +1,9 @@
 #pragma once
 
-#include <pcv/partiton_sort/b_tree.h>
-#include <pcv/partiton_sort/b_tree_insert.h>
-#include <pcv/partiton_sort/b_tree_remove.h>
-#include <pcv/partiton_sort/b_tree_collision_check.h>
+#include "../partition_sort/b_tree.h"
+#include "../partition_sort/b_tree_collision_check.h"
+#include "../partition_sort/b_tree_insert.h"
+#include "../partition_sort/b_tree_remove.h"
 
 namespace pcv {
 

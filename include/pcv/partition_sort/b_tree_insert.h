@@ -2,7 +2,7 @@
 #include <string>
 
 #include <pcv/common/range.h>
-#include <pcv/partiton_sort/b_tree_search.h>
+#include "../partition_sort/b_tree_search.h"
 
 namespace pcv {
 

@@ -1,11 +1,12 @@
+
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE pcv_test
 
 #include "test_common.h"
 
-#include <pcv/partiton_sort/b_tree.h>
-#include <pcv/partiton_sort/b_tree_insert.h>
+#include <pcv/partition_sort/b_tree.h>
+#include <pcv/partition_sort/b_tree_insert.h>
 
 using namespace pcv;
 using namespace std;

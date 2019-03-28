@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-
+#include <tuple>
 #include <pcv/partiton_sort/b_tree_search.h>
 
 namespace pcv {
@@ -13,22 +13,44 @@ public:
 	using value_t = typename BTree::value_t;
 
 	static void remove(BTree & tree, const rule_spec_t & k) {
-		std::vector<std::pair<Node *, unsigned>> path;
+		std::vector<std::tuple<Node *, Node *, unsigned>> path;
+		path.reserve(64);
 		BTreeSearch<BTree>::search_path(tree, k, path);
-		for (int i = BTree::D - 1; i >= 0; i--) {
+		//search in boom-up manner
+		for (int i = int(path.size()) - 1; i >= 0; i--) {
 			auto d = tree.dimension_order[i];
-			std::pair<Node *, unsigned> p;
-			if (i == 0) {
-				tree.root = remove_1d(k.first[d], tree.root);
+			auto key = k.first[d];
+			// <node, index of item>
+			Node * root;
+			Node * node;
+			unsigned index;
+			Node * new_root;
+			std::tie(root, node, index) = path[i];
+			auto nl = node->get_next_layer(index);
+			if (nl) {
+				// delete only rule specification
+				node->value[index] = BTree::INVALID_INDEX;
 			} else {
-				p = path.at(i - 1);
-				auto n = remove_1d(k.first[d],
-						p.first->get_next_layer(p.second));
-				p.first->set_next_layer(p.second, n);
-				if (n != nullptr) {
-					break;
-				}
+				// delete whole item in node
+				new_root = remove_1d(key, root);
 			}
+			if (nl) {
+				// there is something down in the tree and there is not a record about
+				// this rule up in tree
+				break;
+			}
+			if (root == tree.root) {
+				tree.root = new_root;
+				// skip check of the parent as there is not any
+				break;
+			}
+
+			// replace next payer pointer in up level
+			Node * prev_root;
+			Node * prev_node;
+			unsigned prev_index;
+			std::tie(prev_root, prev_node, prev_index) = path.at(i - 1);
+			prev_node->set_next_layer(prev_index, nl);
 		}
 	}
 	static Node * remove_1d(const Range1d<value_t> & k, Node * current_root) {

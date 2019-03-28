@@ -158,15 +158,15 @@ public:
 			InsertCookie & cookie) {
 		// search if there is some prefix already in decision tree because we do not
 		// want to duplicate keys which are already present
-		std::vector<std::pair<Node *, unsigned>> path;
+		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		BTreeSearch<BTree>::search_path(tree, rule, path);
 		if (path.size() > 0) {
 			cookie.level += path.size();
 			Node * ins_root = tree.root;
 			auto b = path.back();
-			ins_root = b.first->get_next_layer(b.second);
+			ins_root = std::get<1>(b)->get_next_layer(std::get<2>(b));
 			ins_root = insert_to_root(ins_root, rule, cookie);
-			b.first->set_next_layer(b.second, ins_root);
+			std::get<1>(b)->set_next_layer(std::get<2>(b), ins_root);
 		} else {
 			tree.root = insert_to_root(tree.root, rule, cookie);
 		}

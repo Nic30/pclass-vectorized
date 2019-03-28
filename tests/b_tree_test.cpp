@@ -19,13 +19,15 @@ void insert(BTree & t, BTree::rule_spec_t & r) {
 	BTreeInsert<BTree>::insert(t, r);
 }
 BTree::rule_id_t search(BTree & t, BTree::value_t s) {
-	vector<BTree::value_t> v = { s, };
+	std::array<BTree::value_t, 2> v = {s, s};
 	return BTreeSearch<BTree>::search(t, v);
 }
 
 BTree::rule_id_t search(BTree & t,
 		const std::vector<typename BTree::value_t> & v) {
-	return BTreeSearch<BTree>::search(t, v);
+	std::array<BTree::value_t, 2> _v;
+	std::copy(v.begin(), v.begin() + 2, _v.begin());
+	return BTreeSearch<BTree>::search(t, _v);
 }
 void remove(BTree & t, const BTree::rule_spec_t & r) {
 	BTreeRemove<BTree>::remove(t, r);

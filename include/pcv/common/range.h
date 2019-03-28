@@ -2,6 +2,7 @@
 
 #include <string>
 #include <assert.h>
+#include <limits>
 
 namespace pcv {
 
@@ -46,7 +47,7 @@ public:
 	}
 
 	bool is_wildcard() const {
-		return low == 0 and high == T(0) - 1;
+		return low == 0 and std::numeric_limits<T>::max();
 	}
 	bool in_range(T val) const {
 		return val >= low and val <= high;

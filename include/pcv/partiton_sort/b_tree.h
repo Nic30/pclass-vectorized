@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <array>
 #include <limits>
-#include <vector>
 #include <set>
 #include <tuple>
 #include <sstream>
@@ -24,7 +23,7 @@ namespace pcv {
  *
  * This is B-tree divide to several layers. Each layer performs the lookup in single dimension only.
  * */
-template<typename Key_t, size_t _D, size_t _T=4>
+template<typename Key_t, size_t _D, size_t _T = 4>
 class alignas(64) _BTree {
 public:
 	using rule_id_t = uint16_t;
@@ -34,6 +33,7 @@ public:
 	using value_t = Key_t;
 	using index_t = uint16_t;
 	using KeyInfo = _KeyInfo<value_t, index_t>;
+	using val_vec_t = std::array<value_t, D>;
 
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
@@ -49,6 +49,7 @@ public:
 		// perf-critical: ensure this is 64-byte aligned.
 		// 8*4B values
 		__m256i keys[2];
+		static_assert(sizeof(Key_t)* MAX_DEGREE <= sizeof(__m256i));
 		// 8*1B dimension index
 		__m64 dim_index;
 		// the value of rule

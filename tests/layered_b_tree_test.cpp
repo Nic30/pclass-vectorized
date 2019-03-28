@@ -4,21 +4,35 @@
 
 #include "test_common.h"
 
+#include <limits>
 #include <pcv/partiton_sort/b_tree.h>
 #include <pcv/partiton_sort/b_tree_search.h>
-
+#include <pcv/partiton_sort/b_tree_insert.h>
+#include <pcv/partiton_sort/b_tree_remove.h>
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv__testsuite )
-using BTree = _BTree<uint16_t, 2>;
 
-BTree::rule_id_t search(BTree & t, const std::vector<BTree::value_t> & v) {
+template<typename BTree>
+typename BTree::rule_id_t search(BTree & t,
+		const typename BTree::val_vec_t & v) {
 	return BTreeSearch<BTree>::search(t, v);
 }
 
+template<typename BTree>
+void insert(BTree & t, typename BTree::rule_spec_t & r) {
+	BTreeInsert<BTree>::insert(t, r);
+}
+
+template<typename BTree>
+void remove(BTree & t, const typename BTree::rule_spec_t & r) {
+	BTreeRemove<BTree>::remove(t, r);
+}
+
 BOOST_AUTO_TEST_CASE( simple_search ) {
+	using BTree = _BTree<uint16_t, 2>;
 	BTree t;
 	using K = BTree::KeyInfo;
 
@@ -34,7 +48,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	K k2( { 10, 20 }, 10, BTree::INVALID_INDEX);
 	nl->set_key(0, k2);
 
-	using V = vector<BTree::value_t>;
+	using V = typename BTree::val_vec_t;
 	{
 		V v = { 0, 0 };
 		auto r = search(t, v);
@@ -72,6 +86,56 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE( ins_search_rem_8layer ) {
+	using BTree = _BTree<uint16_t, 4>;
+	BTree t;
+
+	using V = typename BTree::val_vec_t;
+	using R = typename BTree::rule_spec_t;
+	using R1d = typename BTree::val_range_t;
+	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
+	R1d any(0, U16_MAX);
+	{
+		R r0 = { { R1d(0, 0), any, any, any }, 0 };
+		insert(t, r0);
+		V v0 = { 1, 0, 0, 0 };
+		auto res = search(t, v0);
+		BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+
+		V v1 = { 0, 1, 1, 1 };
+		res = search(t, v1);
+		BOOST_CHECK_EQUAL(res, 0);
+
+		BOOST_CHECK_EQUAL(t.root->get_next_layer(0), nullptr);
+		R r1 = { { R1d(0, 0), R1d(1, 1), any, any }, 1 };
+		insert(t, r1);
+
+		res = search(t, v1);
+		BOOST_CHECK_EQUAL(res, 1);
+
+		res = search(t, v0);
+		BOOST_CHECK_EQUAL(res, BTree::INVALID_INDEX);
+
+		V v2 = { 0, 0, 0, 0 };
+		res = search(t, v2);
+		BOOST_CHECK_EQUAL(res, 0);
+
+		/*
+		 * <0>0-0 <- removing this
+		 *     |
+		 * <1>1-1 <- while keeping this
+         *
+		 * */
+		remove(t, r0);
+
+		res = search(t, v2);
+		BOOST_CHECK_EQUAL(res, BTree::INVALID_INDEX);
+
+		res = search(t, v1);
+		BOOST_CHECK_EQUAL(res, 1);
+	}
+
+}
 //____________________________________________________________________________//
 
 BOOST_AUTO_TEST_SUITE_END()

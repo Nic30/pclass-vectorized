@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 
 namespace pcv {
 
@@ -23,10 +24,10 @@ namespace search_fn {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
-		__m256i const a, __m256i const b) {
+inline static __m256i        __attribute__((__always_inline__))       _mm256_cmpgt_epu32(
+		__m256i       const a, __m256i       const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i const fix_val = _mm256_set1_epi32(offset);
+	__m256i       const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 /*
@@ -35,13 +36,12 @@ inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i  __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
-		__m256i const a, __m256i const b) {
+inline static __m256i        __attribute__((__always_inline__))       _mm256_cmpgt_epu16(
+		__m256i       const a, __m256i       const b) {
 	constexpr uint16_t offset = 0x1u << 15;
-	__m256i const fix_val = _mm256_set1_epi16(offset);
+	__m256i       const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }
-
 
 template<typename T>
 static SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
@@ -104,7 +104,7 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i       const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -126,7 +126,10 @@ class BTreeSearch {
 public:
 	using Node = typename BTree::Node;
 	using value_t = typename BTree::value_t;
+	using rule_spec_t = typename BTree::rule_spec_t;
 	using KeyInfo = typename BTree::KeyInfo;
+	using rule_id_t = typename BTree::rule_id_t;
+	using val_vec_t = typename BTree::val_vec_t;
 
 	class KeyIterator {
 	public:
@@ -352,9 +355,8 @@ public:
 	 *
 	 * [TODO] use array
 	 * */
-	static typename BTree::rule_id_t search(BTree & t,
-			const std::vector<typename BTree::value_t> & _val) {
-		typename BTree::rule_id_t res = BTree::INVALID_RULE;
+	static rule_id_t search(BTree & t, const val_vec_t & _val) {
+		rule_id_t res = BTree::INVALID_RULE;
 		Node * n = t.root;
 		unsigned i = 0;
 		while (n) {
@@ -367,10 +369,10 @@ public:
 				if (v != BTree::INVALID_RULE) {
 					// some matching rule found on path from the root in this node
 					res = v;
-					// search in next layer if there is some
-					n = n->get_next_layer(r.second);
-					i++;
 				}
+				// search in next layer if there is some
+				n = n->get_next_layer(r.second);
+				i++;
 			}
 		}
 		return res;
@@ -378,9 +380,11 @@ public:
 	/*
 	 * Search the tuples <node, index in node> for each part of the rule
 	 * @note the items are in order specified by dimension_order array
+	 *
+	 * @param path vector of tuples <root of the tree, node where item is stored, the index on which the item is stored>
 	 **/
-	static void search_path(BTree & t, const typename BTree::rule_spec_t & rule,
-			std::vector<std::pair<Node *, unsigned>> & path) {
+	static void search_path(BTree & t, const rule_spec_t & rule,
+			std::vector<std::tuple<Node *, Node *, unsigned>> & path) {
 		Node * n = t.root;
 		unsigned i = 0;
 		while (n) {
@@ -391,7 +395,8 @@ public:
 				break;
 			// some matching rule found on path from the root in this node
 			// search in next layer if there is some
-			path.push_back(std::pair<Node *, unsigned>(r.first, r.second));
+			path.push_back(
+					std::tuple<Node *, Node *, unsigned>(n, r.first, r.second));
 			n = r.first->get_next_layer(r.second);
 			i++;
 		}

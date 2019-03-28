@@ -55,7 +55,7 @@ public:
 	 * */
 	static void insertNonFull(Node & node, const rule_spec_t & rule,
 			InsertCookie & cookie) {
-		// Initialize index as index of rightmost element
+		// Initialise index as index of rightmost element
 		int i = int(node.key_cnt) - 1;
 		// If this is a leaf node
 		auto k = cookie.get_actual_key(rule);
@@ -72,7 +72,7 @@ public:
 			node.set_key(i + 1, KeyInfo(k, rule.second, BTree::INVALID_INDEX));
 			node.set_key_cnt(node.key_cnt + 1);
 
-			// continue on next layer if requiered
+			// continue on next layer if required
 			if (cookie.required_more_levels(rule)) {
 				cookie.level++;
 				auto nl = node.get_next_layer(i + 1);
@@ -107,7 +107,7 @@ public:
 	 * @note the rule must not collide with anything in the tree
 	 * @param root root of tree where the rule should be inserted (can be nullptr)
 	 * @param rule rule to insert
-	 * @param cookie which sotores the state of insertion
+	 * @param cookie which stores the state of insertion
 	 * @return new root of the tree
 	 * */
 	static Node * insert_to_root(Node * root, const rule_spec_t & rule,

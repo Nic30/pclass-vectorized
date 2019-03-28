@@ -54,8 +54,8 @@ public:
 		// 8*4B values
 		__m256i keys[2];
 		static_assert(sizeof(Key_t)* MAX_DEGREE <= sizeof(__m256i));
-		// 8*1B dimension index
-		__m64 dim_index;
+		// 16*1B dimension index
+		__m64 dim_index[2];
 		// the value of rule
 		std::array<index_t, MAX_DEGREE> value;
 		std::array<index_t, MAX_DEGREE> next_level;
@@ -66,6 +66,7 @@ public:
 		uint8_t key_cnt;
 
 		bool is_leaf;
+		bool is_comprimed;
 		Node * parent;
 
 		Node(Node const&) = delete;
@@ -74,11 +75,12 @@ public:
 			assert(((uintptr_t ) this) % 64 == 0);
 			keys[0] = keys[1] = _mm256_set1_epi32(
 					std::numeric_limits<uint32_t>::max());
-			dim_index = _m_from_int64(std::numeric_limits<uint64_t>::max());
+			dim_index[1] = dim_index[0] = _m_from_int64(std::numeric_limits<uint64_t>::max());
 			std::fill(value.begin(), value.end(), INVALID_INDEX);
 			clean_children();
 			set_key_cnt(0);
 			is_leaf = true;
+			is_comprimed = false;
 			parent = nullptr;
 		}
 		inline void clean_children() {

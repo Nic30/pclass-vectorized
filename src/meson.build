@@ -12,6 +12,9 @@ src = [
 	#'packet_classifiers_vectorized.cpp',
 	
 	'rule_parser/classbench_rule_parser.cpp',
+	'rule_parser/rule.cpp',
+	'rule_parser/trace_tools.cpp',
+	
 ]
 
 EXTRA_CXX_ARGS = [

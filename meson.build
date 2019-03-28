@@ -2,3 +2,4 @@ project('packet_classifiers_vectorized', ['c', 'cpp'], default_options : ['cpp_s
 
 subdir('src')
 subdir('tests')
+subdir('benchmarks')

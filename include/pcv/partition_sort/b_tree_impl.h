@@ -7,6 +7,13 @@
 
 namespace pcv {
 
+/*
+ * Wrapper around _BTree which connects the algorithms and data part to a single class
+ *
+ * @tparam Key_t the type of key which will be used by the nodes in the tree
+ * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
+ * @tparam _T parameter which specifies the number of items per node
+ * */
 template<typename Key_t, size_t _D, size_t _T = 4>
 class BTreeImp: public _BTree<Key_t, _D, _T> {
 public:

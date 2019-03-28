@@ -22,6 +22,10 @@ namespace pcv {
  * The B-Tree with multidimensional key
  *
  * This is B-tree divide to several layers. Each layer performs the lookup in single dimension only.
+ *
+ * @tparam Key_t the type of key which will be used by the nodes in the tree
+ * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
+ * @tparam _T parameter which specifies the number of items per node
  * */
 template<typename Key_t, size_t _D, size_t _T = 4>
 class alignas(64) _BTree {

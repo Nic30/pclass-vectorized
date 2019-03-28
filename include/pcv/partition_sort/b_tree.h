@@ -12,9 +12,9 @@
 
 #include <pcv/common/range.h>
 //#include <pcv/partiton_sort/mempool_mockup.h>
-#include "../partition_sort/b_tree_printer.h"
-#include "../partition_sort/key_info.h"
-#include "../partition_sort/mempool.h"
+#include <pcv/partition_sort/b_tree_printer.h>
+#include <pcv/partition_sort/key_info.h>
+#include <pcv/partition_sort/mempool.h>
 
 namespace pcv {
 

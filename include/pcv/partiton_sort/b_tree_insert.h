@@ -33,8 +33,10 @@ public:
 		}
 		bool required_more_levels(const rule_spec_t & rule) const {
 			if (level < dimensio_order.size()) {
-				for (size_t i = level; i < dimensio_order.size(); i++) {
-					if (not rule.first[dimensio_order[i]].is_wildcard())
+				for (size_t i = level + 1; i < dimensio_order.size(); i++) {
+					auto d = dimensio_order[i];
+					auto & k = rule.first[d];
+					if (not k.is_wildcard())
 						return true;
 				}
 			}
@@ -118,8 +120,8 @@ public:
 			root->set_key(0, KeyInfo(k, rule.second, BTree::INVALID_INDEX)); // Insert key
 			root->set_key_cnt(1);
 			root->value[0] = rule.second;
-			cookie.level++;
 			if (cookie.required_more_levels(rule)) {
+				cookie.level++;
 				auto nl = insert_to_root(root->get_next_layer(0), rule, cookie);
 				root->set_next_layer(0, nl);
 			}
@@ -160,13 +162,23 @@ public:
 		// want to duplicate keys which are already present
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		BTreeSearch<BTree>::search_path(tree, rule, path);
-		if (path.size() > 0) {
-			cookie.level += path.size();
-			Node * ins_root = tree.root;
+		cookie.level += path.size();
+		if (cookie.level == BTree::D) {
+			// rule of same specification is already contained in tree
+			// it is required only to update the rule id in specified node
 			auto b = path.back();
-			ins_root = std::get<1>(b)->get_next_layer(std::get<2>(b));
+			std::get<1>(b)->value[std::get<2>(b)] = rule.second;
+			// [TODO] on_rewrite()
+		} else if (cookie.level > 0) {
+			Node * r, *n;
+			unsigned i;
+			std::tie(r, n, i) = path.back();
+
+			// insert to the next layer
+			Node * ins_root = n->get_next_layer(i);
 			ins_root = insert_to_root(ins_root, rule, cookie);
-			std::get<1>(b)->set_next_layer(std::get<2>(b), ins_root);
+			// update ptr on next layer in previous layer
+			n->set_next_layer(i, ins_root);
 		} else {
 			tree.root = insert_to_root(tree.root, rule, cookie);
 		}

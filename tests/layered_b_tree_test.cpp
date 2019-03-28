@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	}
 }
 
-BOOST_AUTO_TEST_CASE( ins_search_rem_8layer ) {
+BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 	using BTree = _BTree<uint16_t, 4>;
 	BTree t;
 
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_8layer ) {
 		 * <0>0-0 <- removing this
 		 *     |
 		 * <1>1-1 <- while keeping this
-         *
+		 *
 		 * */
 		remove(t, r0);
 
@@ -134,6 +134,41 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_8layer ) {
 		res = search(t, v1);
 		BOOST_CHECK_EQUAL(res, 1);
 	}
+
+}
+
+BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
+	using BTree = _BTree<uint16_t, 4>;
+	BTree t;
+
+	using V = typename BTree::val_vec_t;
+	using R = typename BTree::rule_spec_t;
+	using R1d = typename BTree::val_range_t;
+	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
+	R1d any(0, U16_MAX);
+	R r0 = { { R1d(0, 0), any, any, any }, 0 };
+	V v0 = { 0, 0, 0, 0 };
+
+	insert(t, r0);
+	auto res = search(t, v0);
+	BOOST_CHECK_EQUAL(res, 0);
+
+	R r1 = { { R1d(0, 0), any, any, any }, 1 };
+	insert(t, r1);
+	res = search(t, v0);
+	BOOST_CHECK_EQUAL(res, 1);
+
+	V v1 = { 1, 2, 3, 4 };
+
+	R r2 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 2 };
+	insert(t, r2);
+	res = search(t, v1);
+	BOOST_CHECK_EQUAL(res, 2);
+
+	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 3 };
+	insert(t, r3);
+	res = search(t, v1);
+	BOOST_CHECK_EQUAL(res, 3);
 
 }
 //____________________________________________________________________________//

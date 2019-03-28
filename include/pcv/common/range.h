@@ -47,7 +47,7 @@ public:
 	}
 
 	bool is_wildcard() const {
-		return low == 0 and std::numeric_limits<T>::max();
+		return low == 0 and high == std::numeric_limits<T>::max();
 	}
 	bool in_range(T val) const {
 		return val >= low and val <= high;

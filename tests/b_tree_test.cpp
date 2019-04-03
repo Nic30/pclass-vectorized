@@ -14,7 +14,7 @@ using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
-using BTree = _BTree<uint16_t, 2>;
+using BTree = _BTree<uint16_t, 2, 4, false>;
 
 void insert(BTree & t, BTree::rule_spec_t & r) {
 	BTreeInsert<BTree>::insert(t, r);
@@ -38,9 +38,10 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::val_range_t;
+	R1d any(0, numeric_limits<BTree::value_t>::max());
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
-				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
+				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		insert(t, r);
 	}
 
@@ -68,9 +69,10 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::val_range_t;
+	R1d any(0, numeric_limits<BTree::value_t>::max());
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
-				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
+				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		insert(t, r);
 		t.root->integrity_check();
 	}
@@ -83,9 +85,9 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 
 	for (size_t i = 0; i < N; i++) {
 		rule_t r =
-				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), R1d(0, 0), }, i };
+				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		remove(t, r);
-		BOOST_CHECK_EQUAL(t.size(), 2 * (N - i - 1));
+		BOOST_CHECK_EQUAL(t.size(), (N - i - 1));
 		for (size_t i3 = i + 1; i3 < N; i3++) {
 			for (size_t i2 = 0; i2 < RANGE_SIZE; i2++) {
 				auto s = (i3 * STEP + i2);
@@ -147,9 +149,10 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::val_range_t;
-	rule_t r1 = { { R1d(1, 1), R1d(0, 0), }, 1 };
-	rule_t r2 = { { R1d(3, 6), R1d(0, 0), }, 2 };
-	rule_t r3 = { { R1d(7, 10), R1d(0, 0), }, 3 };
+	R1d any(0, numeric_limits<BTree::value_t>::max());
+	rule_t r1 = { { R1d(1, 1),  any, }, 1 };
+	rule_t r2 = { { R1d(3, 6),  any, }, 2 };
+	rule_t r3 = { { R1d(7, 10), any, }, 3 };
 
 	insert(t, r1);
 	insert(t, r2);
@@ -197,6 +200,7 @@ BOOST_AUTO_TEST_CASE( search_in_8_removed_ranges ) {
 BOOST_AUTO_TEST_CASE( search_in_9_removed_ranges ) {
 	test_insert_remove_and_search(1, 1, 9);
 }
+
 BOOST_AUTO_TEST_CASE( search_in_16_removed_ranges ) {
 	test_insert_remove_and_search(1, 1, 16);
 }

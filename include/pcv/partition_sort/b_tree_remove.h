@@ -15,7 +15,7 @@ public:
 	static void remove(BTree & tree, const rule_spec_t & k) {
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		path.reserve(64);
-		BTreeSearch<BTree>::search_path(tree, k, path);
+		BTreeSearch<BTree>::search_path(tree.root, tree.dimension_order, k, path);
 		//search in boom-up manner
 		for (int i = int(path.size()) - 1; i >= 0; i--) {
 			auto d = tree.dimension_order[i];
@@ -30,14 +30,12 @@ public:
 			if (nl) {
 				// delete only rule specification
 				node->value[index] = BTree::INVALID_INDEX;
-			} else {
-				// delete whole item in node
-				new_root = remove_1d(key, root);
-			}
-			if (nl) {
 				// there is something down in the tree and there is not a record about
 				// this rule up in tree
 				break;
+			} else {
+				// delete whole item in node
+				new_root = remove_1d(key, root);
 			}
 			if (root == tree.root) {
 				tree.root = new_root;

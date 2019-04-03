@@ -1,4 +1,3 @@
-
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE pcv_test
@@ -120,6 +119,11 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		V v2 = { 0, 0, 0, 0 };
 		res = search(t, v2);
 		BOOST_CHECK_EQUAL(res, 0);
+		//stringstream ss;
+		//ofstream o("ins_search_rem_4layer_r0_r1.dot");
+		//o << t;
+		//o.close();
+		res = search(t, v1);
 
 		/*
 		 * <0>0-0 <- removing this
@@ -168,10 +172,58 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 
 	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 3 };
 	insert(t, r3);
+	//stringstream ss;
+	//ofstream o("bt_r3.dot");
+	//o << t;
+	//o.close();
 	res = search(t, v1);
 	BOOST_CHECK_EQUAL(res, 3);
 
 }
+
+BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
+	using BTree = _BTree<uint16_t, 4>;
+	BTree t;
+
+	using V = typename BTree::val_vec_t;
+	using R = typename BTree::rule_spec_t;
+	using R1d = typename BTree::val_range_t;
+	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
+	R1d any(0, U16_MAX);
+	R r0 = { { R1d(0, 0), R1d(1, 1), R1d(2, 2), R1d(3, 3) }, 0 };
+	R r1 = { { R1d(0, 0), R1d(4, 4), R1d(2, 2), R1d(3, 3) }, 1 };
+	V v0 = { 0, 0, 0, 0 };
+	V v1 = { 0, 1, 2, 3 };
+	V v2 = { 0, 4, 2, 3 };
+	insert(t, r0);
+	auto res = search(t, v0);
+	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	res = search(t, v1);
+	BOOST_CHECK_EQUAL(res, 0);
+	res = search(t, v2);
+	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	//{
+	//	stringstream ss;
+	//	ofstream o("rewrite_on_demand_0.dot");
+	//	o << t;
+	//	o.close();
+	//}
+	// the root node must stay only for dimension[0] otherwise the tree can not grow
+	insert(t, r1);
+	res = search(t, v0);
+	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	res = search(t, v1);
+	BOOST_CHECK_EQUAL(res, 0);
+	res = search(t, v2);
+	BOOST_CHECK_EQUAL(res, 1);
+	//{
+	//	stringstream ss;
+	//	ofstream o("rewrite_on_demand_1.dot");
+	//	o << t;
+	//	o.close();
+	//}
+}
+
 //____________________________________________________________________________//
 
 BOOST_AUTO_TEST_SUITE_END()

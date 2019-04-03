@@ -21,6 +21,12 @@ public:
 		if (n.parent) {
 			str << "(parent:" << Node::_Mempool_t::getId(n.parent) << ")";
 		}
+		if (n.is_leaf) {
+			str << " leaf";
+		}
+		if (n.is_compressed) {
+			str << " compressed ";
+		}
 		// print keys
 		str << "|{";
 		for (size_t i = 0; i < Node::MAX_DEGREE; i++) {
@@ -30,8 +36,11 @@ public:
 				// << hex
 
 				// range on first row rule id on second
-				str << "{ <range" << i << ">" << k.key.low << "-" << k.key.high
-						<< " | ";
+				str << "{ <range" << i << ">" << k.key.low << "-" << k.key.high;
+				if (n.is_compressed) {
+					str << " D" << int(n.get_dim(i));
+				}
+				str << " | ";
 				if (k.value != BTree::INVALID_RULE)
 					str << k.value;
 				str << "}";

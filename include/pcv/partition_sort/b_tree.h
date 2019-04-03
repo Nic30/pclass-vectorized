@@ -23,11 +23,20 @@ namespace pcv {
  *
  * This is B-tree divide to several layers. Each layer performs the lookup in single dimension only.
  *
+ * This tree uses path compression between the layers. This means if there is a path trough the tree which contains
+ * only the nodes with a single items. All items on this paths are merged in to the single node with is_compressed flag set.
+ * In order to reduce lookup speed an use SIMD efficiently. Note that the compressed node does not behaves like
+ * b-tree node but just as a list of the ranges.
+ *
+ * @note that this is only implementation of the data structure. You can find the algorithms in b_tree_*.h files.
+ *
  * @tparam Key_t the type of key which will be used by the nodes in the tree
  * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
  * @tparam _T parameter which specifies the number of items per node
+ * @tparam _PATH_COMPRESSION is true the path compression is enabled
+ * 		and some of the nodes may be compressed as described
  * */
-template<typename Key_t, size_t _D, size_t _T = 4>
+template<typename Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
 class alignas(64) _BTree {
 public:
 	using rule_id_t = uint16_t;
@@ -42,45 +51,62 @@ public:
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
 	static constexpr rule_id_t INVALID_RULE = INVALID_INDEX;
+	static constexpr bool PATH_COMPRESSION =_PATH_COMPRESSION;
 
-	std::array<int, D> dimension_order;
-
+	/*
+	 * The node of B-tree
+	 * the array of the keys, items, and next level pointers together with additional info
+	 * */
 	class alignas(64) Node: public ObjectWithStaticMempool<Node, 65536, false> {
 	public:
+		// T is the parameter which describes the size of the B-tree node
 		static constexpr size_t T = _T;
+		// limit of number of items in the node
 		static constexpr size_t MIN_DEGREE = T - 1;
 		static constexpr size_t MAX_DEGREE = 2 * T - 1;
-		// perf-critical: ensure this is 64-byte aligned.
-		// 8*4B values
+		// keys for the items in the node
 		__m256i keys[2];
 		static_assert(sizeof(Key_t)* MAX_DEGREE <= sizeof(__m256i));
-		// 16*1B dimension index
+		// 16*1B dimension index, only used for compressed nodes, the dimension order is same as in tree
 		__m64 dim_index[2];
 		// the value of rule
 		std::array<index_t, MAX_DEGREE> value;
+		// the pointers to the root of trees in next level of the tree
 		std::array<index_t, MAX_DEGREE> next_level;
 		// 9*2B child index
 		std::array<index_t, MAX_DEGREE + 1> child_index;
 		// if bit in mask is set the key is present
 		uint32_t key_mask;
+		// key_mask/key_cnt have same meaning
 		uint8_t key_cnt;
 
+		// if the node is leaf this means that it does not have any child on this level of this b-tree
+		// however it still can have pointers to the trees on next level
 		bool is_leaf;
-		bool is_comprimed;
+		// if node is compressed it means that it contains also the keys from the lower levels of tree
+		// this means that each item in this node uses key for different dimension (field)
+		// and the search/insert/remove algorithm is different
+		bool is_compressed;
 		Node * parent;
 
+		// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 		Node(Node const&) = delete;
 		Node& operator=(Node const&) = delete;
+
 		Node() {
 			assert(((uintptr_t ) this) % 64 == 0);
+			// the initialisations which are not required
 			keys[0] = keys[1] = _mm256_set1_epi32(
 					std::numeric_limits<uint32_t>::max());
-			dim_index[1] = dim_index[0] = _m_from_int64(std::numeric_limits<uint64_t>::max());
+			dim_index[1] = dim_index[0] = _m_from_int64(
+					std::numeric_limits<uint64_t>::max());
 			std::fill(value.begin(), value.end(), INVALID_INDEX);
 			clean_children();
+
+			// the only required initialisations
 			set_key_cnt(0);
 			is_leaf = true;
-			is_comprimed = false;
+			is_compressed = false;
 			parent = nullptr;
 		}
 		inline void clean_children() {
@@ -88,7 +114,13 @@ public:
 			std::fill(child_index.begin(), child_index.end(), INVALID_INDEX);
 		}
 
-		KeyInfo get_key(uint8_t index) const {
+		inline uint8_t get_dim(uint8_t index) const {
+			return reinterpret_cast<const uint8_t*>(&dim_index[0])[index];
+		}
+		inline void set_dim(uint8_t index, uint8_t val) {
+			reinterpret_cast<uint8_t*>(&dim_index[0])[index] = val;
+		}
+		inline KeyInfo get_key(uint8_t index) const {
 			assert(index < MAX_DEGREE);
 			auto low = reinterpret_cast<const value_t*>(&keys[0])[index];
 			auto high = reinterpret_cast<const value_t*>(&keys[1])[index];
@@ -99,7 +131,7 @@ public:
 			};
 		}
 
-		void set_key(uint8_t index, const KeyInfo & key_info) {
+		inline void set_key(uint8_t index, const KeyInfo & key_info) {
 			assert(index < MAX_DEGREE);
 			reinterpret_cast<value_t*>(&keys[0])[index] = key_info.key.low;
 			reinterpret_cast<value_t*>(&keys[1])[index] = key_info.key.high;
@@ -111,7 +143,7 @@ public:
 		/*
 		 * Set pointer to child node
 		 * */
-		void set_child(unsigned index, Node * child) {
+		inline void set_child(unsigned index, Node * child) {
 			if (child == nullptr)
 				child_index[index] = INVALID_INDEX;
 			else {
@@ -123,7 +155,7 @@ public:
 		/*
 		 * Set pointer to next layer
 		 * */
-		void set_next_layer(unsigned index, Node * next_layer_root) {
+		inline void set_next_layer(unsigned index, Node * next_layer_root) {
 			if (next_layer_root == nullptr)
 				next_level[index] = INVALID_INDEX;
 			else
@@ -133,7 +165,7 @@ public:
 		/*
 		 * Set key_cnt and also update key_mask
 		 * */
-		void set_key_cnt(size_t key_cnt) {
+		inline void set_key_cnt(size_t key_cnt) {
 			assert(key_cnt <= MAX_DEGREE);
 			this->key_cnt = key_cnt;
 			key_mask = (1 << key_cnt) - 1;
@@ -145,11 +177,11 @@ public:
 		}
 
 		// get child node on specified index
-		Node * child(const index_t index) {
+		inline Node * child(const index_t index) {
 			return const_cast<Node*>(const_cast<const Node *>(this)->child(
 					index));
 		}
-		const Node * child(const index_t index) const {
+		inline const Node * child(const index_t index) const {
 			if (child_index[index] == INVALID_INDEX)
 				return nullptr;
 			else
@@ -157,11 +189,14 @@ public:
 		}
 
 		// get root node of the next layer starting from this node on specified index
-		Node * get_next_layer(unsigned index) {
+		inline Node * get_next_layer(unsigned index) {
 			return const_cast<Node*>(const_cast<const Node *>(this)->get_next_layer(
 					index));
 		}
-		const Node * get_next_layer(unsigned index) const {
+		/*
+		 * @return the pointer on root of the next layer in the tree
+		 * */
+		inline const Node * get_next_layer(unsigned index) const {
 			auto i = next_level[index];
 			if (i == INVALID_INDEX)
 				return nullptr;
@@ -169,6 +204,9 @@ public:
 				return &by_index(i);
 		}
 
+		/*
+		 * @return number of the keys in this node and all subtrees
+		 * */
 		size_t size() const {
 			size_t s = key_cnt;
 			for (size_t i = 0; i < key_cnt + 1u; i++) {
@@ -235,6 +273,10 @@ public:
 				seen = &_seen;
 			assert(seen->find(this) == seen->end());
 			assert(key_cnt > 0);
+			if (is_compressed) {
+				assert(is_leaf);
+				assert(key_cnt > 1);
+			}
 
 			for (size_t i = 0; i < key_cnt; i++) {
 				get_key(i);
@@ -253,6 +295,9 @@ public:
 			}
 		}
 
+		/*
+		 * @attention will delete the sub-tree recursively
+		 * */
 		~Node() {
 			if (not is_leaf) {
 				for (uint8_t i = 0; i < key_cnt + 1; i++) {
@@ -266,9 +311,13 @@ public:
 	}__attribute__((aligned(64)));
 
 	Node * root;
+	std::array<int, D> dimension_order;
 
+
+	// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 	_BTree(_BTree const&) = delete;
 	_BTree& operator=(_BTree const&) = delete;
+
 	_BTree() :
 			root(nullptr) {
 		for (size_t i = 0; i < dimension_order.size(); i++)

@@ -14,10 +14,10 @@ namespace pcv {
  * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
  * @tparam _T parameter which specifies the number of items per node
  * */
-template<typename Key_t, size_t _D, size_t _T = 4>
-class BTreeImp: public _BTree<Key_t, _D, _T> {
+template<typename Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
+class BTreeImp: public _BTree<Key_t, _D, _T, _PATH_COMPRESSION> {
 public:
-	using BTree = _BTree<Key_t, _D, _T>;
+	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
 	using Node = typename BTree::Node;
 	using rule_id_t = typename BTree::rule_id_t;
 	static constexpr size_t D = BTree::D;
@@ -31,18 +31,18 @@ public:
 	static constexpr index_t INVALID_INDEX = BTree::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
 
-	void insert(const rule_spec_t & r) {
+	inline void insert(const rule_spec_t & r) {
 		BTreeInsert<BTreeImp>::insert(*this, r);
 	}
 
-	bool does_rule_colide(const rule_spec_t & r) {
+	inline bool does_rule_colide(const rule_spec_t & r) {
 		return BTreeCollisionCheck<BTreeImp>::does_rule_colide(*this, r);
 	}
 
-	rule_id_t search(const val_vec_t & v) {
+	inline rule_id_t search(const val_vec_t & v) {
 		return BTreeSearch<BTreeImp>::search(*this, v);
 	}
-	void remove(const rule_spec_t & r) {
+	inline void remove(const rule_spec_t & r) {
 		BTreeRemove<BTreeImp>::remove(*this, r);
 	}
 

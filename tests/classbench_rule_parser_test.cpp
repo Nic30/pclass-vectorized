@@ -1,8 +1,8 @@
-
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE pcv_test
 
+#include <string>
 #include "test_common.h"
 
 #include <pcv/rule_parser/classbench_rule_parser.h>
@@ -14,7 +14,7 @@ using namespace pcv::rule_conv_fn;
 
 BOOST_AUTO_TEST_SUITE (pcv_testsuite)
 
-BOOST_AUTO_TEST_CASE( acl1_100 ) {
+BOOST_AUTO_TEST_CASE( parse_acl1_100 ) {
 	auto file_name = "tests/data/acl1_100";
 	vector<iParsedRule*> rules;
 	{
@@ -33,10 +33,8 @@ BOOST_AUTO_TEST_CASE( acl1_100 ) {
 	}
 }
 
-BOOST_AUTO_TEST_CASE( classifier_from_classbench ) {
-	using BTree = BTreeImp<uint16_t, 7, 8>;
-	auto file_name = "tests/data/acl1_100";
-
+template<typename BTree>
+void test_b_tree(const std::string & file_name) {
 	BTree t;
 
 	vector<iParsedRule*> _rules;
@@ -47,12 +45,9 @@ BOOST_AUTO_TEST_CASE( classifier_from_classbench ) {
 	size_t i = 0;
 	for (auto _r : _rules) {
 		auto __r = reinterpret_cast<Rule_Ipv4*>(_r);
-		BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), i };
+		typename BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), i };
 		if (not t.does_rule_colide(r)) {
 			//std::cout << i << " " << *__r << std::endl;
-			//if (i == 9) {
-			//	std::cout << endl;
-			//}
 			t.insert(r);
 			i++;
 
@@ -65,6 +60,17 @@ BOOST_AUTO_TEST_CASE( classifier_from_classbench ) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE( classifier_from_classbench ) {
+	using BTree = BTreeImp<uint16_t, 7, 8, false>;
+	auto file_name = "tests/data/acl1_100";
+	test_b_tree<BTree>(file_name);
+}
+
+BOOST_AUTO_TEST_CASE( classifier_from_classbench_comp_en ) {
+	using BTree = BTreeImp<uint16_t, 7, 8, true>;
+	auto file_name = "tests/data/acl1_100";
+	test_b_tree<BTree>(file_name);
+}
 //____________________________________________________________________________//
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -91,8 +91,8 @@ DpdkAclContainer::setup_acl(struct rte_acl_rule *route_base,
 		rte_exit(EXIT_FAILURE,
 				"Failed to setup classify method for  ACL context\n");
 
-	if (rte_acl_add_rules(context, route_base, route_num) < 0)
-		rte_exit(EXIT_FAILURE, "add rules failed\n");
+	//if (rte_acl_add_rules(context, route_base, route_num) < 0)
+	//	rte_exit(EXIT_FAILURE, "add rules failed\n");
 
 	if (rte_acl_add_rules(context, acl_base, acl_num) < 0)
 		rte_exit(EXIT_FAILURE, "add rules failed\n");

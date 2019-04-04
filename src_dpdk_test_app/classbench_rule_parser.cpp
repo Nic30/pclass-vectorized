@@ -1,8 +1,12 @@
 #include "classbench_rule_parser.h"
 
+#include "dpdk_acl_field_defs.h"
+#include "log.h"
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define ACL_LEAD_CHAR		('@')
 #define ROUTE_LEAD_CHAR		('R')
@@ -74,9 +78,9 @@ int add_rules(const char *rule_path, struct rte_acl_rule **proute_base,
 			acl_num++;
 	}
 
-	if (0 == route_num)
-		rte_exit(EXIT_FAILURE, "Not find any route entries in %s!\n",
-				rule_path);
+	//if (0 == route_num)
+	//	rte_exit(EXIT_FAILURE, "Not find any route entries in %s!\n",
+	//			rule_path);
 
 	val = fseek(fh, 0, SEEK_SET);
 	if (val < 0) {
@@ -239,7 +243,7 @@ int parse_cb_ipv4vlan_rule(char *str, struct rte_acl_rule *v,
  * Parses IPV6 address, exepcts the following format:
  * XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (where X - is a hexedecimal digit).
  */
-static int parse_ipv6_addr(const char *in, const char **end,
+int parse_ipv6_addr(const char *in, const char **end,
 		uint32_t v[IPV6_ADDR_U32], char dlm) {
 	uint32_t addr[IPV6_ADDR_U16];
 

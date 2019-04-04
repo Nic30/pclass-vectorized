@@ -1,0 +1,2 @@
+option('dpdk_test_app', type: 'boolean', value: false,
+	description: 'build also the dpdk test app')

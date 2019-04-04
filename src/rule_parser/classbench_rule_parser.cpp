@@ -1,4 +1,5 @@
 #include <pcv/rule_parser/classbench_rule_parser.h>
+#include <pcv/common/range.h>
 
 #include <vector>
 #include <iostream>
@@ -18,59 +19,59 @@ using namespace std;
 namespace pcv {
 
 Rule_Ipv4::Rule_Ipv4() :
-		sip(0, std::numeric_limits < uint32_t > ::max()), dip(0,
-				std::numeric_limits < uint32_t > ::max()), sport(0,
-				std::numeric_limits < uint16_t > ::max()), dport(0,
-				std::numeric_limits < uint16_t > ::max()), proto(0,
-				std::numeric_limits < uint16_t > ::max()) {
+		sip(0, std::numeric_limits<uint32_t>::max()), dip(0,
+				std::numeric_limits<uint32_t>::max()), sport(0,
+				std::numeric_limits<uint16_t>::max()), dport(0,
+				std::numeric_limits<uint16_t>::max()), proto(0,
+				std::numeric_limits<uint16_t>::max()) {
 
+}
+
+std::ostream & print_ipv4(std::ostream & str, const Range1d<uint32_t> & ip) {
+	size_t prefix_len = 32;
+	while (prefix_len > 0) {
+		auto m = 1 << (32 - prefix_len);
+		if ((ip.low & m) == (ip.high & m)) {
+			break;
+		}
+		prefix_len--;
+	}
+	auto bytes = reinterpret_cast<const uint8_t*>(&ip.low);
+	for (int i = 3; i >= 0; i--) {
+		str << int(bytes[i]);
+		if (i != 0)
+			str << ".";
+	}
+	str << "/" << prefix_len;
+	return str;
+}
+
+std::ostream & print_range(std::ostream & str, const Range1d<uint16_t> & range,
+		bool hex) {
+	auto f = str.flags();
+	if (hex) {
+		size_t prefix_mask = 0xff;
+		if (range.low != range.high)
+			prefix_mask = 0;
+		str << "0x" << std::hex << std::uppercase << std::setfill('0')
+				<< std::setw(2) << range.low << "/0x" << std::hex
+				<< std::uppercase << std::setfill('0') << std::setw(2)
+				<< prefix_mask;
+	} else {
+		str << range.low << " : " << range.high;
+	}
+	str.flags(f);
+	return str;
 }
 
 std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r) {
 	// @42.38.199.209/32	111.195.251.32/32	0 : 65535	1521 : 1521	0x06/0xFF
-	auto print_ipv4 = [&](const Range1d<uint32_t> & ip) {
-		size_t prefix_len = 32;
-		while (prefix_len > 0) {
-			auto m = 1 << (32 - prefix_len);
-			if ((ip.low & m ) == (ip.high & m)) {
-				break;
-			}
-			prefix_len--;
-		}
-		auto bytes = reinterpret_cast<const uint8_t*>(&ip.low);
-		for (int i = 3; i >= 0; i--) {
-			str << int(bytes[i]);
-			if (i != 0)
-			str << ".";
-		}
-		str << "/" << prefix_len;
-	};
-
-	auto print_range =
-			[&](const Range1d<uint16_t> & range, bool hex) {
-				auto f = str.flags();
-				if (hex) {
-					size_t prefix_mask = 0xff;
-					if (range.low != range.high)
-						prefix_mask = 0;
-					str << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << range.low <<
-					"/0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(2) << prefix_mask;
-				} else {
-					str << range.low << " : " << range.high;
-				}
-				str.flags(f);
-			};
-
 	str << "@";
-	print_ipv4(r.sip);
-	str << "\t";
-	print_ipv4(r.dip);
-	str << "\t";
-	print_range(r.sport, false);
-	str << "\t";
-	print_range(r.dport, false);
-	str << "\t";
-	print_range(r.proto, true);
+	print_ipv4(str, r.sip) << "\t";
+	print_ipv4(str, r.dip) << "\t";
+	print_range(str, r.sport, false) << "\t";
+	print_range(str, r.dport, false) << "\t";
+	print_range(str, r.proto, true);
 
 	return str;
 }
@@ -103,7 +104,7 @@ std::vector<std::string> & RuleReader::split(const std::string &s, char delim,
 }
 
 std::vector<std::string> RuleReader::split(const std::string &s, char delim) {
-	std::vector < std::string > elems;
+	std::vector<std::string> elems;
 	split(s, delim, elems);
 	return elems;
 }
@@ -119,7 +120,7 @@ vector<vector<unsigned int>> RuleReader::parse_packets(const string& filename) {
 	string content;
 	while (getline(input_file, content)) {
 		istringstream iss(content);
-		vector < string > tokens { istream_iterator<string> { iss },
+		vector<string> tokens { istream_iterator<string> { iss },
 				istream_iterator<string> { } };
 		vector<unsigned int> one_packet;
 		for (int i = 0; i < dim; i++) {
@@ -135,8 +136,8 @@ vector<vector<unsigned int>> RuleReader::parse_packets(const string& filename) {
 void RuleReader::parse_IPRange(Range1d<uint32_t>& IPrange,
 		const string& token) {
 	//split slash
-	vector < string > split_slash = split(token, '/');
-	vector < string > split_ip = split(split_slash[0], '.');
+	vector<string> split_slash = split(token, '/');
+	vector<string> split_ip = split(split_slash[0], '.');
 	// asindmemacces IPv4 prefixes
 	// temporary variables to store IP range
 	unsigned int mask;
@@ -198,7 +199,7 @@ void RuleReader::parse_port(Range1d<uint16_t>& Portrange, const string& from,
 void RuleReader::parse_protocol(Range1d<uint16_t>& Protocol,
 		const string& last_token) {
 	// Example : 0x06/0xFF
-	vector <string> split_slash = split(last_token, '/');
+	vector<string> split_slash = split(last_token, '/');
 
 	if (split_slash[1] != "0xFF") {
 		Protocol.low = 0;
@@ -242,7 +243,7 @@ void RuleReader::parse_rules(ifstream& fp, vector<iParsedRule*>& ruleset) {
 	string content;
 	while (getline(fp, content)) {
 		istringstream iss(content);
-		vector < string > tokens { istream_iterator<string> { iss },
+		vector<string> tokens { istream_iterator<string> { iss },
 				istream_iterator<string> { } };
 		parse(tokens, ruleset, line_number++);
 	}
@@ -289,7 +290,7 @@ unsigned int PrefixLength(unsigned int low, unsigned int high) {
 }
 
 void RuleReader::parse_range(Range1d<uint32_t>& range, const string& text) {
-	vector < string > split_colon = split(text, ':');
+	vector<string> split_colon = split(text, ':');
 	// to obtain interval
 	range.low = atoui(split_colon[0]);
 	range.high = atoui(split_colon[1]);
@@ -309,13 +310,13 @@ vector<iParsedRule*> RuleReader::parser_MSU(const string& filename) {
 	string content;
 	getline(input_file, content);
 	getline(input_file, content);
-	vector < string > split_comma = split(content, ',');
+	vector<string> split_comma = split(content, ',');
 	dim = split_comma.size();
 
 	int priority = 0;
 	getline(input_file, content);
-	vector < string > parts = split(content, ',');
-	vector < Range1d < uint32_t >> bounds(parts.size());
+	vector<string> parts = split(content, ',');
+	vector<Range1d<uint32_t>> bounds(parts.size());
 	for (size_t i = 0; i < parts.size(); i++) {
 		parse_range(bounds[i], parts[i]);
 	}
@@ -323,7 +324,7 @@ vector<iParsedRule*> RuleReader::parser_MSU(const string& filename) {
 	while (getline(input_file, content)) {
 		// 5 fields: sip, dip, sport, dport, proto = 0 (with@), 1, 2 : 4, 5 : 7, 8
 		auto temp_rule = new Rule_Ipv4;
-		vector < string > split_comma = split(content, ',');
+		vector<string> split_comma = split(content, ',');
 		// ignore priority at the end
 		for (size_t i = 0; i < split_comma.size() - 1; i++) {
 			parse_range(temp_rule->sip, split_comma[i]);
@@ -350,14 +351,14 @@ vector<iParsedRule*> RuleReader::parse_rules(const string& filename) {
 	string content;
 	getline(in, content);
 	istringstream iss(content);
-	vector < string > tokens { istream_iterator<string> { iss },
-			istream_iterator<string> { } };
+	vector<string> tokens { istream_iterator<string> { iss }, istream_iterator<
+			string> { } };
 	if (content.length() == 0) {
 		in.close();
 		throw ifstream::failure("File is empty");
 	} else if (content[0] == '!') {
 		// MSU FORMAT
-		vector < string > split_semi = split(tokens.back(), ';');
+		vector<string> split_semi = split(tokens.back(), ';');
 		reps = (atoi(split_semi.back().c_str()) + 1) / 5;
 		dim = reps * 5;
 

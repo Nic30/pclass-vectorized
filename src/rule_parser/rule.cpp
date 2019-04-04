@@ -2,22 +2,138 @@
 
 namespace pcv {
 
+Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
+		const Range1d<uint8_t> & val) {
+	uint16_t high = val.high;
+	if (high == std::numeric_limits<uint8_t>::max()) {
+		high = std::numeric_limits<uint16_t>::max();
+	}
+	*begin = Range1d<uint16_t>(val.low, high);
+	begin++;
+	return begin;
+}
+
+Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
+		const Range1d<uint16_t> & val) {
+	*begin = val;
+	begin++;
+	return begin;
+}
+
+Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
+		const Range1d<uint32_t> & val) {
+	using R = Range1d<uint16_t>;
+	auto m = std::numeric_limits<uint16_t>::max();
+	*begin = R((val.low >> 16) & m, (val.high >> 16) & m);
+	begin++;
+	*begin = R(val.low & m, val.high & m);
+	begin++;
+	return begin;
+}
+
+Range1d<uint16_t> * fill_eth(Range1d<uint16_t> * begin,
+		const Range1d<eth_t> & val) {
+	using R = Range1d<uint16_t>;
+	auto m = std::numeric_limits<uint16_t>::max();
+	for (int i = 3 - 1; i >= 0; i--) {
+		*begin = R((val.low >> (i * 16)) & m, (val.high >> (i * 16)) & m);
+		begin++;
+	}
+	return begin;
+}
+
+Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
+		const Range1d<uint64_t> & val) {
+	using R = Range1d<uint16_t>;
+	auto m = std::numeric_limits<uint16_t>::max();
+	for (int i = 4 - 1; i >= 0; i--) {
+		*begin = R((val.low >> (i * 16)) & m, (val.high >> (i * 16)) & m);
+		begin++;
+	}
+	return begin;
+}
+
+Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
+		const Range1d<ipv6_t> & val) {
+	using R = Range1d<uint16_t>;
+	auto m = std::numeric_limits<uint16_t>::max();
+	for (int i = 4 - 1; i >= 0; i--) {
+		*begin = R((val.low.high >> (i * 16)) & m,
+				(val.high.high >> (i * 16)) & m);
+		begin++;
+	}
+	for (int i = 4 - 1; i >= 0; i--) {
+		*begin = R((val.low.low >> (i * 16)) & m,
+				(val.high.low >> (i * 16)) & m);
+		begin++;
+	}
+	return begin;
+}
+
 namespace rule_conv_fn {
 template<>
 std::array<Range1d<uint16_t>, 7> rule_to_array(const Rule_Ipv4 & r) {
 	std::array<Range1d<uint16_t>, 7> _r;
-	using R = Range1d<uint16_t>;
-	auto m = std::numeric_limits<uint16_t>::max();
-	_r[0] = R((r.sip.low >> 16) & m, (r.sip.high >> 16) & m);
-	_r[1] = R(r.sip.low & m, r.sip.high & m);
-	_r[2] = R((r.dip.low >> 16) & m, (r.dip.high >> 16) & m);
-	_r[3] = R(r.dip.low & m, r.dip.high & m);
+	auto p = fill(&_r[0], r.sip);
+	fill(p, r.dip);
 	_r[4] = r.sport;
 	_r[5] = r.dport;
 	_r[6] = r.proto;
 
 	return _r;
 }
+
+template<>
+std::array<Range1d<uint16_t>, 177> rule_to_array(const Rule_OF_1_5_1 & r) {
+	std::array<Range1d<uint16_t>, 177> _r;
+	auto a = fill(&_r[0], r.in_port);
+	a = fill(a, r.in_phy_port);
+	a = fill(a, r.metadata);
+	a = fill_eth(a, r.eth_dst);
+	a = fill_eth(a, r.eth_src);
+	a = fill(a, r.eth_type);
+	a = fill(a, r.vlan_vid);
+	a = fill(a, r.vlan_pcp);
+	a = fill(a, r.ip_dscp);
+	a = fill(a, r.ip_ecn);
+	a = fill(a, r.ip_proto);
+	a = fill(a, r.ipv4_src);
+	a = fill(a, r.ipv4_dst);
+	a = fill(a, r.tcp_src);
+	a = fill(a, r.tcp_dst);
+	a = fill(a, r.udp_src);
+	a = fill(a, r.udp_dst);
+	a = fill(a, r.sctp_src);
+	a = fill(a, r.sctp_dst);
+	a = fill(a, r.icmpv4_type);
+	a = fill(a, r.icmpv4_code);
+	a = fill(a, r.arp_op);
+	a = fill(a, r.arp_spa);
+	a = fill(a, r.arp_tpa);
+	a = fill(a, r.arp_sha);
+	a = fill(a, r.arp_tha);
+	a = fill(a, r.ipv6_src);
+	a = fill(a, r.ipv6_dst);
+	a = fill(a, r.ipv6_flabel);
+	a = fill(a, r.icmpv6_type);
+	a = fill(a, r.icmpv6_code);
+	a = fill(a, r.ipv6_nd_target);
+	a = fill(a, r.ipv6_nd_sll);
+	a = fill(a, r.ipv6_nd_tll);
+	a = fill(a, r.mpls_label);
+	a = fill(a, r.mpls_tc);
+	a = fill(a, r.mpls_bos);
+	a = fill(a, r.pbb_isid);
+	a = fill(a, r.tunnel_id);
+	a = fill(a, r.ipv6_exthdr);
+	a = fill(a, r.pbb_uca);
+	a = fill(a, r.tcp_flags);
+	a = fill(a, r.actset_output);
+	a = fill(a, r.packet_type);
+
+	return _r;
+}
+
 }
 
 }

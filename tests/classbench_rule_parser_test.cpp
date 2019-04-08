@@ -33,6 +33,27 @@ BOOST_AUTO_TEST_CASE( parse_acl1_100 ) {
 	}
 }
 
+BOOST_AUTO_TEST_CASE( parse_openflow_1 ) {
+	auto file_name = "tests/data/openflow_1";
+	vector<iParsedRule*> rules;
+	{
+		RuleReader rp;
+		rules = rp.parse_rules(file_name);
+	}
+	BOOST_CHECK_EQUAL(rules.size(), 3);
+
+	ifstream ref(file_name);
+	string ref_line;
+	getline(ref, ref_line);
+
+	for (auto r : rules) {
+		getline(ref, ref_line);
+		stringstream ss;
+		ss << *reinterpret_cast<Rule_OF_1_5_1*>(r);
+		//BOOST_CHECK_EQUAL(ref_line, ss.str());
+	}
+}
+
 template<typename BTree>
 void test_b_tree(const std::string & file_name) {
 	BTree t;
@@ -58,6 +79,11 @@ void test_b_tree(const std::string & file_name) {
 			//o.close();
 		}
 	}
+	//stringstream ss;
+	//ss << "b_tree_acl1_100_all" ".dot";
+	//ofstream o(ss.str());
+	//o << t;
+	//o.close();
 }
 
 BOOST_AUTO_TEST_CASE( classifier_from_classbench ) {

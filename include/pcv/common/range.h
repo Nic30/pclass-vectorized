@@ -46,11 +46,31 @@ public:
 				or (other.low <= low and other.high >= high);
 	}
 
+	/*
+	 * Extract mask from the rule
+	 **/
+	T get_mask_littleendian() const {
+		T m = std::numeric_limits<T>::max();
+		// [TODO] highly sub optimal use std::mismatch
+		T last_m = m;
+		for (size_t i2 = 0; i2 < sizeof(T) * 8; i2++) {
+			m <<= 1;
+			if ((low & m) != (high & m))
+				return last_m;
+			last_m = m;
+		}
+		return last_m;
+	}
+
 	bool is_wildcard() const {
 		return low == 0 and high == std::numeric_limits<T>::max();
 	}
 	bool in_range(T val) const {
 		return val >= low and val <= high;
+	}
+	void set_wildcard() {
+		low = 0;
+		high = std::numeric_limits<T>::max();
 	}
 
 };

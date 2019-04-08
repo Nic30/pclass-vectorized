@@ -1,0 +1,4 @@
+NXST_FLOW reply (xid=0x4):
+ cookie=0x8e67bd412a95a3fb, duration=5662.610s, table=0, n_packets=61, n_bytes=20971, idle_age=5083, priority=4,in_port=2,dl_vlan=1 actions=strip_vlan,NORMAL
+ cookie=0x8e67bd412a95a3fb, duration=5679.407s, table=0, n_packets=3, n_bytes=258, idle_age=5662, priority=2,in_port=2 actions=drop
+ cookie=0x8e67bd412a95a3fb, duration=5679.641s, table=0, n_packets=7779256, n_bytes=30272629666, idle_age=1, priority=0 actions=NORMAL

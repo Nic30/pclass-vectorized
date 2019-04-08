@@ -76,7 +76,100 @@ std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r) {
 	return str;
 }
 
+std::ostream & operator<<(std::ostream & str, const ipv6_t & r) {
+	auto v = reinterpret_cast<const uint8_t*>(&r);
+	auto f = str.flags();
+
+	for (int i = 0; i < 16; i++) {
+		str << std::hex << unsigned(v[i]);
+		if (i != 15)
+			str << ":";
+	}
+	str.flags(f);
+	return str;
+}
+
 Rule_Ipv4::operator std::string() const {
+	stringstream ss;
+	ss << *this;
+	return ss.str();
+}
+
+namespace OF_range_printer {
+template<typename T>
+static std::ostream & print(std::ostream & str, const string & val_name,
+		const Range1d<T> & val, bool is_first = false, bool last = false) {
+	if (is_first) {
+		str << " ";
+	}
+	if (val.is_wildcard()) {
+		return str;
+	}
+	str << val_name << "=";
+	if (val.high == val.low) {
+		str << val.low;
+	} else {
+		auto f = str.flags();
+		str << std::hex << "0x" << val.low << "/0x"
+				<< val.get_mask_littleendian();
+		str.flags(f);
+	}
+	if (not last)
+		str << ", ";
+
+	return str;
+}
+}
+
+std::ostream & operator<<(std::ostream & str, const Rule_OF_1_5_1& r) {
+	OF_range_printer::print(str, "in_port", r.in_port, true);
+	OF_range_printer::print(str, "in_phy_port", r.in_phy_port);
+	OF_range_printer::print(str, "metadata", r.metadata);
+	OF_range_printer::print(str, "eth_dst", r.eth_dst);
+	OF_range_printer::print(str, "eth_src", r.eth_src);
+	OF_range_printer::print(str, "eth_type", r.eth_type);
+	OF_range_printer::print(str, "vlan_vid", r.vlan_vid);
+	OF_range_printer::print(str, "vlan_pcp", r.vlan_pcp);
+	OF_range_printer::print(str, "ip_dscp", r.ip_dscp);
+	OF_range_printer::print(str, "ip_ecn", r.ip_ecn);
+	OF_range_printer::print(str, "ip_proto", r.ip_proto);
+	OF_range_printer::print(str, "ipv4_src", r.ipv4_src);
+	OF_range_printer::print(str, "ipv4_dst", r.ipv4_dst);
+	OF_range_printer::print(str, "tcp_src", r.tcp_src);
+	OF_range_printer::print(str, "tcp_dst", r.tcp_dst);
+	OF_range_printer::print(str, "udp_src", r.udp_src);
+	OF_range_printer::print(str, "udp_dst", r.udp_dst);
+	OF_range_printer::print(str, "sctp_src", r.sctp_src);
+	OF_range_printer::print(str, "sctp_dst", r.sctp_dst);
+	OF_range_printer::print(str, "icmpv4_type", r.icmpv4_type);
+	OF_range_printer::print(str, "icmpv4_code", r.icmpv4_code);
+	OF_range_printer::print(str, "arp_op", r.arp_op);
+	OF_range_printer::print(str, "arp_spa", r.arp_spa);
+	OF_range_printer::print(str, "arp_tpa", r.arp_tpa);
+	OF_range_printer::print(str, "arp_sha", r.arp_sha);
+	OF_range_printer::print(str, "arp_tha", r.arp_tha);
+	OF_range_printer::print(str, "ipv6_src", r.ipv6_src);
+	OF_range_printer::print(str, "ipv6_dst", r.ipv6_dst);
+	OF_range_printer::print(str, "ipv6_flabel", r.ipv6_flabel);
+	OF_range_printer::print(str, "icmpv6_type", r.icmpv6_type);
+	OF_range_printer::print(str, "icmpv6_code", r.icmpv6_code);
+	OF_range_printer::print(str, "ipv6_nd_target", r.ipv6_nd_target);
+	OF_range_printer::print(str, "ipv6_nd_sll", r.ipv6_nd_sll);
+	OF_range_printer::print(str, "ipv6_nd_tll", r.ipv6_nd_tll);
+	OF_range_printer::print(str, "mpls_label", r.mpls_label);
+	OF_range_printer::print(str, "mpls_tc", r.mpls_tc);
+	OF_range_printer::print(str, "mpls_bos", r.mpls_bos);
+	OF_range_printer::print(str, "pbb_isid", r.pbb_isid);
+	OF_range_printer::print(str, "tunnel_id", r.tunnel_id);
+	OF_range_printer::print(str, "ipv6_exthdr", r.ipv6_exthdr);
+	OF_range_printer::print(str, "pbb_uca", r.pbb_uca);
+	OF_range_printer::print(str, "tcp_flags", r.tcp_flags);
+	OF_range_printer::print(str, "actset_output", r.actset_output);
+	OF_range_printer::print(str, "packet_type", r.packet_type, false, true);
+	return str;
+}
+
+Rule_OF_1_5_1::operator std::string() const {
 	stringstream ss;
 	ss << *this;
 	return ss.str();
@@ -250,12 +343,11 @@ void RuleReader::parse_rules(ifstream& fp, vector<iParsedRule*>& ruleset) {
 }
 vector<iParsedRule*> RuleReader::parse_classbench(const string& filename) {
 	//assume 5*rep fields
-
 	vector<iParsedRule*> rules;
 	ifstream column_counter(filename);
 	ifstream input_file(filename);
 	if (!input_file.is_open() || !column_counter.is_open()) {
-		throw ifstream("Couldnt open filter set file");
+		throw ifstream::failure("Couldnt open filter set file");
 	}
 
 	parse_rules(input_file, rules);
@@ -305,7 +397,8 @@ vector<iParsedRule*> RuleReader::parser_MSU(const string& filename) {
 	vector<iParsedRule*> rules;
 	ifstream input_file(filename);
 	if (!input_file.is_open()) {
-		throw runtime_error(string("Couldnt open filter set file ") + filename);
+		throw ifstream::failure(
+				string("Couldnt open filter set file ") + filename);
 	}
 	string content;
 	getline(input_file, content);
@@ -341,6 +434,7 @@ vector<iParsedRule*> RuleReader::parser_MSU(const string& filename) {
 }
 
 vector<iParsedRule*> RuleReader::parse_rules(const string& filename) {
+	std::string of_header = "NXST_FLOW reply";
 	vector<iParsedRule*> res;
 	ifstream in(filename);
 	if (!in.is_open()) {
@@ -373,6 +467,10 @@ vector<iParsedRule*> RuleReader::parse_rules(const string& filename) {
 
 		dim = reps * 5;
 		res = parse_classbench(filename);
+	} else if (content.size() > of_header.size()
+			and content.substr(0, of_header.size()) == of_header) {
+		auto tmp = parse_openflow(filename);
+		res = *reinterpret_cast<vector<iParsedRule*>*>(&tmp);
 	} else {
 		in.close();
 		throw ifstream::failure(
@@ -382,6 +480,185 @@ vector<iParsedRule*> RuleReader::parse_rules(const string& filename) {
 	}
 	in.close();
 	return res;
+}
+
+void skip_space_and_comas(const std::string & line, size_t & pos) {
+	while (true) {
+		char c = line[pos];
+		if (c != ' ' and c != ',')
+			break;
+		pos++;
+	}
+}
+
+std::string read_id(const std::string & line, size_t & pos) {
+	string id;
+	while (true) {
+		char c = line[pos];
+		if (not isalnum(c) and c != '_') {
+			break;
+		} else {
+			id += c;
+			pos++;
+		}
+	}
+	return id;
+}
+size_t read_int(const std::string & line, size_t & pos, int base = 10) {
+	string n;
+	while (true) {
+		char c = line[pos];
+		if (not isdigit(c)) {
+			break;
+		} else {
+			n += c;
+			pos++;
+		}
+	}
+	return stol(n, 0, base);
+}
+Range1d<eth_t> read_eth_mac(const std::string & line, size_t & pos) {
+	uint64_t val = 0;
+	for (int i = 0; i < 6; i++) {
+		string n = line.substr(pos, pos + 2);
+		val <<= 8;
+		val |= stoi(n);
+		if (line[pos + 3] == '/') {
+			throw runtime_error("not implemented mask of the eth mac");
+		}
+		pos += 3;
+	}
+	return {val, val};
+}
+void read_ipv4(const std::string & line, size_t & pos, Range1d<uint32_t> & ip) {
+	int i;
+	uint32_t addr = 0;
+	for (i = 0; i < 4; i++) {
+		addr <<= 8;
+		addr |= read_int(line, pos);
+		pos++; // skip '.'
+	}
+
+	ip = Range1d<uint32_t>(addr, addr);
+}
+void read_ipv6(const std::string & line, size_t & pos, Range1d<ipv6_t> & ip) {
+	throw runtime_error("ipv6 parsing not implemented");
+}
+void read_ip(const std::string & line, size_t & pos, Range1d<uint32_t> & ipv4,
+		Range1d<ipv6_t> & ipv6) {
+	for (int i = 0; i < 3; i++) {
+		auto c = line[pos + i];
+		if (c == ':') {
+			read_ipv6(line, pos, ipv6);
+		} else if (c == '.') {
+			read_ipv4(line, pos, ipv4);
+		}
+	}
+}
+
+Range1d<uint16_t> read_port(const std::string & line, size_t & pos) {
+	// int or hex/hex
+	uint16_t a = read_int(line, pos, 10);
+	if (a == 0 and line[pos] == 'x') {
+		pos++;
+		a = read_int(line, pos, 16);
+		pos += strlen("/0x");
+		uint16_t m = read_int(line, pos, 16);
+		uint16_t h = a;
+		h += ~m;
+		return {a, h};
+	} else {
+		return {a, a};
+	}
+}
+
+/*
+ * read the value of the item in the openflow record
+ *
+ * search the next <id>= or the end of line then put cursor before the <id> if it was present
+ * */
+string read_value(string & line, size_t & pos) {
+	if (line[pos] != '=')
+		return "";
+	else {
+		size_t start = ++pos;
+		while (pos < line.size() and line[pos] != '=') {
+			pos++;
+		}
+		if (pos < line.size()) {
+			// there was an <id>= and we need to end before the id token
+			pos--;
+			while (isalnum(line[pos]) or line[pos] == '_') {
+				pos--;
+			}
+			return line.substr(start, pos - start);
+		} else {
+			// this is the last key value pair on this lines
+			return line.substr(start);
+		}
+	}
+}
+
+std::vector<Rule_OF_1_5_1*> RuleReader::parse_openflow(
+		const std::string& filename) {
+	vector<Rule_OF_1_5_1*> rules;
+	ifstream input_file(filename);
+	if (!input_file.is_open()) {
+		throw ifstream::failure(
+				string("Couldn't open filter set file ") + filename);
+	}
+	string line;
+	getline(input_file, line); // skip the header
+	//getline(input_file, line);
+	while (getline(input_file, line)) {
+		if (line.size() == 0 or line[0] == '#')
+			continue;
+		auto r = new Rule_OF_1_5_1;
+		size_t i = 0;
+		while (true) {
+			skip_space_and_comas(line, i);
+			auto id = read_id(line, i);
+			if (id == "")
+				break;
+			if (id == "in_port") {
+				i++; // skip =
+				uint32_t d = read_int(line, i);
+				r->in_port = {d, d};
+			} else if (id == "eth_type") {
+				i++; // skip =
+				uint16_t d = read_int(line, i);
+				r->eth_type = {d, d};
+			} else if (id == "dl_src") {
+				i++; // skip =
+				r->eth_src = read_eth_mac(line, i);
+			} else if (id == "dl_dst") {
+				i++; // skip =
+				r->eth_dst = read_eth_mac(line, i);
+			} else if (id == "nw_proto") {
+				i++; // skip =
+				uint8_t d = read_int(line, i);
+				r->ip_proto = {d, d};
+			} else if (id == "nw_src") {
+				i++; // skip =
+				read_ip(line, i, r->ipv4_src, r->ipv6_src);
+			} else if (id == "nw_dst") {
+				i++; // skip =
+				read_ip(line, i, r->ipv4_dst, r->ipv6_dst);
+			} else if (id == "tp_dst") {
+				i++; // skip =
+				r->udp_dst = r->tcp_dst = read_port(line, i);
+			} else if (id == "tp_src") {
+				i++; // skip =
+				r->udp_src = r->tcp_src = read_port(line, i);
+			} else {
+				auto v = read_value(line, i);
+				//std::cout << __FUNCTION__ << " "<< id << " not implemented";
+				//std::cout << "\t" <<"=" << v << endl;
+			}
+		}
+		rules.push_back(r);
+	}
+	return rules;
 }
 
 }

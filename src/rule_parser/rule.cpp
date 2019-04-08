@@ -136,4 +136,51 @@ std::array<Range1d<uint16_t>, 177> rule_to_array(const Rule_OF_1_5_1 & r) {
 
 }
 
+Rule_OF_1_5_1::Rule_OF_1_5_1() {
+	in_port.set_wildcard();
+	in_phy_port.set_wildcard();
+	metadata.set_wildcard();
+	eth_dst.set_wildcard();
+	eth_src.set_wildcard();
+	eth_type.set_wildcard();
+	vlan_vid.set_wildcard();
+	vlan_pcp.set_wildcard();
+	ip_dscp.set_wildcard();
+	ip_ecn.set_wildcard();
+	ip_proto.set_wildcard();
+	ipv4_src.set_wildcard();
+	ipv4_dst.set_wildcard();
+	tcp_src.set_wildcard();
+	tcp_dst.set_wildcard();
+	udp_src.set_wildcard();
+	udp_dst.set_wildcard();
+	sctp_src.set_wildcard();
+	sctp_dst.set_wildcard();
+	icmpv4_type.set_wildcard();
+	icmpv4_code.set_wildcard();
+	arp_op.set_wildcard();
+	arp_spa.set_wildcard();
+	arp_tpa.set_wildcard();
+	arp_sha.set_wildcard();
+	arp_tha.set_wildcard();
+	ipv6_src.set_wildcard();
+	ipv6_dst.set_wildcard();
+	ipv6_flabel.set_wildcard();
+	icmpv6_type.set_wildcard();
+	icmpv6_code.set_wildcard();
+	ipv6_nd_target.set_wildcard();
+	ipv6_nd_sll.set_wildcard();
+	ipv6_nd_tll.set_wildcard();
+	mpls_label.set_wildcard();
+	mpls_tc.set_wildcard();
+	mpls_bos.set_wildcard();
+	pbb_isid.set_wildcard();
+	tunnel_id.set_wildcard();
+	ipv6_exthdr.set_wildcard();
+	pbb_uca.set_wildcard();
+	tcp_flags.set_wildcard();
+	actset_output.set_wildcard();
+	packet_type.set_wildcard();
+}
+
 }

@@ -16,7 +16,6 @@ public:
 	int reps;
 	RuleReader();
 	std::vector<iParsedRule*> parse_rules(const std::string& filename);
-
 	std::vector<std::vector<unsigned int>> parse_packets(
 			const std::string& filename);
 private:
@@ -37,6 +36,8 @@ private:
 
 	std::vector<iParsedRule*> parse_classbench(const std::string& filename);
 	std::vector<iParsedRule*> parser_MSU(const std::string& filename);
+	std::vector<Rule_OF_1_5_1*> parse_openflow(const std::string& filename);
+
 	void parse_rules(std::ifstream& fp, std::vector<iParsedRule*>& ruleset);
 };
 

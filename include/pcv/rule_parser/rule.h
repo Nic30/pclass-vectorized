@@ -33,12 +33,37 @@ public:
 using uint24_t = uint32_t;
 using eth_t = uint64_t;
 struct ipv6_t {
-	uint64_t low, high;
+	uint64_t high, low;
+	ipv6_t() :
+			ipv6_t(0) {
+	}
+	ipv6_t(uint64_t low) :
+			high(0), low(low) {
+	}
+	bool operator==(const ipv6_t & other) const {
+		return (low == other.low && high == other.high);
+	}
+	bool operator!=(const ipv6_t & other) const {
+		return not (*this == other);
+	}
+	void operator<<=(size_t v) {
+		auto l = low;
+		low <<= v;
+		high <<= v;
+		high |= (l >> (64 - v - 1));
+	}
+	ipv6_t operator&(const ipv6_t & other) const {
+		ipv6_t res;
+		res.high = high & other.high;
+		res.low = low & other.low;
+		return res;
+	}
+
+	friend std::ostream & operator<<(std::ostream & str, const ipv6_t & r);
 };
 
 class Rule_Ipv6: public iParsedRule {
 public:
-
 };
 
 class Rule_OF_1_5_1: iParsedRule {
@@ -88,10 +113,16 @@ public:
 	Range1d<uint32_t> actset_output; /*Output port from action set metadata. */
 	Range1d<uint32_t> packet_type; /*Packet type value. */
 
+	Rule_OF_1_5_1();
 
-	friend std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r);
+	friend std::ostream & operator<<(std::ostream & str,
+			const Rule_OF_1_5_1 & r);
 	operator std::string() const;
 };
+
+//class Rule_OF_flow: iParsedRule {
+//public:
+//};
 
 namespace rule_conv_fn {
 

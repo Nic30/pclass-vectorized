@@ -21,8 +21,6 @@ private:
 			const std::string & rule_ipv6_name);
 	static constexpr const char *L3FWD_ACL_IPV4_NAME = "l3fwd-acl-ipv4";
 	static constexpr const char *L3FWD_ACL_IPV6_NAME = "l3fwd-acl-ipv6";
-	static constexpr size_t MAX_ACL_RULE_NUM = 100000;
-	static constexpr size_t DEFAULT_MAX_CATEGORIES = 1;
 	struct rte_acl_ctx* setup_acl(struct rte_acl_rule *route_base,
 			struct rte_acl_rule *acl_base, unsigned int route_num,
 			unsigned int acl_num, int ipv6, int socketid);

@@ -2,6 +2,81 @@
 #include "classbench_rule_parser.h"
 #include "dpdk_acl_rule_dump.h"
 #include "log.h"
+#include <pcv/rule_parser/rule.h>
+
+namespace dpdk_acl_configs {
+
+template<typename RULE_T>
+void get_config(struct rte_acl_config * ctx);
+
+template<>
+void get_config<pcv::Rule_Ipv4>(struct rte_acl_config * cfg) {
+	struct ipv4_tuple {
+		uint32_t sip;
+		uint32_t dip;
+		uint16_t srcp;
+		uint16_t dstp;
+		uint8_t proto;
+	};
+
+
+	const uint32_t ipv4_tuple_layout[] = {
+		offsetof(struct ipv4_tuple, sip),
+		offsetof(struct ipv4_tuple, dip),
+		offsetof(struct ipv4_tuple, srcp),
+		offsetof(struct ipv4_tuple, dstp),
+		offsetof(struct ipv4_tuple, proto),
+	};
+	static const struct rte_acl_field_def ipv4_defs[] = {
+		{
+			// sip
+			.type = RTE_ACL_FIELD_TYPE_BITMASK,
+			.size = sizeof(uint32_t),
+			.field_index = 0,
+			.input_index = 0,
+		},
+		{
+			// dip
+			.type = RTE_ACL_FIELD_TYPE_BITMASK,
+			.size = sizeof(uint32_t),
+			.field_index = 1,
+			.input_index = 1,
+		},
+		{
+			// sport
+			.type = RTE_ACL_FIELD_TYPE_RANGE,
+			.size = sizeof(uint16_t),
+			.field_index = 2,
+			.input_index = 2,
+		},
+		{
+			//dport
+			.type = RTE_ACL_FIELD_TYPE_RANGE,
+			.size = sizeof(uint16_t),
+			.field_index = 3,
+			.input_index = 3,
+		},
+		{
+			//proto
+			.type = RTE_ACL_FIELD_TYPE_RANGE,
+			.size = sizeof(uint16_t),
+			.field_index = 4,
+			.input_index = 4,
+		},
+	};
+
+	memcpy(&cfg->defs, ipv4_defs, sizeof(ipv4_defs));
+	cfg->num_fields = RTE_DIM(ipv4_defs);
+
+	for (int i = 0; i < 5; i++) {
+		cfg->defs[i].offset = ipv4_tuple_layout[i];
+	}
+	cfg->num_categories = 5;
+	cfg->num_fields = 5;
+}
+
+}
+
 
 DpdkAclContainer::DpdkAclContainer(const std::string & rule_ipv4_name,
 		const std::string & rule_ipv6_name) {
@@ -72,6 +147,7 @@ DpdkAclContainer::setup_acl(struct rte_acl_rule *route_base,
 	char name[PATH_MAX];
 	struct rte_acl_param acl_param;
 	struct rte_acl_config acl_build_param;
+	dpdk_acl_configs::get_config<pcv::Rule_Ipv4>(&acl_build_param);
 	struct rte_acl_ctx *context;
 	int dim = ipv6 ? RTE_DIM(ipv6_defs) : RTE_DIM(ipv4_defs);
 
@@ -82,7 +158,7 @@ DpdkAclContainer::setup_acl(struct rte_acl_rule *route_base,
 	acl_param.name = name;
 	acl_param.socket_id = socketid;
 	acl_param.rule_size = RTE_ACL_RULE_SZ(dim);
-	acl_param.max_rule_num = MAX_ACL_RULE_NUM;
+	acl_param.max_rule_num = std::numeric_limits<uint16_t>::max() - 1;
 
 	if ((context = rte_acl_create(&acl_param)) == NULL)
 		rte_exit(EXIT_FAILURE, "Failed to create ACL context\n");
@@ -91,19 +167,14 @@ DpdkAclContainer::setup_acl(struct rte_acl_rule *route_base,
 		rte_exit(EXIT_FAILURE,
 				"Failed to setup classify method for  ACL context\n");
 
-	//if (rte_acl_add_rules(context, route_base, route_num) < 0)
-	//	rte_exit(EXIT_FAILURE, "add rules failed\n");
-
-	if (rte_acl_add_rules(context, acl_base, acl_num) < 0)
-		rte_exit(EXIT_FAILURE, "add rules failed\n");
-
-	/* Perform builds */
-	memset(&acl_build_param, 0, sizeof(acl_build_param));
-
-	acl_build_param.num_categories = DEFAULT_MAX_CATEGORIES;
-	acl_build_param.num_fields = dim;
-	memcpy(&acl_build_param.defs, ipv6 ? ipv6_defs : ipv4_defs,
-			ipv6 ? sizeof(ipv6_defs) : sizeof(ipv4_defs));
+	if (route_num) {
+		if (rte_acl_add_rules(context, route_base, route_num) < 0)
+			rte_exit(EXIT_FAILURE, "add rules failed\n");
+	}
+	if (acl_num) {
+		if (rte_acl_add_rules(context, acl_base, acl_num) < 0)
+			rte_exit(EXIT_FAILURE, "add rules failed\n");
+	}
 
 	if (rte_acl_build(context, &acl_build_param) != 0)
 		rte_exit(EXIT_FAILURE, "Failed to build ACL trie\n");

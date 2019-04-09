@@ -18,6 +18,7 @@ public:
 	~DpdkAclContainer();
 
 	uint16_t search(std::array<uint16_t, 7> & val);
+
 private:
 	void acl_init(const std::vector<pcv::iParsedRule*> & rules);
 	static constexpr const char *L3FWD_ACL_IPV4_NAME = "l3fwd-acl-ipv4";

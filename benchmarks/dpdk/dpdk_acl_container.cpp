@@ -17,35 +17,6 @@ void get_config(struct rte_acl_config * ctx);
 
 template<>
 void get_config<pcv::Rule_Ipv4_ACL>(struct rte_acl_config * cfg) {
-	struct ipv4_tuple {
-		uint32_t sip;
-		uint32_t dip;
-		uint16_t srcp;
-		uint16_t dstp;
-		uint8_t proto;
-	};
-
-	const uint32_t ipv4_tuple_layout[] = { offsetof(struct ipv4_tuple, sip),
-			offsetof(struct ipv4_tuple, dip), offsetof(struct ipv4_tuple, srcp),
-			offsetof(struct ipv4_tuple, dstp), offsetof(struct ipv4_tuple,
-					proto), };
-	static const struct rte_acl_field_def ipv4_defs[] = {
-	// sip
-			{ .type = RTE_ACL_FIELD_TYPE_BITMASK, .size = sizeof(uint32_t),
-					.field_index = 0, .input_index = 0, },
-			// dip
-			{ .type = RTE_ACL_FIELD_TYPE_BITMASK, .size = sizeof(uint32_t),
-					.field_index = 1, .input_index = 1, },
-			// sport
-			{ .type = RTE_ACL_FIELD_TYPE_RANGE, .size = sizeof(uint16_t),
-					.field_index = 2, .input_index = 2, },
-			//dport
-			{ .type = RTE_ACL_FIELD_TYPE_RANGE, .size = sizeof(uint16_t),
-					.field_index = 3, .input_index = 3, },
-			//proto
-			{ .type = RTE_ACL_FIELD_TYPE_RANGE, .size = sizeof(uint16_t),
-					.field_index = 4, .input_index = 4, }, };
-
 	memcpy(&cfg->defs, ipv4_defs, sizeof(ipv4_defs));
 	cfg->num_fields = RTE_DIM(ipv4_defs);
 

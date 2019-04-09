@@ -1,5 +1,13 @@
 #include "dpdk_acl_field_defs.h"
 
+const uint32_t ipv4_tuple_layout[] = {
+		offsetof(struct ipv4_tuple,	proto),
+		offsetof(struct ipv4_tuple, sip),
+		offsetof(struct ipv4_tuple, dip),
+		offsetof(struct ipv4_tuple, srcp),
+		offsetof(struct ipv4_tuple, dstp),
+};
+
 struct rte_acl_field_def ipv4_defs[NUM_FIELDS_IPV4] = {
 	{
 		.type = RTE_ACL_FIELD_TYPE_BITMASK,

@@ -34,15 +34,15 @@ DpdkAclContainer::DpdkAclContainer(const std::vector<iParsedRule*> & rules) {
 }
 
 template<typename RULE_T>
-void add_rules(const std::vector<iParsedRule*> & rules, std::vector<RULE_T> & rules_route,
-		std::vector<RULE_T> & rules_acl) {
+void add_rules(const std::vector<iParsedRule*> & rules,
+		std::vector<RULE_T> & rules_route, std::vector<RULE_T> & rules_acl) {
 	RuleReader rr;
 	for (auto r : rules) {
 		RULE_T * next;
 		auto ipv4_acl_r = dynamic_cast<Rule_Ipv4_ACL*>(r);
 		std::cerr << *ipv4_acl_r << std::endl;
 		if (ipv4_acl_r) {
-			rules_acl.push_back({});
+			rules_acl.push_back( { });
 			next = &rules_acl.back();
 			next->data.userdata = 0xf0000000 + rules_acl.size();
 			next->field[PROTO_FIELD_IPV4].value.u16 = ipv4_acl_r->proto.low;
@@ -62,8 +62,9 @@ void add_rules(const std::vector<iParsedRule*> & rules, std::vector<RULE_T> & ru
 					ipv4_acl_r->dport.get_mask_littleendian();
 
 		} else {
-			rules_route.push_back({});
-			throw std::runtime_error(std::string(__FUNCTION__) + "not implemented");
+			rules_route.push_back( { });
+			throw std::runtime_error(
+					std::string(__FUNCTION__) + "not implemented");
 			next = &rules_route.back();
 			/* Check the forwarding port number */
 			next->data.userdata += FWD_PORT_SHIFT;
@@ -81,8 +82,7 @@ void DpdkAclContainer::acl_init(const std::vector<iParsedRule*> & rules) {
 	/* Load  rules from the input file */
 	add_rules<acl4_rule>(rules, rules_acl, rules_route);
 	acl_log("IPv4 Route entries %zu:\n", rules_route.size());
-	dump_ipv4_rules((acl4_rule *) &rules_route[0], rules_route.size(),
-			1);
+	dump_ipv4_rules((acl4_rule *) &rules_route[0], rules_route.size(), 1);
 
 	acl_log("IPv4 ACL entries %zu:\n", rules_acl.size());
 	dump_ipv4_rules((acl4_rule *) &rules_acl[0], rules_acl.size(), 1);
@@ -139,15 +139,15 @@ DpdkAclContainer::setup_acl(const std::vector<acl4_rule> rules_acl,
 }
 
 uint16_t DpdkAclContainer::search(std::array<uint16_t, 7> & val) {
-	uint32_t res_cls[5];
+	uint32_t res_cls;
 	const uint8_t * data[1] = { (uint8_t *) &val[0] };
-	auto res = rte_acl_classify(acl_config.acx_ipv4, data, &res_cls[0], 1, 1);
+	auto res = rte_acl_classify(acl_config.acx_ipv4, data, &res_cls, 1, 1);
 	if (res < 0) {
 		throw std::runtime_error(
 				std::string("Error in rte_acl_classify ")
 						+ std::to_string(res));
 	}
-	return res_cls[0];
+	return res_cls;
 }
 
 DpdkAclContainer::~DpdkAclContainer() {

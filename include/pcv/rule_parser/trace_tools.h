@@ -16,6 +16,6 @@ namespace pcv {
 using packet_t = std::array<uint16_t, 7>;
 
 std::vector<packet_t> generate_packets_from_ruleset(
-		std::vector<const Rule_Ipv4*>& filters, int num_packets, int seed = 0);
+		std::vector<const Rule_Ipv4_ACL*>& filters, int num_packets, int seed = 0);
 
 }

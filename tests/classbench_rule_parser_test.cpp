@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE( parse_acl1_100 ) {
 		string ref_line;
 		getline(ref, ref_line);
 		stringstream ss;
-		ss << *reinterpret_cast<Rule_Ipv4*>(r);
+		ss << *reinterpret_cast<Rule_Ipv4_ACL*>(r);
 		BOOST_CHECK_EQUAL(ref_line, ss.str());
 	}
 }
@@ -65,7 +65,7 @@ void test_b_tree(const std::string & file_name) {
 	}
 	size_t i = 0;
 	for (auto _r : _rules) {
-		auto __r = reinterpret_cast<Rule_Ipv4*>(_r);
+		auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
 		typename BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), i };
 		if (not t.does_rule_colide(r)) {
 			//std::cout << i << " " << *__r << std::endl;

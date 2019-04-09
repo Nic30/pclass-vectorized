@@ -10,7 +10,11 @@ foreach b : benchmarks
 		dependencies: [pcv_dep],
 		cpp_args: EXTRA_CXX_ARGS + ['-O3', ],
         #c_args: EXTRA_C_ARGS,
-        #include_directories: pcv_incldir
     )
 	test(b[0], benchmark_exe, workdir : meson.source_root(), args : b[2])
 endforeach
+
+build_dpdk_test_app = get_option('dpdk_test_app')
+if build_dpdk_test_app
+	subdir('dpdk')
+endif

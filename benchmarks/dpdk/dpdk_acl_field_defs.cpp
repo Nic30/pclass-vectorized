@@ -5,14 +5,14 @@ struct rte_acl_field_def ipv4_defs[NUM_FIELDS_IPV4] = {
 		.type = RTE_ACL_FIELD_TYPE_BITMASK,
 		.size = sizeof(uint8_t),
 		.field_index = PROTO_FIELD_IPV4,
-		.input_index = RTE_ACL_IPV4VLAN_PROTO,
+		.input_index = PROTO_FIELD_IPV4,
 		.offset = 0,
 	},
 	{
 		.type = RTE_ACL_FIELD_TYPE_MASK,
 		.size = sizeof(uint32_t),
 		.field_index = SRC_FIELD_IPV4,
-		.input_index = RTE_ACL_IPV4VLAN_SRC,
+		.input_index = SRC_FIELD_IPV4,
 		.offset = offsetof(struct ipv4_hdr, src_addr) -
 			offsetof(struct ipv4_hdr, next_proto_id),
 	},
@@ -20,7 +20,7 @@ struct rte_acl_field_def ipv4_defs[NUM_FIELDS_IPV4] = {
 		.type = RTE_ACL_FIELD_TYPE_MASK,
 		.size = sizeof(uint32_t),
 		.field_index = DST_FIELD_IPV4,
-		.input_index = RTE_ACL_IPV4VLAN_DST,
+		.input_index = DST_FIELD_IPV4,
 		.offset = offsetof(struct ipv4_hdr, dst_addr) -
 			offsetof(struct ipv4_hdr, next_proto_id),
 	},
@@ -28,7 +28,7 @@ struct rte_acl_field_def ipv4_defs[NUM_FIELDS_IPV4] = {
 		.type = RTE_ACL_FIELD_TYPE_RANGE,
 		.size = sizeof(uint16_t),
 		.field_index = SRCP_FIELD_IPV4,
-		.input_index = RTE_ACL_IPV4VLAN_PORTS,
+		.input_index = SRCP_FIELD_IPV4,
 		.offset = sizeof(struct ipv4_hdr) -
 			offsetof(struct ipv4_hdr, next_proto_id),
 	},
@@ -36,7 +36,7 @@ struct rte_acl_field_def ipv4_defs[NUM_FIELDS_IPV4] = {
 		.type = RTE_ACL_FIELD_TYPE_RANGE,
 		.size = sizeof(uint16_t),
 		.field_index = DSTP_FIELD_IPV4,
-		.input_index = RTE_ACL_IPV4VLAN_PORTS,
+		.input_index = DSTP_FIELD_IPV4,
 		.offset = sizeof(struct ipv4_hdr) -
 			offsetof(struct ipv4_hdr, next_proto_id) +
 			sizeof(uint16_t),

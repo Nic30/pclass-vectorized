@@ -18,7 +18,7 @@
 using namespace std;
 namespace pcv {
 
-Rule_Ipv4::Rule_Ipv4() :
+Rule_Ipv4_ACL::Rule_Ipv4_ACL() :
 		sip(0, std::numeric_limits<uint32_t>::max()), dip(0,
 				std::numeric_limits<uint32_t>::max()), sport(0,
 				std::numeric_limits<uint16_t>::max()), dport(0,
@@ -64,7 +64,7 @@ std::ostream & print_range(std::ostream & str, const Range1d<uint16_t> & range,
 	return str;
 }
 
-std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r) {
+std::ostream & operator<<(std::ostream & str, const Rule_Ipv4_ACL & r) {
 	// @42.38.199.209/32	111.195.251.32/32	0 : 65535	1521 : 1521	0x06/0xFF
 	str << "@";
 	print_ipv4(str, r.sip) << "\t";
@@ -89,7 +89,7 @@ std::ostream & operator<<(std::ostream & str, const ipv6_t & r) {
 	return str;
 }
 
-Rule_Ipv4::operator std::string() const {
+Rule_Ipv4_ACL::operator std::string() const {
 	stringstream ss;
 	ss << *this;
 	return ss.str();
@@ -307,7 +307,7 @@ void RuleReader::parse(vector<string>& tokens, vector<iParsedRule*>& ruleset,
 	// 5 fields: sip, dip, sport, dport, proto = 0 (with@), 1, 2 : 4, 5 : 7, 8
 
 	/*allocate a few more bytes just to be on the safe side to avoid overflow etc*/
-	auto temp_rule = new Rule_Ipv4;
+	auto temp_rule = new Rule_Ipv4_ACL;
 	string key;
 	if (tokens[0].at(0) != '@') {
 		/* each rule should begin with an '@' */
@@ -416,7 +416,7 @@ vector<iParsedRule*> RuleReader::parser_MSU(const string& filename) {
 
 	while (getline(input_file, content)) {
 		// 5 fields: sip, dip, sport, dport, proto = 0 (with@), 1, 2 : 4, 5 : 7, 8
-		auto temp_rule = new Rule_Ipv4;
+		auto temp_rule = new Rule_Ipv4_ACL;
 		vector<string> split_comma = split(content, ',');
 		// ignore priority at the end
 		for (size_t i = 0; i < split_comma.size() - 1; i++) {

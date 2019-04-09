@@ -26,7 +26,7 @@ int main(int argc, const char * argv[]) {
 		// load rules in to a classifier tree
 		size_t i = 0;
 		for (auto _r : _rules) {
-			auto __r = reinterpret_cast<Rule_Ipv4*>(_r);
+			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
 			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), i };
 			if (not t.does_rule_colide(r)) {
 				t.insert(r);
@@ -38,7 +38,7 @@ int main(int argc, const char * argv[]) {
 
 	// generate packets
 	auto packets = generate_packets_from_ruleset(
-			*reinterpret_cast<vector<const Rule_Ipv4*>*>(&_rules),
+			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&_rules),
 			UNIQUE_TRACE_CNT);
 
 	auto start = chrono::system_clock::now();

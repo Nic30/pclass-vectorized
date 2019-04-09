@@ -13,9 +13,11 @@ public:
 	iParsedRule() :
 			priority(-1), tag(-1), vlan(0) {
 	}
+	virtual ~iParsedRule() {
+	}
 };
 
-class Rule_Ipv4: public iParsedRule {
+class Rule_Ipv4_ACL: public iParsedRule {
 public:
 	// values stored in little-endian to be easily comparable on x86_64
 	Range1d<uint32_t> sip;
@@ -24,9 +26,10 @@ public:
 	Range1d<uint16_t> dport;
 	Range1d<uint16_t> proto;
 
-	Rule_Ipv4();
+	Rule_Ipv4_ACL();
 	// serialize rule to classbench format
-	friend std::ostream & operator<<(std::ostream & str, const Rule_Ipv4 & r);
+	friend std::ostream & operator<<(std::ostream & str,
+			const Rule_Ipv4_ACL & r);
 	operator std::string() const;
 };
 
@@ -127,7 +130,7 @@ public:
 namespace rule_conv_fn {
 
 template<typename T, size_t D>
-std::array<Range1d<T>, D> rule_to_array(const Rule_Ipv4 & r);
+std::array<Range1d<T>, D> rule_to_array(const Rule_Ipv4_ACL & r);
 template<typename T, size_t D>
 std::array<Range1d<T>, D> rule_to_array(const Rule_OF_1_5_1 & r);
 

@@ -72,7 +72,7 @@ Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
 
 namespace rule_conv_fn {
 template<>
-std::array<Range1d<uint16_t>, 7> rule_to_array(const Rule_Ipv4 & r) {
+std::array<Range1d<uint16_t>, 7> rule_to_array(const Rule_Ipv4_ACL & r) {
 	std::array<Range1d<uint16_t>, 7> _r;
 	auto p = fill(&_r[0], r.sip);
 	fill(p, r.dip);

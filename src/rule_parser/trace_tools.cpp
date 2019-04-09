@@ -52,7 +52,7 @@ int pareto_distrib(float a, float b, std::mt19937 & rand) {
 // a,b in ClassBench are 1 0.1 
 // generate at least 'threshold' number of packets
 // To ensure the generated dataset is deterministic, call this first!!
-std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4 *>& filters,
+std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
 		float a, float b, int threshold, std::mt19937 & rand) {
 	constexpr size_t d = 7;
 	int num_headers = 0;
@@ -88,7 +88,7 @@ std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4 *>& filters,
 }
 
 std::vector<packet_t> generate_packets_from_ruleset(
-		std::vector<const Rule_Ipv4 *>& filters, int num_packets, int seed) {
+		std::vector<const Rule_Ipv4_ACL *>& filters, int num_packets, int seed) {
 	if (filters.empty())
 		throw std::runtime_error(
 				"can not generate packets from empty rule set");

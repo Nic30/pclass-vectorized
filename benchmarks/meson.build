@@ -5,7 +5,7 @@ benchmarks = [
 ]
 
 foreach b : benchmarks
-	benchmark_exe = executable(t[0],
+	benchmark_exe = executable(b[0],
 		b[1],
 		dependencies: [pcv_dep],
 		cpp_args: EXTRA_CXX_ARGS + ['-O3', ],

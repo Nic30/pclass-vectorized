@@ -16,10 +16,11 @@ int main(int argc, char **argv) {
 	argc -= ret;
 	argv += ret;
 
-	assert(argc == 1 + 3 && "expected <rule file> <UNIQUE_TRACE_CNT> <LOOKUP_CNT>");
+	assert(argc == 1 + 4 && "expected <rule file> <UNIQUE_TRACE_CNT> <LOOKUP_CNT>");
 	const char * rules_file_name = argv[1];
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);
+	bool dump_as_json = atoll(argv[4]);
 
 	// load rules from the file
 	RuleReader rp;
@@ -39,6 +40,11 @@ int main(int argc, char **argv) {
 	}
 	auto end = chrono::system_clock::now();
 	auto us = chrono::duration_cast<chrono::microseconds>(end - start).count();
-	cout << "[INFO] lookup speed:" << (LOOKUP_CNT / double(us)) << "MPkts/s" << endl;
+	auto lookup_speed = (LOOKUP_CNT / double(us));
+	if (dump_as_json) {
+		cout << "{ \"lookup_speed\":" << lookup_speed << "}";
+	} else {
+		cout << "[INFO] lookup speed:" << lookup_speed << "MPkts/s" << endl;
+	}
 	return 0;
 }

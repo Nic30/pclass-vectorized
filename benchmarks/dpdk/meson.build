@@ -11,7 +11,7 @@ src = [
 ]
 
 
-pcv_dpdk_exe = executable('pcv_dpdk',
+pcv_dpdk_exe = executable('1_tree_lookup_dpdk',
 	src,
 	dependencies: [dpdk_deps, pcv_dep],
 	cpp_args: EXTRA_CXX_ARGS + ['-O3', ],

@@ -1,6 +1,6 @@
 
 benchmarks = [
-  ['1_tree_lookup', ['1_tree_lookup.cpp'], ['tests/data/acl1_100', '4096', '10000000', 0]],
+  ['1_tree_lookup', ['1_tree_lookup.cpp'], ['tests/data/acl1_100', '4096', '10000000', '0']],
   
 ]
 

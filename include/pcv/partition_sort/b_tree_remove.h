@@ -70,8 +70,6 @@ public:
 			tmp->clean_children();
 			delete tmp;
 		}
-		if (current_root)
-			current_root->integrity_check();
 		return current_root;
 	}
 
@@ -102,7 +100,6 @@ public:
 			// The flag indicates whether the key is present in the sub-tree rooted
 			// with the last child of this node
 			bool flag = idx == node.key_cnt;
-			node.integrity_check();
 			// If the child where the key is supposed to exist has less that t keys,
 			// we fill that child
 			if (node.child(idx)->key_cnt < Node::MIN_DEGREE + 1) {
@@ -272,9 +269,6 @@ public:
 
 		sib->clean_children();
 		delete sib;
-
-		//integrity_check(*this);
-		ch->integrity_check();
 	}
 	// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
 	static void fill(Node & node, unsigned idx) {

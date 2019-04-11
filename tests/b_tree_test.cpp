@@ -74,7 +74,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 		rule_t r =
 				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		insert(t, r);
-		t.root->integrity_check();
+		t.root->integrity_check(t.dimension_order);
 	}
 
 	//stringstream ss;

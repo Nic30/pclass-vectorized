@@ -9,9 +9,8 @@ class iParsedRule {
 public:
 	int priority;
 	int tag;
-	uint16_t vlan;
 	iParsedRule() :
-			priority(-1), tag(-1), vlan(0) {
+			priority(-1), tag(-1) {
 	}
 	virtual ~iParsedRule() {
 	}
@@ -69,7 +68,7 @@ class Rule_Ipv6: public iParsedRule {
 public:
 };
 
-class Rule_OF_1_5_1: iParsedRule {
+class Rule_OF_1_5_1: public iParsedRule {
 public:
 	Range1d<uint32_t> in_port; /* Switch input port. */
 	Range1d<uint32_t> in_phy_port; /* Switch physical input port. */

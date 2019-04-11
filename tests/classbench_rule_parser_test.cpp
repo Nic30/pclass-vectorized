@@ -14,44 +14,54 @@ using namespace pcv::rule_conv_fn;
 
 BOOST_AUTO_TEST_SUITE (pcv_testsuite)
 
-BOOST_AUTO_TEST_CASE( parse_acl1_100 ) {
-	auto file_name = "tests/data/acl1_100";
+size_t count_lines(const string & file_name) {
+	ifstream input(file_name);
+	size_t lines = 0;
+	for (std::string line; std::getline(input, line);) {
+		lines++;
+	}
+	return lines;
+}
+
+template<typename RULE_T>
+void test_file_parsing(const string & file_name, size_t header_size = 0) {
 	vector<iParsedRule*> rules;
 	{
 		RuleReader rp;
 		rules = rp.parse_rules(file_name);
 	}
-	BOOST_CHECK_EQUAL(rules.size(), 91);
+
+	auto expected_size = count_lines(file_name) - header_size;
+	BOOST_CHECK_EQUAL(rules.size(), expected_size);
 
 	ifstream ref(file_name);
+	// skip header
+	for (size_t i = 0; i < header_size; i++) {
+		string ref_line;
+		getline(ref, ref_line);
+	}
+	// check if the rule was parsed correctly by converting it back to string
 	for (auto r : rules) {
 		string ref_line;
 		getline(ref, ref_line);
 		stringstream ss;
-		ss << *reinterpret_cast<Rule_Ipv4_ACL*>(r);
+		auto _r = dynamic_cast<RULE_T*>(r);
+		BOOST_ASSERT(_r);
+		ss << *_r;
 		BOOST_CHECK_EQUAL(ref_line, ss.str());
 	}
 }
 
+BOOST_AUTO_TEST_CASE( parse_acl1_100 ) {
+	test_file_parsing<Rule_Ipv4_ACL>("tests/data/acl1_100");
+}
+
+BOOST_AUTO_TEST_CASE( parse_acl1_500 ) {
+	test_file_parsing<Rule_Ipv4_ACL>("tests/data/acl1_500");
+}
+
 BOOST_AUTO_TEST_CASE( parse_openflow_1 ) {
-	auto file_name = "tests/data/openflow_1";
-	vector<iParsedRule*> rules;
-	{
-		RuleReader rp;
-		rules = rp.parse_rules(file_name);
-	}
-	BOOST_CHECK_EQUAL(rules.size(), 3);
-
-	ifstream ref(file_name);
-	string ref_line;
-	getline(ref, ref_line);
-
-	for (auto r : rules) {
-		getline(ref, ref_line);
-		stringstream ss;
-		ss << *reinterpret_cast<Rule_OF_1_5_1*>(r);
-		//BOOST_CHECK_EQUAL(ref_line, ss.str());
-	}
+	test_file_parsing<Rule_OF_1_5_1>("tests/data/openflow_1", 1);
 }
 
 template<typename BTree>
@@ -73,7 +83,7 @@ void test_b_tree(const std::string & file_name) {
 			i++;
 
 			//stringstream ss;
-			//ss << "b_tree_acl1_100_" << i << ".dot";
+			//ss << "b_tree_" << i << ".dot";
 			//ofstream o(ss.str());
 			//o << t;
 			//o.close();
@@ -86,15 +96,25 @@ void test_b_tree(const std::string & file_name) {
 	//o.close();
 }
 
-BOOST_AUTO_TEST_CASE( classifier_from_classbench ) {
+BOOST_AUTO_TEST_CASE( classifier_from_classbench_acl1_100 ) {
 	using BTree = BTreeImp<uint16_t, 7, 8, false>;
 	auto file_name = "tests/data/acl1_100";
 	test_b_tree<BTree>(file_name);
 }
+BOOST_AUTO_TEST_CASE( classifier_from_classbench_acl1_500 ) {
+	using BTree = BTreeImp<uint16_t, 7, 8, false>;
+	auto file_name = "tests/data/acl1_500";
+	test_b_tree<BTree>(file_name);
+}
 
-BOOST_AUTO_TEST_CASE( classifier_from_classbench_comp_en ) {
+BOOST_AUTO_TEST_CASE( classifier_from_classbench_comp_en_acl1_100 ) {
 	using BTree = BTreeImp<uint16_t, 7, 8, true>;
 	auto file_name = "tests/data/acl1_100";
+	test_b_tree<BTree>(file_name);
+}
+BOOST_AUTO_TEST_CASE( classifier_from_classbench_comp_en_acl1_500 ) {
+	using BTree = BTreeImp<uint16_t, 7, 8, true>;
+	auto file_name = "tests/data/acl1_500";
 	test_b_tree<BTree>(file_name);
 }
 //____________________________________________________________________________//

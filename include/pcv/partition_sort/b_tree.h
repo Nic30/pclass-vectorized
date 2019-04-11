@@ -51,7 +51,7 @@ public:
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
 	static constexpr rule_id_t INVALID_RULE = INVALID_INDEX;
-	static constexpr bool PATH_COMPRESSION =_PATH_COMPRESSION;
+	static constexpr bool PATH_COMPRESSION = _PATH_COMPRESSION;
 
 	/*
 	 * The node of B-tree
@@ -267,7 +267,8 @@ public:
 		/*
 		 * Check if the pointers in node are valid (recursively)
 		 * */
-		inline void integrity_check(std::set<Node*> * seen = nullptr) {
+		inline void integrity_check(const std::array<int, D> & dimesion_order,
+				std::set<Node*> * seen = nullptr, size_t level = 0) {
 			std::set<Node*> _seen;
 			if (seen == nullptr)
 				seen = &_seen;
@@ -276,21 +277,25 @@ public:
 			if (is_compressed) {
 				assert(is_leaf);
 				assert(key_cnt > 1);
-			}
-
-			for (size_t i = 0; i < key_cnt; i++) {
-				get_key(i);
-				auto nl = get_next_layer(i);
-				if (nl) {
-					assert(nl->parent == nullptr);
-					nl->integrity_check(seen);
+				for (size_t i = 0; i < key_cnt; i++) {
+					auto d = dimesion_order[level + i];
+					auto actual_d = get_dim(i);
+					assert(d == actual_d);
 				}
 			}
 			for (size_t i = 0; i <= key_cnt; i++) {
 				auto ch = child(i);
 				if (ch) {
 					assert(ch->parent == this);
-					ch->integrity_check(seen);
+					ch->integrity_check(dimesion_order, seen, level);
+				}
+			}
+			for (size_t i = 0; i < key_cnt; i++) {
+				get_key(i);
+				auto nl = get_next_layer(i);
+				if (nl) {
+					assert(nl->parent == nullptr);
+					nl->integrity_check(dimesion_order, seen, level + 1);
 				}
 			}
 		}
@@ -312,7 +317,6 @@ public:
 
 	Node * root;
 	std::array<int, D> dimension_order;
-
 
 	// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 	_BTree(_BTree const&) = delete;

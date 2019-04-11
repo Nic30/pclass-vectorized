@@ -24,10 +24,10 @@ namespace search_fn {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i       __attribute__((__always_inline__))            _mm256_cmpgt_epu32(
-		__m256i       const a, __m256i       const b) {
+inline static __m256i        __attribute__((__always_inline__))             _mm256_cmpgt_epu32(
+		__m256i        const a, __m256i        const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i       const fix_val = _mm256_set1_epi32(offset);
+	__m256i        const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 /*
@@ -36,10 +36,10 @@ inline static __m256i       __attribute__((__always_inline__))            _mm256
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i            __attribute__((__always_inline__))            _mm256_cmpgt_epu16(
-		__m256i       const a, __m256i       const b) {
+inline static __m256i             __attribute__((__always_inline__))             _mm256_cmpgt_epu16(
+		__m256i        const a, __m256i        const b) {
 	constexpr uint16_t offset = 0x1u << 15;
-	__m256i       const fix_val = _mm256_set1_epi16(offset);
+	__m256i        const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }
 
@@ -133,7 +133,7 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i       const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i        const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -450,9 +450,9 @@ public:
 			std::vector<std::tuple<Node *, Node *, unsigned>> & path,
 			size_t start = 0) {
 		Node * n = root;
-		unsigned i = start;
+		unsigned level = start;
 		while (n) {
-			auto d = dimension_order[i];
+			auto d = dimension_order[level];
 			auto val = rule.first[d];
 			auto r = search_possition_1d(n, val);
 			if (r.first == nullptr)
@@ -462,23 +462,28 @@ public:
 			path.push_back(
 					std::tuple<Node *, Node *, unsigned>(n, r.first, r.second));
 			if (r.first->is_compressed and r.second < n->key_cnt) {
-				// it is required to find the rest of the path in this node
+				// it is required to find the rest of the path in this compressed node
+				assert(d == n->get_dim(0));
+
 				n = r.first;
-				unsigned i2 = 0;
-				for (i2 = 1; i2 < n->key_cnt; i2++) {
-					auto d = dimension_order[i + i2];
-					assert(d == n->get_dim(i2));
-					auto k = rule.first[d];
-					if (n->get_key(i2).key != k) {
-						break;
+				if (n->key_cnt > 1) {
+					unsigned i2;
+					for (i2 = 1; i2 < n->key_cnt; i2++) {
+						// (the first item was already checked)
+						auto d = dimension_order[level + i2];
+						assert(d == n->get_dim(i2));
+						auto k = rule.first[d];
+						if (n->get_key(i2).key != k) {
+							break;
+						}
+						path.push_back(
+								std::tuple<Node *, Node *, unsigned>(n, n, i2));
 					}
-					path.push_back(
-							std::tuple<Node *, Node *, unsigned>(n, n, i2));
+					r.second = i2;
 				}
-				r.second = i2;
 			}
 			n = r.first->get_next_layer(r.second);
-			i++;
+			level++;
 		}
 	}
 

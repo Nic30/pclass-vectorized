@@ -210,18 +210,19 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	//}
 	// the root node must stay only for dimension[0] otherwise the tree can not grow
 	insert(t, r1);
-	res = search(t, v0);
-	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
-	res = search(t, v1);
-	BOOST_CHECK_EQUAL(res, 0);
-	res = search(t, v2);
-	BOOST_CHECK_EQUAL(res, 1);
 	//{
 	//	stringstream ss;
 	//	ofstream o("rewrite_on_demand_1.dot");
 	//	o << t;
 	//	o.close();
 	//}
+
+	res = search(t, v0);
+	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	res = search(t, v1);
+	BOOST_CHECK_EQUAL(res, 0);
+	res = search(t, v2);
+	BOOST_CHECK_EQUAL(res, 1);
 }
 
 //____________________________________________________________________________//

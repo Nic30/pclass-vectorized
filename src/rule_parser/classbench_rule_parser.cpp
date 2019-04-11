@@ -97,13 +97,16 @@ Rule_Ipv4_ACL::operator std::string() const {
 
 namespace OF_range_printer {
 template<typename T>
-static std::ostream & print(std::ostream & str, const string & val_name,
-		const Range1d<T> & val, bool is_first = false, bool last = false) {
-	if (is_first) {
-		str << " ";
-	}
+bool print(std::ostream & str, const string & val_name,
+		const Range1d<T> & val, bool something_was_before) {
+
 	if (val.is_wildcard()) {
-		return str;
+		return something_was_before;
+	}
+	if (not something_was_before) {
+		str << " ";
+	} else {
+		str << ", ";
 	}
 	str << val_name << "=";
 	if (val.high == val.low) {
@@ -114,58 +117,57 @@ static std::ostream & print(std::ostream & str, const string & val_name,
 				<< val.get_mask_littleendian();
 		str.flags(f);
 	}
-	if (not last)
-		str << ", ";
 
-	return str;
+	return true;
 }
 }
 
 std::ostream & operator<<(std::ostream & str, const Rule_OF_1_5_1& r) {
-	OF_range_printer::print(str, "in_port", r.in_port, true);
-	OF_range_printer::print(str, "in_phy_port", r.in_phy_port);
-	OF_range_printer::print(str, "metadata", r.metadata);
-	OF_range_printer::print(str, "eth_dst", r.eth_dst);
-	OF_range_printer::print(str, "eth_src", r.eth_src);
-	OF_range_printer::print(str, "eth_type", r.eth_type);
-	OF_range_printer::print(str, "vlan_vid", r.vlan_vid);
-	OF_range_printer::print(str, "vlan_pcp", r.vlan_pcp);
-	OF_range_printer::print(str, "ip_dscp", r.ip_dscp);
-	OF_range_printer::print(str, "ip_ecn", r.ip_ecn);
-	OF_range_printer::print(str, "ip_proto", r.ip_proto);
-	OF_range_printer::print(str, "ipv4_src", r.ipv4_src);
-	OF_range_printer::print(str, "ipv4_dst", r.ipv4_dst);
-	OF_range_printer::print(str, "tcp_src", r.tcp_src);
-	OF_range_printer::print(str, "tcp_dst", r.tcp_dst);
-	OF_range_printer::print(str, "udp_src", r.udp_src);
-	OF_range_printer::print(str, "udp_dst", r.udp_dst);
-	OF_range_printer::print(str, "sctp_src", r.sctp_src);
-	OF_range_printer::print(str, "sctp_dst", r.sctp_dst);
-	OF_range_printer::print(str, "icmpv4_type", r.icmpv4_type);
-	OF_range_printer::print(str, "icmpv4_code", r.icmpv4_code);
-	OF_range_printer::print(str, "arp_op", r.arp_op);
-	OF_range_printer::print(str, "arp_spa", r.arp_spa);
-	OF_range_printer::print(str, "arp_tpa", r.arp_tpa);
-	OF_range_printer::print(str, "arp_sha", r.arp_sha);
-	OF_range_printer::print(str, "arp_tha", r.arp_tha);
-	OF_range_printer::print(str, "ipv6_src", r.ipv6_src);
-	OF_range_printer::print(str, "ipv6_dst", r.ipv6_dst);
-	OF_range_printer::print(str, "ipv6_flabel", r.ipv6_flabel);
-	OF_range_printer::print(str, "icmpv6_type", r.icmpv6_type);
-	OF_range_printer::print(str, "icmpv6_code", r.icmpv6_code);
-	OF_range_printer::print(str, "ipv6_nd_target", r.ipv6_nd_target);
-	OF_range_printer::print(str, "ipv6_nd_sll", r.ipv6_nd_sll);
-	OF_range_printer::print(str, "ipv6_nd_tll", r.ipv6_nd_tll);
-	OF_range_printer::print(str, "mpls_label", r.mpls_label);
-	OF_range_printer::print(str, "mpls_tc", r.mpls_tc);
-	OF_range_printer::print(str, "mpls_bos", r.mpls_bos);
-	OF_range_printer::print(str, "pbb_isid", r.pbb_isid);
-	OF_range_printer::print(str, "tunnel_id", r.tunnel_id);
-	OF_range_printer::print(str, "ipv6_exthdr", r.ipv6_exthdr);
-	OF_range_printer::print(str, "pbb_uca", r.pbb_uca);
-	OF_range_printer::print(str, "tcp_flags", r.tcp_flags);
-	OF_range_printer::print(str, "actset_output", r.actset_output);
-	OF_range_printer::print(str, "packet_type", r.packet_type, false, true);
+	using namespace OF_range_printer;
+	bool f = print(str, "in_port", r.in_port, false);
+	f = print(str, "in_phy_port", r.in_phy_port, f);
+	f = print(str, "metadata", r.metadata, f);
+	f = print(str, "eth_dst", r.eth_dst, f);
+	f = print(str, "eth_src", r.eth_src, f);
+	f = print(str, "eth_type", r.eth_type, f);
+	f = print(str, "vlan_vid", r.vlan_vid, f);
+	f = print(str, "vlan_pcp", r.vlan_pcp, f);
+	f = print(str, "ip_dscp", r.ip_dscp, f);
+	f = print(str, "ip_ecn", r.ip_ecn, f);
+	f = print(str, "ip_proto", r.ip_proto, f);
+	f = print(str, "ipv4_src", r.ipv4_src, f);
+	f = print(str, "ipv4_dst", r.ipv4_dst, f);
+	f = print(str, "tcp_src", r.tcp_src, f);
+	f = print(str, "tcp_dst", r.tcp_dst, f);
+	f = print(str, "udp_src", r.udp_src, f);
+	f = print(str, "udp_dst", r.udp_dst, f);
+	f = print(str, "sctp_src", r.sctp_src, f);
+	f = print(str, "sctp_dst", r.sctp_dst, f);
+	f = print(str, "icmpv4_type", r.icmpv4_type, f);
+	f = print(str, "icmpv4_code", r.icmpv4_code, f);
+	f = print(str, "arp_op", r.arp_op, f);
+	f = print(str, "arp_spa", r.arp_spa, f);
+	f = print(str, "arp_tpa", r.arp_tpa, f);
+	f = print(str, "arp_sha", r.arp_sha, f);
+	f = print(str, "arp_tha", r.arp_tha, f);
+	f = print(str, "ipv6_src", r.ipv6_src, f);
+	f = print(str, "ipv6_dst", r.ipv6_dst, f);
+	f = print(str, "ipv6_flabel", r.ipv6_flabel, f);
+	f = print(str, "icmpv6_type", r.icmpv6_type, f);
+	f = print(str, "icmpv6_code", r.icmpv6_code, f);
+	f = print(str, "ipv6_nd_target", r.ipv6_nd_target, f);
+	f = print(str, "ipv6_nd_sll", r.ipv6_nd_sll, f);
+	f = print(str, "ipv6_nd_tll", r.ipv6_nd_tll, f);
+	f = print(str, "mpls_label", r.mpls_label, f);
+	f = print(str, "mpls_tc", r.mpls_tc, f);
+	f = print(str, "mpls_bos", r.mpls_bos, f);
+	f = print(str, "pbb_isid", r.pbb_isid, f);
+	f = print(str, "tunnel_id", r.tunnel_id, f);
+	f = print(str, "ipv6_exthdr", r.ipv6_exthdr, f);
+	f = print(str, "pbb_uca", r.pbb_uca, f);
+	f = print(str, "tcp_flags", r.tcp_flags, f);
+	f = print(str, "actset_output", r.actset_output, f);
+	f = print(str, "packet_type", r.packet_type, f);
 	return str;
 }
 
@@ -556,7 +558,7 @@ void read_ip(const std::string & line, size_t & pos, Range1d<uint32_t> & ipv4,
 	}
 }
 
-Range1d<uint16_t> read_port(const std::string & line, size_t & pos) {
+Range1d<uint16_t> read_range(const std::string & line, size_t & pos) {
 	// int or hex/hex
 	uint16_t a = read_int(line, pos, 10);
 	if (a == 0 and line[pos] == 'x') {
@@ -646,14 +648,17 @@ std::vector<Rule_OF_1_5_1*> RuleReader::parse_openflow(
 				read_ip(line, i, r->ipv4_dst, r->ipv6_dst);
 			} else if (id == "tp_dst") {
 				i++; // skip =
-				r->udp_dst = r->tcp_dst = read_port(line, i);
+				r->udp_dst = r->tcp_dst = read_range(line, i);
 			} else if (id == "tp_src") {
 				i++; // skip =
-				r->udp_src = r->tcp_src = read_port(line, i);
+				r->udp_src = r->tcp_src = read_range(line, i);
+			} else if (id == "dl_vlan" or id == "vlan_vid") {
+				i++; // skip =
+				r->vlan_vid = read_range(line, i);
 			} else {
 				auto v = read_value(line, i);
-				//std::cout << __FUNCTION__ << " "<< id << " not implemented";
-				//std::cout << "\t" <<"=" << v << endl;
+				std::cout << __FUNCTION__ << " "<< id << " not implemented";
+				std::cout << "\t" <<"=" << v << endl;
 			}
 		}
 		rules.push_back(r);

@@ -65,7 +65,7 @@ public:
 	inline static void insert(BTree & tree, const rule_spec_t & rule) {
 		InsertCookie cookie(tree);
 		insert(tree, rule, cookie);
-		tree.root->integrity_check();
+		tree.root->integrity_check(tree.dimension_order);
 	}
 
 	/* A utility function to insert a new key in this node
@@ -128,90 +128,178 @@ public:
 		assert(root->is_compressed);
 		assert(root->is_leaf);
 		assert(root->key_cnt > 1);
-		// search for the longest common prefix
-		uint8_t i;
-		for (i = 0; i < root->key_cnt; i++) {
+// search for the longest common prefix
+		uint8_t keep_keys_cnt;
+		for (keep_keys_cnt = 0; keep_keys_cnt < root->key_cnt;
+				keep_keys_cnt++) {
 			auto k = cookie.get_actual_key(rule);
-			auto _k = root->get_key(i);
+			auto _k = root->get_key(keep_keys_cnt);
 			if (_k.key != k) {
 				break;
 			}
 			cookie.level++;
 		}
-		_insert_in_to_compressed(root, rule, cookie, i);
+		_insert_in_to_compressed(root, rule, cookie, keep_keys_cnt);
 	}
-	/*
-	 * @note the cookie.level is expected to be set on the level of the item after the last matching item
-	 * @param i the number of the same keys in the node (same as the rule)
-	 * */
-	static void _insert_in_to_compressed(Node * root, const rule_spec_t & rule,
-			InsertCookie & cookie, uint8_t i) {
-		assert(root->is_compressed);
-		assert(root->is_leaf);
-
-		// decompress part of the tree if required
-		// insert to last common prefix and optionally create new tree from this node
-
-		// now i is the first index where the key differs
-		// the prefix can stay in this node
-		// the non matching key together with new key from the rule
-		// will form the root node of the next layer
-		// the rest from original root is transfered in to the compressed node in next level
-		// the rest of the rule is also transfered to next
-		if (i == root->key_cnt) {
-			// the rule of exactly same value or same prefix is already stored
-			// in tree, we need just to update the rule id in the item
-			root->value[i - 1] = rule.second;
-			assert(cookie.level == cookie.dimensio_order.size());
-			return;
-		} else if (i <= 1) {
-			// this layer can remain for keys in this dimension only
-			// put the rest in to a separate node
-			// the new node will contain this key and the key from the node and will be for this dimension
-			root->is_compressed = false;
+	static Node * decompress_node(Node * root,
+			uint8_t index_of_key_to_separate) {
+		// if the key does not exists in the node new empty node is created and connected
+		// as new layer behind the last item
+		if (root->key_cnt <= index_of_key_to_separate) {
+			assert(root->key_cnt == index_of_key_to_separate);
 			auto nl = new Node;
-			root->set_next_layer(0, nl);
-			assert(root->key_cnt > 1);
-			// copy the data to new node
+			root->set_next_layer(index_of_key_to_separate - 1, nl);
+			return nl;
+		} else if (index_of_key_to_separate == 0) {
+			if (root->key_cnt == 1) {
+				// there is only this non matching item for same dimension, we will use this item
+				// and the newly generated item from the rule to build a new b-tree there
+				return root;
+			}
+			// the re is something behind the first non matching key, wee need to to extract it to new node
+			auto nl = new Node;
 			for (uint8_t i2 = 1; i2 < root->key_cnt; i2++) {
 				nl->set_key(i2 - 1, root->get_key(i2));
 				nl->set_dim(i2 - 1, root->get_dim(i2));
 			}
 			nl->set_key_cnt(root->key_cnt - 1);
 			nl->is_compressed = nl->key_cnt > 1;
-			root->set_key_cnt(1);
-			if (i == 1) {
-				// the same key is in node
-				// continue on other level
-				insert(nl, rule, cookie);
-			} else {
-				// proper key is not in root have to add it
-				//cookie.level--;
-				root = insert(root, rule, cookie);
-			}
-		} else {
-			// there are items before this we need to allocate new layer and put the key there
-			auto nl = new Node;
+
 			root->set_next_layer(0, nl);
-			nl->set_key(i, root->get_key(i));
+			root->set_key_cnt(1);
+			root->is_compressed = false;
+			return root;
+		} else {
+			// the first non matching key is surrounded by the other keys
+			// this item has to be extracted to a separate node and the items behind has to be extracted
+			// to other node
+
+			// extract the segment behind the first non matching item
+			Node * nnl = nullptr;
+			auto keys_to_nnl_cnt = root->key_cnt - index_of_key_to_separate - 1;
+			if (keys_to_nnl_cnt) {
+				nnl = new Node;
+				for (uint8_t i2 = 0; i2 < keys_to_nnl_cnt; i2++) {
+					auto i = index_of_key_to_separate + i2 + 1;
+					nnl->set_key(i2, root->get_key(i));
+					nnl->set_dim(i2, root->get_dim(i));
+				}
+				nnl->set_key_cnt(root->key_cnt - index_of_key_to_separate - 1);
+				nnl->is_compressed = nnl->key_cnt > 1;
+			}
+			// extract the non matching item
+			auto nl = new Node;
+			nl->set_key(0, root->get_key(index_of_key_to_separate));
 			nl->set_key_cnt(1);
 
-			// create another new layer for the remaining items if required if it is required
-			if (root->key_cnt > i) {
-				auto nnl = new Node;
-				for (uint8_t i2 = 0; i2 < (root->key_cnt - i); i2++) {
-					nnl->set_key(i2, root->get_key(i + i2));
-					nnl->set_dim(i2, root->get_dim(i + i2));
-				}
-				nnl->set_key_cnt(root->key_cnt - 2);
-				nnl->is_compressed = nnl->key_cnt > 1;
+			// connect the layers together
+			root->set_next_layer(index_of_key_to_separate - 1, nl);
+			if (nnl) {
 				nl->set_next_layer(0, nnl);
 			}
-			root->set_key_cnt(i - 1);
+			root->set_key_cnt(index_of_key_to_separate);
 			root->is_compressed = root->key_cnt > 1;
-			//cookie.level--;
-			nl = insert(root, rule, cookie);
+
+			return nl;
 		}
+	}
+	/*
+	 * @note the cookie.level is expected to be set on the level of the item after the last matching item
+	 * @param keep_keys_cnt the number of the same keys in the node
+	 * 	(same as the rule, that means that this keys should stay in this node as they are)
+	 * */
+	static void _insert_in_to_compressed(Node * root, const rule_spec_t & rule,
+			InsertCookie & cookie, uint8_t keep_keys_cnt) {
+		assert(root->is_compressed);
+		assert(root->is_leaf);
+		assert(keep_keys_cnt <= root->key_cnt);
+
+// decompress part of the tree if required
+// insert to last common prefix and optionally create new tree from this node
+
+		if (keep_keys_cnt == root->key_cnt) {
+			// the rule of exactly same value or same prefix is already stored
+			// in tree
+			if (cookie.required_more_levels(rule)) {
+				// continue insert on next level
+				auto nl = root->get_next_layer(keep_keys_cnt - 1);
+				nl = insert(nl, rule, cookie);
+				root->set_next_layer(keep_keys_cnt - 1, nl);
+			} else {
+				root->value[keep_keys_cnt - 1] = rule.second;
+			}
+			return;
+		} else {
+			root = decompress_node(root, keep_keys_cnt);
+			insert(root, rule, cookie);
+		}
+//// we need to put the first non matching key to a new node so it is possible to start new b-tree there
+//if (keep_keys_cnt == 0) {
+//	// if the first non matching key is the first one only other keys need to be stored to a new node
+//
+//} else {
+//
+//}
+//// there are items before this we need to allocate new layer and put the key there
+//auto nl = new Node;
+//root->set_next_layer(keep_keys_cnt - 1, nl);
+//nl->set_key(keep_keys_cnt, root->get_key(keep_keys_cnt));
+//nl->set_key_cnt(1);
+//
+//root->set_key_cnt(keep_keys_cnt - 1);
+//root->is_compressed = root->key_cnt > 1;
+////cookie.level--;
+//nl = insert(root, rule, cookie);
+
+//{
+//	// this layer can remain for keys in this dimension only
+//	// put the rest in to a separate node
+//	// the new node will contain this key and the key from the node and will be for this dimension
+//	root->is_compressed = false;
+//	auto nl = new Node;
+//	root->set_next_layer(0, nl);
+//	assert(root->key_cnt > 1);
+//	// copy the data to new node
+//	for (uint8_t i2 = 1; i2 < root->key_cnt; i2++) {
+//		nl->set_key(i2 - 1, root->get_key(i2));
+//		nl->set_dim(i2 - 1, root->get_dim(i2));
+//	}
+//	nl->set_key_cnt(root->key_cnt - 1);
+//	nl->is_compressed = nl->key_cnt > 1;
+//	root->set_key_cnt(1);
+//	if (keep_keys_cnt == 1) {
+//		// the same key is in node
+//		// continue on other level
+//		insert(nl, rule, cookie);
+//	} else {
+//		// proper key is not in root have to add it
+//		//cookie.level--;
+//		root = insert(root, rule, cookie);
+//	}
+//} else {
+//	// there are items before this we need to allocate new layer and put the key there
+//	auto nl = new Node;
+//	root->set_next_layer(keep_keys_cnt - 1, nl);
+//	nl->set_key(keep_keys_cnt, root->get_key(keep_keys_cnt));
+//	nl->set_key_cnt(1);
+//
+//	// create another new layer for the remaining items if required if it is required
+//	if (root->key_cnt > keep_keys_cnt) {
+//		auto nnl = new Node;
+//		for (uint8_t i2 = 0; i2 < (root->key_cnt - keep_keys_cnt);
+//				i2++) {
+//			nnl->set_key(i2, root->get_key(keep_keys_cnt + i2));
+//			nnl->set_dim(i2, root->get_dim(keep_keys_cnt + i2));
+//		}
+//		nnl->set_key_cnt(root->key_cnt - 2);
+//		nnl->is_compressed = nnl->key_cnt > 1;
+//		nl->set_next_layer(0, nnl);
+//	}
+//	root->set_key_cnt(keep_keys_cnt - 1);
+//	root->is_compressed = root->key_cnt > 1;
+//	//cookie.level--;
+//	nl = insert(root, rule, cookie);
+//}
 
 	}
 
@@ -247,9 +335,9 @@ public:
 	static Node * insert_in_to_new_node(const rule_spec_t & rule,
 			InsertCookie & cookie) {
 		auto k = cookie.get_actual_key(rule);
-		// Allocate memory for root
+// Allocate memory for root
 		auto root = new Node;
-		//auto nl_cnt = 0;
+//auto nl_cnt = 0;
 		auto nl_cnt =
 				BTree::PATH_COMPRESSION ?
 						cookie.levels_required_cnt(rule) - 1 : 0;
@@ -280,7 +368,7 @@ public:
 	 * */
 	static Node * insert_to_root(Node * root, const rule_spec_t & rule,
 			InsertCookie & cookie) {
-		// If tree is empty
+// If tree is empty
 		if (root == nullptr) {
 			root = insert_in_to_new_node(rule, cookie);
 			return root;
@@ -330,8 +418,8 @@ public:
 	 */
 	static Node * insert(Node * root, const rule_spec_t & rule,
 			InsertCookie & cookie) {
-		// search if there is some prefix already in decision tree because we do not
-		// want to duplicate keys which are already present
+// search if there is some prefix already in decision tree because we do not
+// want to duplicate keys which are already present
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		BTreeSearch<BTree>::search_path(root, cookie.dimensio_order, rule, path,
 				cookie.level);
@@ -348,19 +436,15 @@ public:
 				Node * r, *n;
 				unsigned i;
 				std::tie(r, n, i) = path.back();
-				if (nlr) {
-					if (n->is_compressed) {
-						_insert_in_to_compressed(n, rule, cookie, i + 1);
-					} else {
-						// else add next level
-						// insert to the next layer
-						Node * ins_root = n->get_next_layer(i);
-						ins_root = insert_to_root(ins_root, rule, cookie);
-						// update ptr on next layer in previous layer
-						n->set_next_layer(i, ins_root);
-					}
+				if (n->is_compressed) {
+					_insert_in_to_compressed(n, rule, cookie, i + 1);
 				} else {
-					n->value[i] = rule.second;
+					// else add next level
+					// insert to the next layer
+					Node * ins_root = n->get_next_layer(i);
+					ins_root = insert_to_root(ins_root, rule, cookie);
+					// update ptr on next layer in previous layer
+					n->set_next_layer(i, ins_root);
 				}
 			}
 		} else {
@@ -375,17 +459,17 @@ public:
 	 * @param y the child node
 	 **/
 	static void split_child(Node & node, unsigned i, Node & y) {
-		// y - left
-		// this - parent
-		// z - right
+// y - left
+// this - parent
+// z - right
 
-		// Create a new node which is going to store (t-1) keys
-		// of y
+// Create a new node which is going to store (t-1) keys
+// of y
 		Node *z = new Node;
 		z->is_leaf = y.is_leaf;
 		z->set_key_cnt(Node::MIN_DEGREE);
 
-		// Copy the last (MIN_DEGREE-1) keys of y to z
+// Copy the last (MIN_DEGREE-1) keys of y to z
 		for (unsigned j = 0; j < Node::MIN_DEGREE; j++) {
 			y.move_key(Node::MIN_DEGREE + j + 1, *z, j);
 		}
@@ -398,32 +482,33 @@ public:
 			}
 		}
 
-		// Subtract number of keys moved from y to z
+// Subtract number of keys moved from y to z
 		y.set_key_cnt(Node::MIN_DEGREE);
 
 		assert(node.key_cnt < Node::MAX_DEGREE);
-		// Since this node is going to have a new child,
-		// create space of new child
+// Since this node is going to have a new child,
+// create space of new child
 		for (int j = node.key_cnt; j >= int(i + 1); j--) {
 			auto ch = y.child(j);
 			z->set_child(j + 1, ch);
 		}
 
-		// Link the new child to this node
+// Link the new child to this node
 		node.set_child(i + 1, z);
 
-		// A key of y will move to this node. Find location of
-		// new key and move all greater keys one space ahead
+// A key of y will move to this node. Find location of
+// new key and move all greater keys one space ahead
 		for (int j = int(node.key_cnt) - 1; j >= int(i); j--)
 			node.move_key(j, node, j + 1);
 
-		// Copy the middle key of y to this node
+// Copy the middle key of y to this node
 		y.move_key(node.MIN_DEGREE, node, i);
 
-		// Increment count of keys in this node
+// Increment count of keys in this node
 		node.set_key_cnt(node.key_cnt + 1);
 	}
 
-};
+}
+;
 
 }

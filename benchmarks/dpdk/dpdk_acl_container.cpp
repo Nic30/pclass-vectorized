@@ -81,12 +81,6 @@ void DpdkAclContainer::acl_init(const std::vector<iParsedRule*> & rules) {
 
 	/* Load  rules from the input file */
 	add_rules<acl4_rule>(rules, rules_acl, rules_route);
-	acl_log("IPv4 Route entries %zu:\n", rules_route.size());
-	dump_ipv4_rules((acl4_rule *) &rules_route[0], rules_route.size(), 1);
-
-	acl_log("IPv4 ACL entries %zu:\n", rules_acl.size());
-	dump_ipv4_rules((acl4_rule *) &rules_acl[0], rules_acl.size(), 1);
-
 	memset(&acl_config, 0, sizeof(acl_config));
 
 	acl_config.acx_ipv4 = setup_acl(rules_route, rules_acl, 0);
@@ -133,8 +127,6 @@ DpdkAclContainer::setup_acl(const std::vector<acl4_rule> rules_acl,
 	if (rte_acl_build(context, &acl_build_param) != 0)
 		rte_exit(EXIT_FAILURE, "Failed to build ACL trie\n");
 
-	rte_acl_dump(context);
-
 	return context;
 }
 
@@ -153,3 +145,12 @@ uint16_t DpdkAclContainer::search(std::array<uint16_t, 7> & val) {
 DpdkAclContainer::~DpdkAclContainer() {
 	rte_acl_free(acl_config.acx_ipv4);
 }
+
+//void DpdkAclContainer::dump() {
+//	acl_log("IPv4 Route entries %zu:\n", rules_route.size());
+//	dump_ipv4_rules((acl4_rule *) &rules_route[0], rules_route.size(), 1);
+//
+//	acl_log("IPv4 ACL entries %zu:\n", rules_acl.size());
+//	dump_ipv4_rules((acl4_rule *) &rules_acl[0], rules_acl.size(), 1);
+// rte_acl_dump(context);
+//}

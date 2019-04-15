@@ -58,7 +58,8 @@ def generate_graph_troughput_with_increasing_number_of_flows():
     ax.set_ylabel('Throughput [MPkt/s]')
     ax.set_xlabel('Flow count')
     ax.legend()
-    plt.show()
+    plt.savefig('troughput_with_increasing_number_of_flows.png')
+    #plt.show()
 
 def generate_graph_troughput_with_increasing_number_of_rules():
     pass
@@ -69,10 +70,17 @@ def build_test_name(app_name, rule_file, flow_cnt, packet_cnt):
 
 
 def exec_benchmark(app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt):
-    cmd = [app_name, rule_file, str(flow_cnt), str(packet_cnt), "1"]
+    is_dpkd = "dpdk" in app_name
+    if is_dpkd:
+        cmd = [app_name, rule_file, str(flow_cnt), str(packet_cnt), "1"]
+    else:
+        cmd = [app_name, "--", rule_file, str(flow_cnt), str(packet_cnt), "1"]
+        
     lookup_speed = 0.0
     for _ in range(repetition_cnt):
         res = subprocess.check_output(cmd)
+        if is_dpkd:
+            res = res[res.find(b"{")-1:]
         res = json.loads(res)
         lookup_speed += float(res["lookup_speed"])
     lookup_speed /= repetition_cnt
@@ -106,7 +114,7 @@ if __name__ == "__main__":
     # (filename, requires sudo)
     BENCHMARKS = [
         (MESON_BUILD_PATH + "1_tree_lookup", False, 4),
-        # (MESON_BUILD_PATH + "dpdk/pcv_dpdk", True, 4),
+        (MESON_BUILD_PATH + "dpdk/1_tree_lookup_dpdk", True, 4),
     ]
     
     FLOW_CNTS = [
@@ -115,8 +123,8 @@ if __name__ == "__main__":
         65536
     ]
     PACKET_CNTS = [
-        #10000000,
-        100000000,
+        10000000,
+        #100000000,
     ]
     rule_files = find_all_files(CLASSBENCH_ROOT)
     # rule_files = ["acl1_100"]
@@ -137,7 +145,7 @@ if __name__ == "__main__":
             print("Some tests require 'sudo'")
             exit()
             
-    #for (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt in TEST_ARGS:
-    #    exec_benchmark(app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
+    for (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt in TEST_ARGS:
+        exec_benchmark(app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
         
     generate_graph_troughput_with_increasing_number_of_flows()

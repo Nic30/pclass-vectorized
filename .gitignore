@@ -37,3 +37,8 @@ build/
 *.exe
 *.out
 *.app
+
+
+# generated results
+test_results.db
+fig/

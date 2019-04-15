@@ -4,6 +4,7 @@ build/
 .cproject
 .project
 .settings/
+.pydevproject
 
 # Prerequisites
 *.d

@@ -49,7 +49,7 @@ def generate_graph_troughput_with_increasing_number_of_flows():
         if not flow_cnt_values or flow_cnt_values[-1] != flow_cnt:
             flow_cnt_values.append(flow_cnt)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(20, 8))
     
     for name, troughputs in app_namesXruleset_troughput.items():
         x = flow_cnt_values
@@ -57,8 +57,19 @@ def generate_graph_troughput_with_increasing_number_of_flows():
         line1, = ax.plot(x, y, label=name)
     ax.set_ylabel('Throughput [MPkt/s]')
     ax.set_xlabel('Flow count')
-    ax.legend()
-    plt.savefig('troughput_with_increasing_number_of_flows.png')
+    ax.set_xlim(left=0)
+    
+    #ax.legend()
+    # Put a legend below current axis
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    plt.grid()
+    plt.savefig('fig/troughput_with_increasing_number_of_flows.png')
     #plt.show()
 
 def generate_graph_troughput_with_increasing_number_of_rules():
@@ -72,9 +83,9 @@ def build_test_name(app_name, rule_file, flow_cnt, packet_cnt):
 def exec_benchmark(app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt):
     is_dpkd = "dpdk" in app_name
     if is_dpkd:
-        cmd = [app_name, rule_file, str(flow_cnt), str(packet_cnt), "1"]
-    else:
         cmd = [app_name, "--", rule_file, str(flow_cnt), str(packet_cnt), "1"]
+    else:
+        cmd = [app_name, rule_file, str(flow_cnt), str(packet_cnt), "1"]
         
     lookup_speed = 0.0
     for _ in range(repetition_cnt):

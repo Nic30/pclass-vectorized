@@ -170,15 +170,38 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	res = search(t, v1);
 	BOOST_CHECK_EQUAL(res, 2);
 
+	//{
+	//	insert(t, r3);
+	//	stringstream ss;
+	//	ofstream o("bt_r3.dot");
+	//	o << t;
+	//	o.close();
+	//}
 	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 3 };
 	insert(t, r3);
-	//stringstream ss;
-	//ofstream o("bt_r3.dot");
-	//o << t;
-	//o.close();
 	res = search(t, v1);
 	BOOST_CHECK_EQUAL(res, 3);
 
+
+	BOOST_CHECK_EQUAL(t.root->key_cnt, 2);
+	BOOST_CHECK(not t.root->is_compressed);
+	BOOST_CHECK(t.root->is_leaf);
+	auto l1 = t.root->get_next_layer(1);
+
+	BOOST_CHECK(l1->is_compressed);
+	BOOST_CHECK(l1->is_leaf);
+	BOOST_CHECK_EQUAL(l1->key_cnt, 3);
+
+
+	R r4 = { { R1d(1, 1), R1d(2, 2), R1d(4, 4), R1d(4, 4) }, 3 };
+	insert(t, r4);
+
+	//{
+	//	stringstream ss;
+	//	ofstream o("bt_r4.dot");
+	//	o << t;
+	//	o.close();
+	//}
 }
 
 BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {

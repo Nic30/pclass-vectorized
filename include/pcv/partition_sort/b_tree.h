@@ -230,6 +230,10 @@ public:
 			dst.set_key(dst_i, this->get_key(src_i));
 		}
 
+		inline void move_child(uint8_t src_i, Node & dst, uint8_t dst_i) {
+			dst.set_child(dst_i, this->child(src_i));
+		}
+
 		/*
 		 * Copy keys, child pointers etc between the nodes
 		 *
@@ -283,9 +287,11 @@ public:
 					assert(d == actual_d);
 				}
 			}
-			for (size_t i = 0; i <= key_cnt; i++) {
-				auto ch = child(i);
-				if (ch) {
+			if (not is_leaf) {
+				assert(not is_compressed);
+				for (size_t i = 0; i <= key_cnt; i++) {
+					auto ch = child(i);
+					assert(ch);
 					assert(ch->parent == this);
 					ch->integrity_check(dimesion_order, seen, level);
 				}
@@ -295,7 +301,10 @@ public:
 				auto nl = get_next_layer(i);
 				if (nl) {
 					assert(nl->parent == nullptr);
-					nl->integrity_check(dimesion_order, seen, level + 1);
+					size_t l = level + 1;
+					if (is_compressed)
+						l += i;
+					nl->integrity_check(dimesion_order, seen, l);
 				}
 			}
 		}

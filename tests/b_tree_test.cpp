@@ -1,9 +1,9 @@
-
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE pcv_test
 
 #include "test_common.h"
+#include <vector>
 
 #include <pcv/partition_sort/b_tree.h>
 #include <pcv/partition_sort/b_tree_search.h>
@@ -20,7 +20,7 @@ void insert(BTree & t, BTree::rule_spec_t & r) {
 	BTreeInsert<BTree>::insert(t, r);
 }
 BTree::rule_id_t search(BTree & t, BTree::value_t s) {
-	std::array<BTree::value_t, 2> v = {s, s};
+	std::array<BTree::value_t, 2> v = { s, s };
 	return BTreeSearch<BTree>::search(t, v);
 }
 
@@ -40,8 +40,7 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	using R1d = BTree::val_range_t;
 	R1d any(0, numeric_limits<BTree::value_t>::max());
 	for (size_t i = 0; i < N; i++) {
-		rule_t r =
-				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		insert(t, r);
 	}
 
@@ -71,8 +70,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	using R1d = BTree::val_range_t;
 	R1d any(0, numeric_limits<BTree::value_t>::max());
 	for (size_t i = 0; i < N; i++) {
-		rule_t r =
-				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		insert(t, r);
 		t.root->integrity_check(t.dimension_order);
 	}
@@ -84,8 +82,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	//o.close();
 
 	for (size_t i = 0; i < N; i++) {
-		rule_t r =
-				{ { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, i };
 		remove(t, r);
 		BOOST_CHECK_EQUAL(t.size(), (N - i - 1));
 		for (size_t i3 = i + 1; i3 < N; i3++) {
@@ -150,8 +147,8 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::val_range_t;
 	R1d any(0, numeric_limits<BTree::value_t>::max());
-	rule_t r1 = { { R1d(1, 1),  any, }, 1 };
-	rule_t r2 = { { R1d(3, 6),  any, }, 2 };
+	rule_t r1 = { { R1d(1, 1), any, }, 1 };
+	rule_t r2 = { { R1d(3, 6), any, }, 2 };
 	rule_t r3 = { { R1d(7, 10), any, }, 3 };
 
 	insert(t, r1);
@@ -166,6 +163,69 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	BOOST_CHECK_EQUAL(search(t, 7), 3);
 	BOOST_CHECK_EQUAL(search(t, 10), 3);
 	BOOST_CHECK_EQUAL(search(t, 11), BTree::INVALID_RULE);
+}
+
+BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {
+	vector<pair<uint16_t, uint16_t>> values =
+			{ { 21, 21 }, { 135, 135 }, { 30211, 30211 }, { 1521, 1521 }, {
+					1526, 1526 }, { 5632, 5632 }, { 1432, 1432 },
+					{ 1704, 1704 }, { 1707, 1707 }, { 6849, 6849 },
+					{ 1221, 1221 }, { 1490, 1490 }, { 2121, 2121 }, { 19856,
+							19856 }, { 1525, 1525 }, { 1733, 1733 }, { 2026,
+							2026 }, { 1708, 1708 }, { 1724, 1724 },
+					{ 1717, 1717 }, { 1707, 1707 }, { 3031, 3031 },
+					{ 5540, 5540 }, { 32201, 32201 }, { 6890, 6890 }, { 14753,
+							14753 }, { 1433, 1433 }, { 5631, 5631 }, { 6000,
+							6000 }, { 1712, 1712 }, { 80, 80 }, { 1706, 1706 },
+					{ 1550, 1550 }, { 1706, 1706 }, { 5555, 5555 }, };
+	BTree t;
+	using rule_t = BTree::rule_spec_t;
+	using R1d = BTree::val_range_t;
+	R1d any(0, numeric_limits<BTree::value_t>::max());
+	int i = 0;
+	for (auto val : values) {
+		rule_t r = { { R1d(val.first, val.second), any, }, i };
+		insert(t, r);
+		//{
+		//	stringstream ss;
+		//	ss << "simple_insert_unordered+" << i << ".dot";
+		//	ofstream o(ss.str());
+		//	assert(o.is_open());
+		//	o << t;
+		//	o.close();
+		//}
+
+		t.root->integrity_check(t.dimension_order);
+		i++;
+	}
+}
+
+BOOST_AUTO_TEST_CASE( simple_insert_same ) {
+	BTree t;
+	using rule_t = BTree::rule_spec_t;
+	using R1d = BTree::val_range_t;
+	R1d any(0, numeric_limits<BTree::value_t>::max());
+	for (int i = 0; i < 1024; i++) {
+		rule_t r = { { R1d(0, 0), any, }, i };
+		insert(t, r);
+	}
+	t.root->integrity_check(t.dimension_order);
+}
+
+BOOST_AUTO_TEST_CASE( simple_insert_same_into_something ) {
+	BTree t;
+	using rule_t = BTree::rule_spec_t;
+	using R1d = BTree::val_range_t;
+	R1d any(0, numeric_limits<BTree::value_t>::max());
+	for (int i = 0; i < 1024; i++) {
+		rule_t r = { { R1d(i, i), any, }, i };
+		insert(t, r);
+	}
+	for (int i = 0; i < 1024; i++) {
+		rule_t r = { { R1d(512, 512), any, }, i };
+		insert(t, r);
+	}
+	t.root->integrity_check(t.dimension_order);
 }
 
 BOOST_AUTO_TEST_CASE( search_in_one_full_node) {

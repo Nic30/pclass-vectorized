@@ -273,6 +273,7 @@ public:
 		 * */
 		inline void integrity_check(const std::array<int, D> & dimesion_order,
 				std::set<Node*> * seen = nullptr, size_t level = 0) {
+#ifndef NDEBUG
 			std::set<Node*> _seen;
 			if (seen == nullptr)
 				seen = &_seen;
@@ -307,6 +308,7 @@ public:
 					nl->integrity_check(dimesion_order, seen, l);
 				}
 			}
+#endif
 		}
 
 		/*

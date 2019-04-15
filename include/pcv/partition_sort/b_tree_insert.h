@@ -20,6 +20,7 @@ public:
 	 * */
 	class InsertCookie {
 	public:
+		// [TODO] grammar fix
 		std::array<int, BTree::D> & dimensio_order;
 		uint8_t level;
 
@@ -193,8 +194,10 @@ public:
 			nl->set_key_cnt(1);
 
 			// connect the layers together
+			assert(root->get_next_layer(index_of_key_to_separate - 1) == nullptr);
 			root->set_next_layer(index_of_key_to_separate - 1, nl);
 			if (nnl) {
+				assert(nl->get_next_layer(0) == nullptr);
 				nl->set_next_layer(0, nnl);
 			}
 			root->set_key_cnt(index_of_key_to_separate);
@@ -214,8 +217,8 @@ public:
 		assert(root->is_leaf);
 		assert(keep_keys_cnt <= root->key_cnt);
 
-// decompress part of the tree if required
-// insert to last common prefix and optionally create new tree from this node
+		// decompress part of the tree if required
+		// insert to last common prefix and optionally create new tree from this node
 
 		if (keep_keys_cnt == root->key_cnt) {
 			// the rule of exactly same value or same prefix is already stored
@@ -231,6 +234,7 @@ public:
 			return;
 		} else {
 			root = decompress_node(root, keep_keys_cnt);
+			root->integrity_check(cookie.dimensio_order, nullptr, cookie.level);
 			insert(root, rule, cookie);
 		}
 //// we need to put the first non matching key to a new node so it is possible to start new b-tree there
@@ -459,17 +463,17 @@ public:
 	 * @param y the child node
 	 **/
 	static void split_child(Node & node, unsigned i, Node & y) {
-// y - left
-// this - parent
-// z - right
+		// y - left
+		// node - parent
+		// z - right
 
-// Create a new node which is going to store (t-1) keys
-// of y
+		// Create a new node which is going to store (t-1) keys
+		// of y
 		Node *z = new Node;
 		z->is_leaf = y.is_leaf;
 		z->set_key_cnt(Node::MIN_DEGREE);
 
-// Copy the last (MIN_DEGREE-1) keys of y to z
+		// Copy the last (MIN_DEGREE-1) keys of y to z
 		for (unsigned j = 0; j < Node::MIN_DEGREE; j++) {
 			y.move_key(Node::MIN_DEGREE + j + 1, *z, j);
 		}
@@ -482,29 +486,28 @@ public:
 			}
 		}
 
-// Subtract number of keys moved from y to z
+		// Subtract number of keys moved from y to z
 		y.set_key_cnt(Node::MIN_DEGREE);
 
 		assert(node.key_cnt < Node::MAX_DEGREE);
-// Since this node is going to have a new child,
-// create space of new child
+		// Since this node is going to have a new child,
+		// create space of new child
 		for (int j = node.key_cnt; j >= int(i + 1); j--) {
-			auto ch = y.child(j);
-			z->set_child(j + 1, ch);
+			node.move_child(j, node, j + 1);
 		}
 
-// Link the new child to this node
+		// Link the new child to this node
 		node.set_child(i + 1, z);
 
-// A key of y will move to this node. Find location of
-// new key and move all greater keys one space ahead
+		// A key of y will move to this node. Find location of
+		// new key and move all greater keys one space ahead
 		for (int j = int(node.key_cnt) - 1; j >= int(i); j--)
 			node.move_key(j, node, j + 1);
 
-// Copy the middle key of y to this node
+		// Copy the middle key of y to this node
 		y.move_key(node.MIN_DEGREE, node, i);
 
-// Increment count of keys in this node
+		// Increment count of keys in this node
 		node.set_key_cnt(node.key_cnt + 1);
 	}
 

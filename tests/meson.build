@@ -8,6 +8,9 @@ tests = [
   ['mempool', 'tests of static memory mempool'],
   ['classbench_rule_parser', 'tests for functionality of classbench rule parser'],
   ['layered_b_tree', 'tests for layering mechanism of the of b-tree impl'],
+  ['weighted_interval_scheduling_solver', 'tests for the weighted interval scheduling solver'],
+  ['dimension_order_resolver', 'tests for the dimension order solver which is used to resolve structure of the trees'],
+  ['partition_sort_classifier', 'tests for the partition sort packet classifer itself'],
 ]
 
 foreach t : tests

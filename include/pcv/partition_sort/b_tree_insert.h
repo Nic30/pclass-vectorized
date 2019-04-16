@@ -21,7 +21,7 @@ public:
 	class InsertCookie {
 	public:
 		// [TODO] grammar fix
-		std::array<int, BTree::D> & dimensio_order;
+		std::array<unsigned, BTree::D> & dimensio_order;
 		uint8_t level;
 
 		InsertCookie(BTree & tree) :

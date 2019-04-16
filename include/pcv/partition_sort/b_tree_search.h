@@ -445,7 +445,7 @@ public:
 	 * @param start the index of the item in rule vector where the search should start
 	 **/
 	static void search_path(Node * root,
-			const std::array<int, BTree::D> & dimension_order,
+			const std::array<unsigned, BTree::D> & dimension_order,
 			const rule_spec_t & rule,
 			std::vector<std::tuple<Node *, Node *, unsigned>> & path,
 			size_t start = 0) {

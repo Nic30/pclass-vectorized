@@ -271,7 +271,8 @@ public:
 		/*
 		 * Check if the pointers in node are valid (recursively)
 		 * */
-		inline void integrity_check(const std::array<int, D> & dimesion_order,
+		inline void integrity_check(
+				const std::array<unsigned, D> & dimesion_order,
 				std::set<Node*> * seen = nullptr, size_t level = 0) {
 #ifndef NDEBUG
 			std::set<Node*> _seen;
@@ -327,11 +328,21 @@ public:
 	}__attribute__((aligned(64)));
 
 	Node * root;
-	std::array<int, D> dimension_order;
+	std::array<unsigned, D> dimension_order;
 
 	// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 	_BTree(_BTree const&) = delete;
 	_BTree& operator=(_BTree const&) = delete;
+	// enable move constructor so it is possible to explicitly move the tree
+	_BTree(_BTree&& o) noexcept :
+			root(std::move(o.root)), dimension_order(
+					std::move(o.dimension_order)) {
+	}
+	_BTree& operator=(_BTree&& o) noexcept {
+		root = std::move(o.root);
+		dimension_order = std::move(o.dimension_order);
+		return *this;
+	}
 
 	_BTree() :
 			root(nullptr) {

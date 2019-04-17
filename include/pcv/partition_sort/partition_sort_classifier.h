@@ -199,7 +199,7 @@ public:
 			update_dimension_order(*t);
 		}
 	}
-	inline rule_id_t search(const val_vec_t & val) {
+	inline rule_id_t search(const val_vec_t & val) const {
 		rule_id_t actual_found = TREE_T::INVALID_RULE;
 
 		for (size_t i = 0; i < tree_cnt; i++) {

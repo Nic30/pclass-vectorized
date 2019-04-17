@@ -39,7 +39,7 @@ public:
 		return BTreeCollisionCheck<BTreeImp>::does_rule_colide(*this, r);
 	}
 
-	inline rule_id_t search(const val_vec_t & v) {
+	inline rule_id_t search(const val_vec_t & v) const {
 		return BTreeSearch<BTreeImp>::search(*this, v);
 	}
 	inline void remove(const rule_spec_t & r) {

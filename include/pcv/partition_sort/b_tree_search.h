@@ -389,9 +389,8 @@ public:
 	/*
 	 * Search in all levels of the tree
 	 *
-	 * [TODO] use array
 	 * */
-	static rule_id_t search(BTree & t, const val_vec_t & _val) {
+	static rule_id_t search(const BTree & t, const val_vec_t & _val) {
 		rule_id_t res = BTree::INVALID_RULE;
 		Node * n = t.root;
 		unsigned i = 0;

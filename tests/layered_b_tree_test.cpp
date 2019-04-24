@@ -119,10 +119,12 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		V v2 = { 0, 0, 0, 0 };
 		res = search(t, v2);
 		BOOST_CHECK_EQUAL(res, 0);
-		//stringstream ss;
-		//ofstream o("ins_search_rem_4layer_r0_r1.dot");
-		//o << t;
-		//o.close();
+		//{
+		//	stringstream ss;
+		//	ofstream o("ins_search_rem_4layer_r0_r1.dot");
+		//	o << t;
+		//	o.close();
+		//}
 		res = search(t, v1);
 
 		/*
@@ -171,17 +173,22 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	BOOST_CHECK_EQUAL(res, 2);
 
 	//{
-	//	insert(t, r3);
+	//	stringstream ss;
+	//	ofstream o("bt_r2.dot");
+	//	o << t;
+	//	o.close();
+	//}
+
+	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 3 };
+	insert(t, r3);
+	res = search(t, v1);
+	BOOST_CHECK_EQUAL(res, 3);
+	//{
 	//	stringstream ss;
 	//	ofstream o("bt_r3.dot");
 	//	o << t;
 	//	o.close();
 	//}
-	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 3 };
-	insert(t, r3);
-	res = search(t, v1);
-	BOOST_CHECK_EQUAL(res, 3);
-
 
 	BOOST_CHECK_EQUAL(t.root->key_cnt, 2);
 	BOOST_CHECK(not t.root->is_compressed);
@@ -192,7 +199,6 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	BOOST_CHECK(l1->is_leaf);
 	BOOST_CHECK_EQUAL(l1->key_cnt, 3);
 
-
 	R r4 = { { R1d(1, 1), R1d(2, 2), R1d(4, 4), R1d(4, 4) }, 3 };
 	insert(t, r4);
 
@@ -202,6 +208,40 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	//	o << t;
 	//	o.close();
 	//}
+}
+
+BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
+	constexpr size_t D = 7;
+	using BTree = _BTree<uint16_t, D, 8, true>;
+	BTree t;
+	using V = typename BTree::val_vec_t;
+	using R = typename BTree::rule_spec_t;
+	using R1d = typename BTree::val_range_t;
+	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
+	R1d any(0, U16_MAX);
+
+	R r0 = { { any, any, any, any, any, any, R1d(6, 6) }, 0 };
+	V v0 = { 0, 1, 2, 3, 4, 5, 6 };
+	BTreeInsert<BTree>::InsertCookie c(t, r0);
+	BOOST_CHECK_EQUAL(c.requires_levels, D);
+	BOOST_CHECK_EQUAL(c.additional_level_required_cnt(), D - 1);
+	BOOST_CHECK_EQUAL(c.required_more_levels(), true);
+	c.level = D - 2;
+	BOOST_CHECK_EQUAL(c.additional_level_required_cnt(), 1);
+	BOOST_CHECK_EQUAL(c.required_more_levels(), true);
+	c.level = D - 1;
+	BOOST_CHECK_EQUAL(c.additional_level_required_cnt(), 0);
+	BOOST_CHECK_EQUAL(c.required_more_levels(), false);
+	insert(t, r0);
+	auto res = search(t, v0);
+	BOOST_CHECK_EQUAL(res, 0);
+
+	R r_any = { { any, any, any, any, any, any, any }, 0 };
+	BTreeInsert<BTree>::InsertCookie c_any(t, r_any);
+	BOOST_CHECK_EQUAL(c_any.requires_levels, 1);
+	BOOST_CHECK_EQUAL(c_any.additional_level_required_cnt(), 0);
+	BOOST_CHECK_EQUAL(c_any.required_more_levels(), false);
+
 }
 
 BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {

@@ -19,7 +19,7 @@ public:
 	 * Information about insert state
 	 * */
 	class InsertCookie {
-		size_t total_levels_required_cnt(const rule_spec_t & rule) {
+		size_t total_levels_required_cnt(const rule_spec_t & rule) const {
 			// iterate from the end of the rule ordered by dimension_order and check
 			// where is the last specified value for the field
 			for (int i = int(dimensio_order.size()) - 1; i >= 0; i--) {
@@ -80,9 +80,11 @@ public:
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		BTreeSearch<BTree>::search_path(root, cookie.dimensio_order,
 				cookie.rule, path, cookie.level);
-		cookie.level += path.size();
 		if (path.size()) {
+			cookie.level += path.size() - 1;
+			// there was chain of values as they are in the rule, we need to continue on end of this chain
 			if (cookie.required_more_levels()) {
+				cookie.level++;
 				// it is required to insert next layer to tree
 				Node * r, *n;
 				unsigned i;
@@ -105,6 +107,7 @@ public:
 				std::get<1>(b)->value[std::get<2>(b)] = cookie.rule.second;
 			}
 		} else {
+			// the value is not in this tree and we need to insert it
 			root = insert_to_root(root, cookie);
 		}
 		return root;
@@ -320,8 +323,8 @@ public:
 
 		auto nl_cnt =
 				BTree::PATH_COMPRESSION
-						and cookie.additional_level_required_cnt() > 1 ?
-						cookie.additional_level_required_cnt() - 1 : 0;
+						and cookie.required_more_levels() ?
+						cookie.additional_level_required_cnt(): 0;
 		if (nl_cnt > 0) {
 			// compress all the keys in to this node
 			// +1 because we also include this level

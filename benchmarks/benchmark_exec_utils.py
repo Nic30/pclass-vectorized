@@ -58,7 +58,7 @@ def run_benchmarks(db_file, tasks, parallel):
             pool.map(_exec_benchmark, [(db_file, *t) for t in tasks])
     else:      
         for (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt in tasks:
-            exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
+            exec_benchmark(db_file, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
         
 def get_repo_rev():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()

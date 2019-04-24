@@ -1,20 +1,10 @@
-#dpdk_deps = dependency('libdpdk', modules: ['acl', 'lpm', 'hash', 'cryptodev'], static:true)
 
 src = [
-	#'classbench_rule_parser.cpp',
-	#'classbench_rule_parser.h',
-	#'dpdk_acl_container.cpp',
-	#'dpdk_acl_container.h',
-	#'dpdk_acl_field_defs.cpp',
-	#'dpdk_acl_field_defs.h',
-	#'dpdk_acl_rule_dump.h',
-	#'log.h',
-	#'packet_classifiers_vectorized.cpp',
-	
 	'rule_parser/classbench_rule_parser.cpp',
 	'rule_parser/rule.cpp',
 	'rule_parser/trace_tools.cpp',
-	
+	'utils/debug_timer.cpp',
+	'utils/benchmark_common.cpp',
 ]
 
 EXTRA_CXX_ARGS = [
@@ -24,10 +14,6 @@ EXTRA_CXX_ARGS = [
  	'-mavx2',
  	'-march=haswell',
  ]
-#executable('packet_classifiers_vectorized', src,
-#	dependencies: [dpdk_deps, ],
-#	cpp_args: EXTRA_CXX_ARGS)
-
 
 _pcv_inc = include_directories('../include/')
 _pcv_lib = library(

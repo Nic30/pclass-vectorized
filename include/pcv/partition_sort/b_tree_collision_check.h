@@ -62,9 +62,9 @@ public:
 		auto t = tree.root;
 
 		for (size_t i = 0; i < BTree::D; i++) {
-			if (not t)
+			if (not t) {
 				return false;
-
+			}
 			auto d = tree.dimension_order[i];
 			auto d_val = rule.first[d];
 			auto p_low = search_closest_lower_or_equal_key(t, d_val.low);
@@ -75,7 +75,7 @@ public:
 				lk_found = true;
 			}
 			if (lk_found and lk == d_val) {
-				// not overlapping on this level
+				// not overlapping on this level, but we need to check the next level
 			} else {
 				Range1d<value_t> p_low_next;
 				if (p_low.first) {
@@ -88,7 +88,8 @@ public:
 				if (p_low_next.overlaps(d_val)) {
 					return true;
 				}
-				// there is space enough big to fir d_val
+				// there is space enough big to fit d_val
+				return false;
 			}
 
 			if (not lk_found) {

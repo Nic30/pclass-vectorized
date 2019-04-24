@@ -27,10 +27,11 @@ public:
 				auto & k = rule.first[d];
 
 				if (not k.is_wildcard())
-					return i;
+					return i + 1;
 			}
 
-			return 0;
+			// for full wildcard we still need to store information about rule somewhere
+			return 1;
 		}
 	public:
 		// [TODO] grammar fix
@@ -43,38 +44,81 @@ public:
 				dimensio_order(tree.dimension_order), level(0), requires_levels(
 						total_levels_required_cnt(rule)), rule(rule) {
 		}
-		inline Range1d<typename BTree::value_t> get_actual_key(
-				const rule_spec_t & rule) const {
+		inline Range1d<typename BTree::value_t> get_actual_key() const {
 			auto d = dimensio_order.at(level);
 			return rule.first.at(d);
 		}
-		/*
-		 * @note including this level
-		 * */
-		size_t levels_required_cnt() const {
-			return requires_levels - level + 1;
+		size_t additional_level_required_cnt() const {
+			assert(level < requires_levels);
+			return requires_levels - level - 1;
 		}
 		bool required_more_levels() const {
-			return level < requires_levels;
+			return level + 1 < requires_levels;
 		}
 	};
 
 	inline static void insert(BTree & tree, const rule_spec_t & rule) {
 		InsertCookie cookie(tree, rule);
-		insert(tree, rule, cookie);
+		insert(tree, cookie);
 		tree.root->integrity_check(tree.dimension_order);
+	}
+
+	/*
+	 * if insert fails there is last node stored in cookie
+	 * for reinsert
+	 *
+	 * */
+	static void insert(BTree & tree, InsertCookie & cookie) {
+		tree.root = insert(tree.root, cookie);
+	}
+	/*
+	 * Check if the inserting value is unique and perform the insert or the update
+	 */
+	static Node * insert(Node * root, InsertCookie & cookie) {
+		// search if there is some prefix already in decision tree because we do not
+		// want to duplicate keys which are already present
+		std::vector<std::tuple<Node *, Node *, unsigned>> path;
+		BTreeSearch<BTree>::search_path(root, cookie.dimensio_order,
+				cookie.rule, path, cookie.level);
+		cookie.level += path.size();
+		if (path.size()) {
+			if (cookie.required_more_levels()) {
+				// it is required to insert next layer to tree
+				Node * r, *n;
+				unsigned i;
+				std::tie(r, n, i) = path.back();
+				if (n->is_compressed) {
+					_insert_in_to_compressed(n, cookie, i + 1);
+				} else {
+					// else add next level
+					// insert to the next layer
+					Node * ins_root = n->get_next_layer(i);
+					ins_root = insert_to_root(ins_root, cookie);
+					// update ptr on next layer in previous layer
+					n->set_next_layer(i, ins_root);
+				}
+
+			} else {
+				// rule prefix is already contained in tree
+				// it is required only to update the rule id in specified node
+				auto b = path.back();
+				std::get<1>(b)->value[std::get<2>(b)] = cookie.rule.second;
+			}
+		} else {
+			root = insert_to_root(root, cookie);
+		}
+		return root;
 	}
 
 	/* A utility function to insert a new key in this node
 	 * The assumption is, the node must be non-full when this
 	 * function is called
 	 * */
-	static void insert_non_full(Node & node, const rule_spec_t & rule,
-			InsertCookie & cookie) {
+	static void insert_non_full(Node & node, InsertCookie & cookie) {
 		// Initialise index as index of rightmost element
 		int i = int(node.key_cnt) - 1;
 		// If this is a leaf node
-		auto k = cookie.get_actual_key(rule);
+		auto k = cookie.get_actual_key();
 		if (node.is_leaf) {
 			// The following loop does two things
 			// a) Finds the location of new key to be inserted
@@ -86,7 +130,9 @@ public:
 
 			// Insert the new key at found location
 			bool require_more_levels = cookie.required_more_levels();
-			auto r_id = require_more_levels ? BTree::INVALID_RULE : rule.second;
+			auto r_id =
+					require_more_levels ?
+							BTree::INVALID_RULE : cookie.rule.second;
 			node.set_key(i + 1, KeyInfo(k, r_id, BTree::INVALID_INDEX));
 			node.set_key_cnt(node.key_cnt + 1);
 
@@ -94,7 +140,7 @@ public:
 			if (require_more_levels) {
 				cookie.level++;
 				auto nl = node.get_next_layer(i + 1);
-				nl = insert_to_root(nl, rule, cookie);
+				nl = insert_to_root(nl, cookie);
 				node.set_next_layer(i + 1, nl);
 			}
 		} else {
@@ -117,26 +163,25 @@ public:
 			}
 			assert(i >= 0);
 			Node * c = node.child(i);
-			insert_non_full(*c, rule, cookie);
+			insert_non_full(*c, cookie);
 		}
 	}
-	static void insert_in_to_compressed(Node * root, const rule_spec_t & rule,
-			InsertCookie & cookie) {
+	static void insert_in_to_compressed(Node * root, InsertCookie & cookie) {
 		assert(root->is_compressed);
 		assert(root->is_leaf);
 		assert(root->key_cnt > 1);
-// search for the longest common prefix
+		// search for the longest common prefix
 		uint8_t keep_keys_cnt;
 		for (keep_keys_cnt = 0; keep_keys_cnt < root->key_cnt;
 				keep_keys_cnt++) {
-			auto k = cookie.get_actual_key(rule);
+			auto k = cookie.get_actual_key();
 			auto _k = root->get_key(keep_keys_cnt);
 			if (_k.key != k) {
 				break;
 			}
 			cookie.level++;
 		}
-		_insert_in_to_compressed(root, rule, cookie, keep_keys_cnt);
+		_insert_in_to_compressed(root, cookie, keep_keys_cnt);
 	}
 	static Node * decompress_node(Node * root,
 			uint8_t index_of_key_to_separate) {
@@ -209,8 +254,8 @@ public:
 	 * @param keep_keys_cnt the number of the same keys in the node
 	 * 	(same as the rule, that means that this keys should stay in this node as they are)
 	 * */
-	static void _insert_in_to_compressed(Node * root, const rule_spec_t & rule,
-			InsertCookie & cookie, uint8_t keep_keys_cnt) {
+	static void _insert_in_to_compressed(Node * root, InsertCookie & cookie,
+			uint8_t keep_keys_cnt) {
 		assert(root->is_compressed);
 		assert(root->is_leaf);
 		assert(keep_keys_cnt <= root->key_cnt);
@@ -224,85 +269,17 @@ public:
 			if (cookie.required_more_levels()) {
 				// continue insert on next level
 				auto nl = root->get_next_layer(keep_keys_cnt - 1);
-				nl = insert(nl, rule, cookie);
+				nl = insert(nl, cookie);
 				root->set_next_layer(keep_keys_cnt - 1, nl);
 			} else {
-				root->value[keep_keys_cnt - 1] = rule.second;
+				root->value[keep_keys_cnt - 1] = cookie.rule.second;
 			}
 			return;
 		} else {
 			root = decompress_node(root, keep_keys_cnt);
 			root->integrity_check(cookie.dimensio_order, nullptr, cookie.level);
-			insert(root, rule, cookie);
+			insert(root, cookie);
 		}
-//// we need to put the first non matching key to a new node so it is possible to start new b-tree there
-//if (keep_keys_cnt == 0) {
-//	// if the first non matching key is the first one only other keys need to be stored to a new node
-//
-//} else {
-//
-//}
-//// there are items before this we need to allocate new layer and put the key there
-//auto nl = new Node;
-//root->set_next_layer(keep_keys_cnt - 1, nl);
-//nl->set_key(keep_keys_cnt, root->get_key(keep_keys_cnt));
-//nl->set_key_cnt(1);
-//
-//root->set_key_cnt(keep_keys_cnt - 1);
-//root->is_compressed = root->key_cnt > 1;
-////cookie.level--;
-//nl = insert(root, rule, cookie);
-
-//{
-//	// this layer can remain for keys in this dimension only
-//	// put the rest in to a separate node
-//	// the new node will contain this key and the key from the node and will be for this dimension
-//	root->is_compressed = false;
-//	auto nl = new Node;
-//	root->set_next_layer(0, nl);
-//	assert(root->key_cnt > 1);
-//	// copy the data to new node
-//	for (uint8_t i2 = 1; i2 < root->key_cnt; i2++) {
-//		nl->set_key(i2 - 1, root->get_key(i2));
-//		nl->set_dim(i2 - 1, root->get_dim(i2));
-//	}
-//	nl->set_key_cnt(root->key_cnt - 1);
-//	nl->is_compressed = nl->key_cnt > 1;
-//	root->set_key_cnt(1);
-//	if (keep_keys_cnt == 1) {
-//		// the same key is in node
-//		// continue on other level
-//		insert(nl, rule, cookie);
-//	} else {
-//		// proper key is not in root have to add it
-//		//cookie.level--;
-//		root = insert(root, rule, cookie);
-//	}
-//} else {
-//	// there are items before this we need to allocate new layer and put the key there
-//	auto nl = new Node;
-//	root->set_next_layer(keep_keys_cnt - 1, nl);
-//	nl->set_key(keep_keys_cnt, root->get_key(keep_keys_cnt));
-//	nl->set_key_cnt(1);
-//
-//	// create another new layer for the remaining items if required if it is required
-//	if (root->key_cnt > keep_keys_cnt) {
-//		auto nnl = new Node;
-//		for (uint8_t i2 = 0; i2 < (root->key_cnt - keep_keys_cnt);
-//				i2++) {
-//			nnl->set_key(i2, root->get_key(keep_keys_cnt + i2));
-//			nnl->set_dim(i2, root->get_dim(keep_keys_cnt + i2));
-//		}
-//		nnl->set_key_cnt(root->key_cnt - 2);
-//		nnl->is_compressed = nnl->key_cnt > 1;
-//		nl->set_next_layer(0, nnl);
-//	}
-//	root->set_key_cnt(keep_keys_cnt - 1);
-//	root->is_compressed = root->key_cnt > 1;
-//	//cookie.level--;
-//	nl = insert(root, rule, cookie);
-//}
-
 	}
 
 	/*
@@ -310,13 +287,15 @@ public:
 	 *
 	 * @note just a copy of the
 	 * */
-	static void insert_compressed(Node * root, const rule_spec_t & rule,
-			InsertCookie & cookie, size_t keys_to_insert) {
+	static void insert_compressed(Node * root, InsertCookie & cookie,
+			size_t keys_to_insert) {
 		auto end = std::min(Node::MAX_DEGREE, root->key_cnt + keys_to_insert);
 		for (size_t i = root->key_cnt; i < end; i++) {
 			bool is_last_key_in_rule = i == keys_to_insert - 1;
-			auto k = cookie.get_actual_key(rule);
-			auto r_id = is_last_key_in_rule ? rule.second : BTree::INVALID_RULE;
+			auto k = cookie.get_actual_key();
+			auto r_id =
+					is_last_key_in_rule ?
+							cookie.rule.second : BTree::INVALID_RULE;
 			root->set_key(i, KeyInfo(k, r_id, BTree::INVALID_INDEX)); // Insert key
 			root->set_dim(i, cookie.dimensio_order.at(cookie.level));
 			cookie.level++;
@@ -325,7 +304,7 @@ public:
 		if (cookie.required_more_levels()) {
 			cookie.level++;
 			auto end_next_level = root->get_next_layer(end - 1);
-			auto nl = insert_to_root(end_next_level, rule, cookie);
+			auto nl = insert_to_root(end_next_level, cookie);
 			root->set_next_layer(end - 1, nl);
 		}
 		root->is_compressed = end > 1;
@@ -334,25 +313,27 @@ public:
 	/*
 	 * Allocate new node and insert the rule in it with an optional path compression
 	 * */
-	static Node * insert_in_to_new_node(const rule_spec_t & rule,
-			InsertCookie & cookie) {
-		auto k = cookie.get_actual_key(rule);
+	static Node * insert_in_to_new_node(InsertCookie & cookie) {
+		auto k = cookie.get_actual_key();
 		// Allocate memory for root
 		auto root = new Node;
+
 		auto nl_cnt =
-				BTree::PATH_COMPRESSION ?
-						cookie.levels_required_cnt() - 1 : 0;
+				BTree::PATH_COMPRESSION
+						and cookie.additional_level_required_cnt() > 1 ?
+						cookie.additional_level_required_cnt() - 1 : 0;
 		if (nl_cnt > 0) {
 			// compress all the keys in to this node
 			// +1 because we also include this level
-			insert_compressed(root, rule, cookie, nl_cnt + 1);
+			insert_compressed(root, cookie, nl_cnt + 1);
 		} else {
 			// insert the keys from the rule to compressed node
-			root->set_key(0, KeyInfo(k, rule.second, BTree::INVALID_INDEX)); // Insert key
+			root->set_key(0,
+					KeyInfo(k, cookie.rule.second, BTree::INVALID_INDEX)); // Insert key
 			root->set_key_cnt(1);
 			if (cookie.required_more_levels()) {
 				cookie.level++;
-				auto nl = insert_to_root(root->get_next_layer(0), rule, cookie);
+				auto nl = insert_to_root(root->get_next_layer(0), cookie);
 				root->set_next_layer(0, nl);
 			}
 		}
@@ -367,17 +348,16 @@ public:
 	 * @param cookie which stores the state of insertion
 	 * @return new root of the tree
 	 * */
-	static Node * insert_to_root(Node * root, const rule_spec_t & rule,
-			InsertCookie & cookie) {
+	static Node * insert_to_root(Node * root, InsertCookie & cookie) {
 		// If tree is empty
 		if (root == nullptr) {
-			root = insert_in_to_new_node(rule, cookie);
+			root = insert_in_to_new_node(cookie);
 			return root;
 		} else if (root->is_compressed) {
-			insert_in_to_compressed(root, rule, cookie);
+			insert_in_to_compressed(root, cookie);
 			return root;
 		} else if (root->key_cnt == Node::MAX_DEGREE) {
-			auto k = cookie.get_actual_key(rule);
+			auto k = cookie.get_actual_key();
 			// If root is full, then tree grows in height
 			// Allocate memory for new root
 			Node *s = new Node;
@@ -395,61 +375,12 @@ public:
 			if (s->get_key(0) < k)
 				i++;
 			Node * c = s->child(i);
-			insert_non_full(*c, rule, cookie);
+			insert_non_full(*c, cookie);
 			// Change root
 			root = s;
 		} else {
 			// If root is not full, call insert_non_full for root
-			insert_non_full(*root, rule, cookie);
-		}
-		return root;
-	}
-
-	/*
-	 * if insert fails there is last node stored in cookie
-	 * for reinsert
-	 *
-	 * */
-	static void insert(BTree & tree, const rule_spec_t & rule,
-			InsertCookie & cookie) {
-		tree.root = insert(tree.root, rule, cookie);
-	}
-	/*
-	 * Check if the inserting value is unique and perform the insert or the update
-	 */
-	static Node * insert(Node * root, const rule_spec_t & rule,
-			InsertCookie & cookie) {
-// search if there is some prefix already in decision tree because we do not
-// want to duplicate keys which are already present
-		std::vector<std::tuple<Node *, Node *, unsigned>> path;
-		BTreeSearch<BTree>::search_path(root, cookie.dimensio_order, rule, path,
-				cookie.level);
-		cookie.level += path.size();
-		if (path.size()) {
-			auto nlr = cookie.levels_required_cnt();
-			if (nlr == 0) {
-				// rule prefix is already contained in tree
-				// it is required only to update the rule id in specified node
-				auto b = path.back();
-				std::get<1>(b)->value[std::get<2>(b)] = rule.second;
-				// [TODO] on_rewrite()
-			} else {
-				Node * r, *n;
-				unsigned i;
-				std::tie(r, n, i) = path.back();
-				if (n->is_compressed) {
-					_insert_in_to_compressed(n, rule, cookie, i + 1);
-				} else {
-					// else add next level
-					// insert to the next layer
-					Node * ins_root = n->get_next_layer(i);
-					ins_root = insert_to_root(ins_root, rule, cookie);
-					// update ptr on next layer in previous layer
-					n->set_next_layer(i, ins_root);
-				}
-			}
-		} else {
-			root = insert_to_root(root, rule, cookie);
+			insert_non_full(*root, cookie);
 		}
 		return root;
 	}
@@ -508,7 +439,6 @@ public:
 		node.set_key_cnt(node.key_cnt + 1);
 	}
 
-}
-;
+};
 
 }

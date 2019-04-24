@@ -69,7 +69,7 @@ public:
 		//	// dissabled destructor
 		//}
 	};
-	std::array<tree_info, MAX_TREE_CNT> trees;
+	std::array<tree_info*, MAX_TREE_CNT> trees;
 	size_t tree_cnt;
 
 	// used to keep track of where are the rules stored for removing;
@@ -78,6 +78,9 @@ public:
 
 	PartitionSortClassifer() :
 			tree_cnt(0) {
+		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
+			trees[i] = new tree_info;
+		}
 	}
 
 	inline void update_dimension_order(tree_info & ti) {
@@ -103,6 +106,14 @@ public:
 		}
 		// else no change is required as the dimension order is optimal (or nearly optimal)
 	}
+	inline void assert_all_trees_unique() {
+#ifndef NDEBUG
+		std::set<tree_info*> tree_set;
+		for (auto ti : trees)
+			tree_set.insert(ti);
+		assert(tree_set.size() == MAX_TREE_CNT);
+#endif
+	}
 
 	/*
 	 * Resort the trees if maximum priority of the tree has changed
@@ -115,46 +126,47 @@ public:
 			return; // nothing to sort
 
 		// we can not use directly tree_info because the destructor of tmp variable would be called
-		std::array<uint8_t, sizeof(tree_info)> t_tmp;
-		memcpy(&t_tmp[0], &trees[original_i], sizeof(tree_info));
-		//*(tree_info*)&t_tmp[0] = std::move(trees[original_i]);
-
+		tree_info * t_tmp = trees[original_i];
 		assert(
-				trees[original_i].rules.size() > 0
+				t_tmp->rules.size() > 0
 						&& "in this case it is useless to call this function");
-		auto p = trees[original_i].max_priority;
-		// try to move it to the left it has larger max p. rule
+		auto p = t_tmp->max_priority;
+		// try to move it to the left it has larger max priority rule
 		if (original_i > 0) {
 			size_t i = original_i;
-			while (i >= 1 and trees[i - 1].max_priority < p) {
+			// while predecesor has lower priority
+			// find the index of the first item with the same or larger priority
+			while (i >= 1 and trees[i - 1]->max_priority < p) {
 				i--;
 			}
 			if (i != original_i) {
-				// shift all larger items one to left
+				// shift all items with the lower max priority one to right
+				for (size_t i2 = original_i; i2 > i; i2--) {
+					trees[i2] = std::move(trees[i2 - 1]);
+				}
+				// put the actual tree on correct place
+				trees[i] = std::move(t_tmp);
+				assert_all_trees_unique();
+				return;
+			}
+
+		}
+
+		// try to move the tree to the right if it has lower max priority
+		if (original_i < tree_cnt - 1) {
+			size_t i = original_i;
+			// while successor has greater priority
+			while (i < tree_cnt - 1 and trees[i + 1]->max_priority > p) {
+				i++;
+			}
+			if (i != original_i) {
+				// shift all items with the greater priority one to left
 				for (size_t i2 = original_i; i2 < i; i2++) {
 					trees[i2] = std::move(trees[i2 + 1]);
 				}
 				// put the actual tree on correct place
-				trees[i] = std::move(*(tree_info*) &t_tmp[0]);
-				return;
-			}
-		}
-
-		// try to move the tree to the right if it has lower priority
-		if (original_i < tree_cnt - 1) {
-			size_t i = original_i;
-			while (i < tree_cnt - 1 and trees[i + 1].max_priority > p) {
-				i++;
-			}
-			if (i != original_i) {
-				// shift all smaller items one to right
-				for (size_t i2 = original_i - 1; i2 > i; i2--) {
-					//memcpy(trees[i2 + 1], trees[i2], sizeof (tree_info));
-					trees[i2] = std::move(trees[i2 - 1]);
-				}
-				// put the actual tree on correct place
-				trees[i] = std::move(*(tree_info*) &t_tmp[0]);
-				//memcpy(&trees[i], trees[i2], sizeof (tree_info));
+				trees[i] = std::move(t_tmp);
+				assert_all_trees_unique();
 				return;
 			}
 
@@ -168,7 +180,7 @@ public:
 	inline void insert(const rule_spec_t & rule) {
 		size_t i = 0;
 		for (; i < tree_cnt; i++) {
-			auto & t = trees[i];
+			auto & t = *trees[i];
 			if (not t.tree.does_rule_colide(rule)) {
 				t.tree.insert(rule);
 				t.rules.push_back(rule);
@@ -184,14 +196,14 @@ public:
 		}
 		if (i < MAX_TREE_CNT) {
 			// the rule does not fit to any tree, generate new tree for this rule
-			auto & t = trees[i];
+			auto & t = *trees[i];
 			t.max_priority = rule.second;
 			t.tree.insert(rule);
 			t.rules.push_back(rule);
 			rule_to_tree[rule] = &t.tree;
 			update_dimension_order(t);
 			tree_cnt++;
-			resort_on_priority_change(tree_cnt -1);
+			resort_on_priority_change(tree_cnt - 1);
 			//std::cout << "tree_cnt = " << tree_cnt << std::endl;
 		} else {
 			throw std::runtime_error(
@@ -214,15 +226,19 @@ public:
 		rule_id_t actual_found = TREE_T::INVALID_RULE;
 
 		for (size_t i = 0; i < tree_cnt; i++) {
-			auto & t = trees[i];
+			auto & t = *trees[i];
 			actual_found = t.tree.search(val);
 			if (actual_found != TREE_T::INVALID_RULE and i + 1 < tree_cnt
-					and trees[i + 1].max_priority < actual_found) {
+					and trees[i + 1]->max_priority < actual_found) {
 				break;
 			}
 		}
 
 		return actual_found;
+	}
+	~PartitionSortClassifer() {
+		for (auto ti : trees)
+			delete ti;
 	}
 };
 

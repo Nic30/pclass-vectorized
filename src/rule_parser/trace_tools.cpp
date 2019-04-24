@@ -7,45 +7,75 @@
 // Functions for generating synthetic trace of headers
 //
 
-#include <pcv/rule_parser/trace_tools.h>
 #include <random>
+#include <pcv/rule_parser/trace_tools.h>
+#include <pcv/rule_parser/rule.h>
+#include <pcv/common/range.h>
+#include <byteswap.h>
+#include <utility>
+
 
 namespace pcv {
 
-void RandomCorner(const std::array<Range1d<uint16_t>, 7> & rule,
-		packet_t & new_hdr, int d, std::mt19937 & rand) {
 
-	// Random number
-	double p;
-	std::uniform_int_distribution<> rand_bit(0, 1);
-
-	for (int i = 0; i < d; i++) {
-		p = rand_bit(rand);
-		// Select random number
-		if (p < 0.5) {
-			// Choose low extreme of field
-			new_hdr[i] = rule[i].low;
-		} else {
-			// Choose high extreme of field
-			new_hdr[i] = rule[i].high;
-		}
+void ramdom_corner_push_value(packet_t & packet, size_t & byte_offset,
+		const Range1d<uint32_t> & val, bool use_low, bool big_endian) {
+	assert(byte_offset % 2 == 0);
+	uint32_t v = use_low ? val.low : val.high;
+	uint16_t p[2];
+	if (big_endian) {
+		v = __bswap_32(v);
+		*((uint32_t*) p) = v;
+	} else {
+		*((uint32_t*) p) = v;
+		std::swap(p[0], p[1]);
 	}
-	return;
+
+	packet[byte_offset / 2] = p[0];
+	packet[byte_offset / 2 + 1] = p[1];
+	byte_offset += sizeof(uint32_t);
+}
+
+void ramdom_corner_push_value(packet_t & packet, size_t & byte_offset,
+		const Range1d<uint16_t> & val, bool use_low, bool big_endian) {
+	uint16_t v = use_low ? val.low : val.high;
+	if (big_endian) {
+		v = __bswap_16(v);
+	}
+	packet[byte_offset / 2] = v;
+	byte_offset += sizeof(uint16_t);
+}
+
+void random_corner(const Rule_Ipv4_ACL & rule, packet_t & new_hdr, int d,
+		std::mt19937 & rand, bool big_endian) {
+	std::uniform_int_distribution<> rand_bit(0, 1);
+	size_t byte_offset = 0;
+	double p = rand_bit(rand);
+	ramdom_corner_push_value(new_hdr, byte_offset, rule.sip, p < 0.5,
+			big_endian);
+	p = rand_bit(rand);
+	ramdom_corner_push_value(new_hdr, byte_offset, rule.dip, p < 0.5,
+			big_endian);
+	p = rand_bit(rand);
+	ramdom_corner_push_value(new_hdr, byte_offset, rule.sport, p < 0.5,
+			big_endian);
+	p = rand_bit(rand);
+	ramdom_corner_push_value(new_hdr, byte_offset, rule.dport, p < 0.5,
+			big_endian);
+	p = rand_bit(rand);
+	ramdom_corner_push_value(new_hdr, byte_offset, rule.proto, p < 0.5,
+			big_endian);
 }
 
 int pareto_distrib(float a, float b, std::mt19937 & rand) {
 	if (b == 0)
 		return 1;
 	std::uniform_int_distribution<> rand_bit(0, 1);
-
-	// Random number
-	double p;
 	// Select random number
-	p = rand_bit(rand);
+	double p = rand_bit(rand);
 
 	double x = (double) b / pow((double) (1 - p), (double) (1 / (double) a));
-	int Num = (int) ceil(x);
-	return Num;
+	return (int) ceil(x);
 }
 
 // Generate headers
@@ -53,7 +83,7 @@ int pareto_distrib(float a, float b, std::mt19937 & rand) {
 // generate at least 'threshold' number of packets
 // To ensure the generated dataset is deterministic, call this first!!
 std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
-		float a, float b, int threshold, std::mt19937 & rand) {
+		float a, float b, int threshold, std::mt19937 & rand, bool big_endian) {
 	constexpr size_t d = 7;
 	int num_headers = 0;
 	int fsize = filters.size();
@@ -67,9 +97,7 @@ std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
 		packet_t new_hdr;
 		// Pick a random corner of the filter for a header
 		auto fi = RandFilt_dis(rand);
-		auto f_as_array = rule_conv_fn::rule_to_array<uint16_t, 7>(
-				*filters[fi]);
-		RandomCorner(f_as_array, new_hdr, d, rand);
+		random_corner(*filters[fi], new_hdr, d, rand, big_endian);
 
 		// Select number of copies to add to header list
 		// from Pareto distribution
@@ -88,12 +116,13 @@ std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
 }
 
 std::vector<packet_t> generate_packets_from_ruleset(
-		std::vector<const Rule_Ipv4_ACL *>& filters, int num_packets, int seed) {
+		std::vector<const Rule_Ipv4_ACL *>& filters, int num_packets, int seed,
+		bool big_endian) {
 	if (filters.empty())
 		throw std::runtime_error(
 				"can not generate packets from empty rule set");
 
 	std::mt19937 rand(seed);
-	return header_gen(filters, 1, 0.1f, num_packets, rand);
+	return header_gen(filters, 1, 0.1f, num_packets, rand, big_endian);
 }
 }

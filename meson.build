@@ -1,4 +1,4 @@
-project('packet_classifiers_vectorized', ['c', 'cpp'], default_options : ['cpp_std=c++17', ])
+project('packet_classifiers_vectorized', ['c', 'cpp'], default_options : ['cpp_std=c++17', 'c_std=c11'])
 
 subdir('src')
 subdir('tests')

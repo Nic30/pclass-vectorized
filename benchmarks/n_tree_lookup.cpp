@@ -47,9 +47,16 @@ int main(int argc, const char * argv[]) {
 			UNIQUE_TRACE_CNT);
 	stats.set_number_or_tries_or_tables(t.tree_cnt);
 	stats.lookup_start();
+
+	Classifier::rule_id_t res = 0;
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
-		t.search(p);
+		auto r = t.search(p);
+		res |= r;
+	}
+	// this is there to assert the search is not optimised out
+	if (res == 0) {
+		throw std::runtime_error("probably wrong result");
 	}
 	stats.lookup_stop();
 

@@ -4,7 +4,7 @@ benchmarks = [
   ['n_tree_lookup', ['n_tree_lookup.cpp'], ['tests/data/acl1_100', '4096', '10000000', '0']],
 ]
 
-# add very short benchmark also to tests to verify that the benchmark is also working
+# add very short benchmark also to tests to verify that the benchmark is working
 foreach b : benchmarks
 	benchmark_exe = executable(b[0],
 		b[1],

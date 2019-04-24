@@ -2,7 +2,7 @@
 #include <pcv/partition_sort/b_tree_impl.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
-#include <chrono>
+#include <pcv/utils/benchmark_common.h>
 
 using namespace std;
 using namespace pcv;
@@ -25,6 +25,8 @@ int main(int argc, const char * argv[]) {
 	vector<iParsedRule*> _rules;
 	RuleReader rp;
 	_rules = rp.parse_rules(rule_file);
+	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
+	stats.construction_start();
 	{
 		// load rules in to a classifier tree
 		size_t i = 0;
@@ -39,24 +41,22 @@ int main(int argc, const char * argv[]) {
 		if (not dump_as_json)
 			cout << "[INFO] Loaded non-colliding rules cnt:" << i << endl;
 	}
+	stats.construction_stop();
 
 	// generate packets
 	auto packets = generate_packets_from_ruleset(
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&_rules),
 			UNIQUE_TRACE_CNT);
 
-	auto start = chrono::system_clock::now();
+	stats.set_number_or_tries_or_tables(1);
+	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
 		t.search(p);
 	}
-	auto end = chrono::system_clock::now();
-	auto us = chrono::duration_cast<chrono::microseconds>(end - start).count();
-	auto lookup_speed = (LOOKUP_CNT / double(us));
-	if (dump_as_json) {
-		cout << "{ \"lookup_speed\":" << lookup_speed << "}";
-	} else {
-		cout << "[INFO] lookup speed:" << lookup_speed << "MPkts/s" << endl;
-	}
+	stats.lookup_stop();
+
+	stats.dump();
+
 	return 0;
 }

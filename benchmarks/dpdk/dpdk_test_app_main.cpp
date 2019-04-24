@@ -1,9 +1,9 @@
 #include <iostream>
 #include <assert.h>
-#include <chrono>
 
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
+#include <pcv/utils/benchmark_common.h>
 #include "dpdk_acl_container.h"
 
 using namespace pcv;
@@ -26,25 +26,32 @@ int main(int argc, char **argv) {
 	RuleReader rp;
 	auto rules = rp.parse_rules(rules_file_name);
 
+	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, rules.size());
+	stats.construction_start();
 	DpdkAclContainer dpdk_acl(rules);
+	stats.construction_stop();
+
+	dpdk_acl.dump();
 
 	// generate packets
 	auto packets = generate_packets_from_ruleset(
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&rules),
-			UNIQUE_TRACE_CNT);
+			UNIQUE_TRACE_CNT, 0, true);
 
-	auto start = chrono::system_clock::now();
+	stats.set_number_or_tries_or_tables(dpdk_acl.get_number_of_tries());
+
+	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
-		auto & p = packets[i % packets.size()];
-		dpdk_acl.search(p);
+		auto _i = i % packets.size();
+		auto & p = packets[_i];
+		//for (auto pp: p) {
+		//	std::cout << pp << " ";
+		//}
+		std::cout << std::endl;
+		auto r = dpdk_acl.search(p);
 	}
-	auto end = chrono::system_clock::now();
-	auto us = chrono::duration_cast<chrono::microseconds>(end - start).count();
-	auto lookup_speed = (LOOKUP_CNT / double(us));
-	if (dump_as_json) {
-		cout << "{ \"lookup_speed\":" << lookup_speed << "}";
-	} else {
-		cout << "[INFO] lookup speed:" << lookup_speed << "MPkts/s" << endl;
-	}
+	stats.lookup_stop();
+
+	stats.dump();
 	return 0;
 }

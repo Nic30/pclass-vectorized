@@ -6,7 +6,6 @@ import sqlite3
 import sys
 from pprint import pprint
 
-
 from graphs import *
 from benchmark_exec_utils import *
 
@@ -20,7 +19,6 @@ def cartesian(*arrays):
 def find_all_files(p):
     return [join(p, f) for f in os.listdir(p)
              if isfile(join(p, f))]
-
 
 
 if __name__ == "__main__":
@@ -45,7 +43,7 @@ if __name__ == "__main__":
     ]
     
     FLOW_CNTS = [
-        #1, 
+        # 1, 
         16, 128,
         1024, 4096,
         65536
@@ -54,12 +52,12 @@ if __name__ == "__main__":
         10000000,
         # 100000000,
     ]
-    #rule_files = [
+    # rule_files = [
     #    '../classbench-ng/generated/acl3_5000',
-    #]
+    # ]
     # pprint(find_all_files(CLASSBENCH_ROOT))
     # sys.exit(1)
-    rule_files = find_all_files(CLASSBENCH_ROOT)
+    rule_files = [f for f in find_all_files(CLASSBENCH_ROOT) if not f.endswith(".py")]
     
     # (number of flows, number of packets)
     TEST_ARGS = list(
@@ -76,7 +74,6 @@ if __name__ == "__main__":
         if user is None:
             print("Some tests require 'sudo'")
             exit()
-    
     
     run_benchmarks(DB_NAME, TEST_ARGS, PARALLEL)
           

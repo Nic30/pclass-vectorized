@@ -59,18 +59,10 @@ public:
 
 	inline static void insert(BTree & tree, const rule_spec_t & rule) {
 		InsertCookie cookie(tree, rule);
-		insert(tree, cookie);
-		tree.root->integrity_check(tree.dimension_order);
+		tree.root = insert(tree.root, cookie);
+		tree.root->integrity_check(cookie.dimensio_order);
 	}
 
-	/*
-	 * if insert fails there is last node stored in cookie
-	 * for reinsert
-	 *
-	 * */
-	static void insert(BTree & tree, InsertCookie & cookie) {
-		tree.root = insert(tree.root, cookie);
-	}
 	/*
 	 * Check if the inserting value is unique and perform the insert or the update
 	 */
@@ -80,26 +72,27 @@ public:
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		BTreeSearch<BTree>::search_path(root, cookie.dimensio_order,
 				cookie.rule, path, cookie.level);
+
 		if (path.size()) {
 			cookie.level += path.size() - 1;
 			// there was chain of values as they are in the rule, we need to continue on end of this chain
 			if (cookie.required_more_levels()) {
 				cookie.level++;
 				// it is required to insert next layer to tree
-				Node * r, *n;
+				Node *r, *n;
 				unsigned i;
 				std::tie(r, n, i) = path.back();
 				if (n->is_compressed) {
+					// insert to last node in path if it is possible
+					// +1 because index to count conversion
 					_insert_in_to_compressed(n, cookie, i + 1);
 				} else {
-					// else add next level
 					// insert to the next layer
 					Node * ins_root = n->get_next_layer(i);
 					ins_root = insert_to_root(ins_root, cookie);
 					// update ptr on next layer in previous layer
 					n->set_next_layer(i, ins_root);
 				}
-
 			} else {
 				// rule prefix is already contained in tree
 				// it is required only to update the rule id in specified node
@@ -137,6 +130,9 @@ public:
 					require_more_levels ?
 							BTree::INVALID_RULE : cookie.rule.second;
 			node.set_key(i + 1, KeyInfo(k, r_id, BTree::INVALID_INDEX));
+#ifndef NDEBUG
+			node.set_dim(i + 1, cookie.dimensio_order.at(cookie.level));
+#endif
 			node.set_key_cnt(node.key_cnt + 1);
 
 			// continue on next layer if required
@@ -177,6 +173,11 @@ public:
 		uint8_t keep_keys_cnt;
 		for (keep_keys_cnt = 0; keep_keys_cnt < root->key_cnt;
 				keep_keys_cnt++) {
+#ifndef NDEBUG
+			auto actual_d = root->get_dim(keep_keys_cnt);
+			auto d = cookie.dimensio_order.at(cookie.level);
+			assert(actual_d == d);
+#endif
 			auto k = cookie.get_actual_key();
 			auto _k = root->get_key(keep_keys_cnt);
 			if (_k.key != k) {
@@ -186,34 +187,34 @@ public:
 		}
 		_insert_in_to_compressed(root, cookie, keep_keys_cnt);
 	}
-	static Node * decompress_node(Node * root,
+	static Node * decompress_node(Node * node,
 			uint8_t index_of_key_to_separate) {
 		// if the key does not exists in the node new empty node is created and connected
 		// as new layer behind the last item
-		if (root->key_cnt <= index_of_key_to_separate) {
-			assert(root->key_cnt == index_of_key_to_separate);
+		if (node->key_cnt <= index_of_key_to_separate) {
+			assert(node->key_cnt == index_of_key_to_separate);
 			auto nl = new Node;
-			root->set_next_layer(index_of_key_to_separate - 1, nl);
+			node->set_next_layer(index_of_key_to_separate - 1, nl);
 			return nl;
 		} else if (index_of_key_to_separate == 0) {
-			if (root->key_cnt == 1) {
+			if (node->key_cnt == 1) {
 				// there is only this non matching item for same dimension, we will use this item
 				// and the newly generated item from the rule to build a new b-tree there
-				return root;
+				return node;
 			}
 			// the re is something behind the first non matching key, wee need to to extract it to new node
 			auto nl = new Node;
-			for (uint8_t i2 = 1; i2 < root->key_cnt; i2++) {
-				nl->set_key(i2 - 1, root->get_key(i2));
-				nl->set_dim(i2 - 1, root->get_dim(i2));
+			for (uint8_t i2 = 1; i2 < node->key_cnt; i2++) {
+				nl->set_key(i2 - 1, node->get_key(i2));
+				nl->set_dim(i2 - 1, node->get_dim(i2));
 			}
-			nl->set_key_cnt(root->key_cnt - 1);
+			nl->set_key_cnt(node->key_cnt - 1);
 			nl->is_compressed = nl->key_cnt > 1;
 
-			root->set_next_layer(0, nl);
-			root->set_key_cnt(1);
-			root->is_compressed = false;
-			return root;
+			node->set_next_layer(0, nl);
+			node->set_key_cnt(1);
+			node->is_compressed = false;
+			return node;
 		} else {
 			// the first non matching key is surrounded by the other keys
 			// this item has to be extracted to a separate node and the items behind has to be extracted
@@ -221,33 +222,36 @@ public:
 
 			// extract the segment behind the first non matching item
 			Node * nnl = nullptr;
-			auto keys_to_nnl_cnt = root->key_cnt - index_of_key_to_separate - 1;
+			auto keys_to_nnl_cnt = node->key_cnt - index_of_key_to_separate - 1;
 			if (keys_to_nnl_cnt) {
 				nnl = new Node;
 				for (uint8_t i2 = 0; i2 < keys_to_nnl_cnt; i2++) {
 					auto i = index_of_key_to_separate + i2 + 1;
-					nnl->set_key(i2, root->get_key(i));
-					nnl->set_dim(i2, root->get_dim(i));
+					nnl->set_key(i2, node->get_key(i));
+					nnl->set_dim(i2, node->get_dim(i));
 				}
-				nnl->set_key_cnt(root->key_cnt - index_of_key_to_separate - 1);
+				nnl->set_key_cnt(node->key_cnt - index_of_key_to_separate - 1);
 				nnl->is_compressed = nnl->key_cnt > 1;
 			}
 			// extract the non matching item
 			auto nl = new Node;
-			nl->set_key(0, root->get_key(index_of_key_to_separate));
+			nl->set_key(0, node->get_key(index_of_key_to_separate));
+#ifndef NDEBUG
+			nl->set_dim(0, node->get_dim(index_of_key_to_separate));
+#endif
 			nl->set_key_cnt(1);
 
 			// connect the layers together
 			assert(
-					root->get_next_layer(index_of_key_to_separate - 1)
+					node->get_next_layer(index_of_key_to_separate - 1)
 							== nullptr);
-			root->set_next_layer(index_of_key_to_separate - 1, nl);
+			node->set_next_layer(index_of_key_to_separate - 1, nl);
 			if (nnl) {
 				assert(nl->get_next_layer(0) == nullptr);
 				nl->set_next_layer(0, nnl);
 			}
-			root->set_key_cnt(index_of_key_to_separate);
-			root->is_compressed = root->key_cnt > 1;
+			node->set_key_cnt(index_of_key_to_separate);
+			node->is_compressed = node->key_cnt > 1;
 
 			return nl;
 		}
@@ -279,9 +283,9 @@ public:
 			}
 			return;
 		} else {
-			root = decompress_node(root, keep_keys_cnt);
-			root->integrity_check(cookie.dimensio_order, nullptr, cookie.level);
-			insert(root, cookie);
+			auto n = decompress_node(root, keep_keys_cnt);
+			n->integrity_check(cookie.dimensio_order, nullptr, cookie.level);
+			insert(n, cookie);
 		}
 	}
 
@@ -322,9 +326,8 @@ public:
 		auto root = new Node;
 
 		auto nl_cnt =
-				BTree::PATH_COMPRESSION
-						and cookie.required_more_levels() ?
-						cookie.additional_level_required_cnt(): 0;
+				BTree::PATH_COMPRESSION and cookie.required_more_levels() ?
+						cookie.additional_level_required_cnt() : 0;
 		if (nl_cnt > 0) {
 			// compress all the keys in to this node
 			// +1 because we also include this level
@@ -333,6 +336,9 @@ public:
 			// insert the keys from the rule to compressed node
 			root->set_key(0,
 					KeyInfo(k, cookie.rule.second, BTree::INVALID_INDEX)); // Insert key
+#ifndef NDEBUG
+			root->set_dim(0, cookie.dimensio_order[cookie.level]);
+#endif
 			root->set_key_cnt(1);
 			if (cookie.required_more_levels()) {
 				cookie.level++;

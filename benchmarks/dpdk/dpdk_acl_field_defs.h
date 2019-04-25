@@ -4,27 +4,24 @@
 #include <rte_ip.h>
 
 struct ipv4_tuple {
-	uint8_t proto;
 	uint32_t sip;
 	uint32_t dip;
 	uint16_t srcp;
 	uint16_t dstp;
+	uint16_t proto;
 };
-
-
 
 /*
  * Rule and trace formats definitions.
  */
 enum {
-	PROTO_FIELD_IPV4,
 	SRC_FIELD_IPV4,
 	DST_FIELD_IPV4,
 	SRCP_FIELD_IPV4,
 	DSTP_FIELD_IPV4,
-	NUM_FIELDS_IPV4
+	PROTO_FIELD_IPV4,
+	NUM_FIELDS_IPV4,
 };
-extern const uint32_t ipv4_tuple_layout[NUM_FIELDS_IPV4];
 
 ///*
 // * That effectively defines order of IPV4VLAN classifications:

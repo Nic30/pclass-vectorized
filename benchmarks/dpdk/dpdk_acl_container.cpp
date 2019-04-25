@@ -24,12 +24,8 @@ void get_config<pcv::Rule_Ipv4_ACL>(struct rte_acl_config * cfg,
 		size_t num_categories) {
 	memcpy(&cfg->defs, ipv4_defs, sizeof(ipv4_defs));
 	cfg->num_fields = RTE_DIM(ipv4_defs);
-
-	for (int i = 0; i < 5; i++) {
-		cfg->defs[i].offset = ipv4_tuple_layout[i];
-	}
 	cfg->num_categories = num_categories;
-	cfg->num_fields = 5;
+	cfg->max_size = 0;
 }
 
 }
@@ -41,7 +37,6 @@ DpdkAclContainer::DpdkAclContainer(const std::vector<iParsedRule*> & rules) {
 template<typename RULE_T>
 void add_rules(const std::vector<iParsedRule*> & rules,
 		std::vector<RULE_T> & rules_acl) {
-	RuleReader rr;
 	int i = 0;
 	for (auto r : rules) {
 		RULE_T * next;
@@ -49,23 +44,30 @@ void add_rules(const std::vector<iParsedRule*> & rules,
 		//std::cerr << *ipv4_acl_r << std::endl;
 		rules_acl.push_back( { });
 		next = &rules_acl.back();
-		next->data.userdata = i;
+		memset(next, 0, sizeof(*next));
+
+		next->field[SRC_FIELD_IPV4].value.u32 = __bswap_32(ipv4_acl_r->sip.low);
+		next->field[SRC_FIELD_IPV4].mask_range.u32 =
+				ipv4_acl_r->sip.get_mask_bigendian();
+
+		next->field[DST_FIELD_IPV4].value.u32 = __bswap_32(ipv4_acl_r->dip.low);
+		next->field[DST_FIELD_IPV4].mask_range.u32 =
+				ipv4_acl_r->dip.get_mask_bigendian();
+
+		next->field[SRCP_FIELD_IPV4].value.u16 = ipv4_acl_r->sport.low;
+		next->field[SRCP_FIELD_IPV4].mask_range.u16 =
+				ipv4_acl_r->sport.high;
+
+		next->field[DSTP_FIELD_IPV4].value.u16 = ipv4_acl_r->dport.low;
+		next->field[DSTP_FIELD_IPV4].mask_range.u16 =
+				ipv4_acl_r->dport.high;
+
 		next->field[PROTO_FIELD_IPV4].value.u16 = ipv4_acl_r->proto.low;
 		next->field[PROTO_FIELD_IPV4].mask_range.u16 =
 				ipv4_acl_r->proto.get_mask_littleendian();
-		next->field[SRC_FIELD_IPV4].value.u32 = __bswap_32(ipv4_acl_r->sip.low);
-		next->field[SRC_FIELD_IPV4].mask_range.u32 = __bswap_32(
-				ipv4_acl_r->sip.get_mask_littleendian());
-		next->field[DST_FIELD_IPV4].value.u32 = __bswap_32(ipv4_acl_r->dip.low);
-		next->field[DST_FIELD_IPV4].mask_range.u32 = __bswap_32(
-				ipv4_acl_r->dip.get_mask_littleendian());
-		next->field[SRCP_FIELD_IPV4].value.u16 = ipv4_acl_r->sport.low;
-		next->field[SRCP_FIELD_IPV4].mask_range.u16 =
-				ipv4_acl_r->sport.get_mask_littleendian();
-		next->field[DSTP_FIELD_IPV4].value.u16 = ipv4_acl_r->dport.low;
-		next->field[DSTP_FIELD_IPV4].mask_range.u16 =
-				ipv4_acl_r->dport.get_mask_littleendian();
 
+		//print_one_ipv4_rule(next, 0);
+		next->data.userdata = i + 1;
 		next->data.priority = RTE_ACL_MAX_PRIORITY - rules_acl.size();
 		next->data.category_mask = -1;
 		i++;
@@ -87,16 +89,14 @@ DpdkAclContainer::setup_acl(const std::vector<acl4_rule> & rules_acl,
 	struct rte_acl_config acl_build_param;
 	dpdk_acl_configs::get_config<pcv::Rule_Ipv4_ACL>(&acl_build_param,
 			NUM_CATEGORIES);
-	struct rte_acl_ctx *context;
 	int dim = RTE_DIM(ipv4_defs);
-
-	/* Create ACL contexts */
 
 	acl_param.name = ACL_NAME;
 	acl_param.socket_id = socketid;
 	acl_param.rule_size = RTE_ACL_RULE_SZ(dim);
 	acl_param.max_rule_num = std::numeric_limits<uint16_t>::max() - 1;
 
+	struct rte_acl_ctx *context;
 	if ((context = rte_acl_create(&acl_param)) == NULL)
 		rte_exit(EXIT_FAILURE, "Failed to create ACL context\n");
 
@@ -120,17 +120,18 @@ DpdkAclContainer::setup_acl(const std::vector<acl4_rule> & rules_acl,
 uint16_t DpdkAclContainer::search(std::array<uint16_t, 7> & val_big_endian) {
 	std::array<uint32_t, NUM_CATEGORIES> res_cls;
 	const uint8_t * data[1] = { (uint8_t *) &val_big_endian[0] };
-	auto res = rte_acl_classify(acl_ctx, data, &res_cls[0], 1, 1);
+	auto res = rte_acl_classify(acl_ctx, data, &res_cls[0], 1, NUM_CATEGORIES);
 	if (res < 0) {
 		throw std::runtime_error(
 				std::string("Error in rte_acl_classify ")
 						+ std::to_string(res));
 	}
-	std::cout << "search:";
-	for (auto i : res_cls) {
-		std::cout << i << " ";
-	}
-	std::cout << std::endl;
+	//std::cout << "search:";
+	//for (auto i : res_cls) {
+	//	std::cout << i << " ";
+	//}
+    //
+	//std::cout << res << std::endl;
 	return (uint16_t) *std::max_element(res_cls.begin(), res_cls.end());
 }
 

@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
 		//for (auto pp: p) {
 		//	std::cout << pp << " ";
 		//}
-		std::cout << std::endl;
-		auto r = dpdk_acl.search(p);
+		//std::cout << std::endl;
+		dpdk_acl.search(p);
 	}
 	stats.lookup_stop();
 

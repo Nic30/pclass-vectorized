@@ -68,7 +68,7 @@ void add_rules(const std::vector<iParsedRule*> & rules,
 
 		//print_one_ipv4_rule(next, 0);
 		next->data.userdata = i + 1;
-		next->data.priority = RTE_ACL_MAX_PRIORITY - rules_acl.size();
+		next->data.priority = RTE_ACL_MAX_PRIORITY - i;
 		next->data.category_mask = -1;
 		i++;
 	}

@@ -34,7 +34,8 @@ int main(int argc, const char * argv[]) {
 		size_t i = 0;
 		for (auto _r : _rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
-			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), i };
+			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), _rules.size() - i };
+			//std::cout << *__r << std::endl;
 			t.insert(r);
 			i++;
 		}
@@ -52,6 +53,7 @@ int main(int argc, const char * argv[]) {
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
 		auto r = t.search(p);
+		//std::cout << r << std::endl;
 		res |= r;
 	}
 	// this is there to assert the search is not optimised out

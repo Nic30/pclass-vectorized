@@ -32,7 +32,7 @@ int main(int argc, const char * argv[]) {
 		size_t i = 0;
 		for (auto _r : _rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
-			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), i };
+			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), _rules.size() - i };
 			if (not t.does_rule_colide(r)) {
 				t.insert(r);
 				i++;

@@ -1,26 +1,33 @@
 # pclass-vectorized [![Build Status](https://travis-ci.org/Nic30/pclass-vectorized.svg?branch=master)](https://travis-ci.org/Nic30/pclass-vectorized)
-Simple library of vectorized packet classification algorithms
+Library of vectorized packet classification algorithms
 
 
 ## Content
 
-* DPDK class. testing app
-
-* sketch of layered b-tree class. alg. similar to [PartitonSort](https://github.com/sorrachai/PartitonSort) optimized for AVX2
-
+* prototype of packet classification alg. similar to [PartitonSort](https://github.com/sorrachai/PartitonSort) optimized for AVX2
+* DPDK rte_acl testing app
 
 
 ### Layered B-trees
+Layered B-trees in this library is the multidimensional interval tree. 
 
-This data structure is composed of multiple trees. Each tree is divided in multiple levels where each level performs classification in a single dimension (field).
+Like the trie datastructure the Layered B-tree is diveded in to levels which performs the classification on specific number of bits.
 
-Layered B-tree is a B-tree where each item in node is an interval. Each interval may have pointer on tree in next level  in addition.
+In the Layered B-tree each such a level is B-tree. In trie each set of bits is used as index to next level of the tree. In Layered B-tree the value is searched in the B-tree on current level.
+
+Each interval stored in B-tree may have pointer on tree in next level and value which represents the rule stored there.
 
 ![Layered B-trees](/doc/layered_b-tree.png)
 
-If the the item in current node matches and the next tree level pointer is invalid the last matching node with the rule specified is the matching node (and rule) in this tree.
+#### Path compression
+To prevent the long paths trough the levels of tree which contains nodes only with the single key it is possible to utilize path compression. Path compression takes segment of such a nodes and replaces it with the single node which contains the keys from all the nodes on path. 
 
-In order to guarantee this the method from [PartitonSort](https://github.com/sorrachai/PartitonSort) and [SAX-PAC](https://dl.acm.org/citation.cfm?id=2626294) is used to split the rules in the trees.
+Such a compression has to be taken in account while performing searching or updating the tree.
 
-The unique rules with the large number of dimensions may create long path trought the layers of tree. Each layer has only single node which is suoptimal. This path can be compresed if the dimension is specified for each item in the node. And there is enought of space for this as the data has to be aligned in order to be efficient with the AVX2.
+### Partition Sort classifier with Layered B-trees
 
+[PartitonSort](https://github.com/sorrachai/PartitonSort) is an algorithm for the packet classification. It uses multidimensional RB-trees. The trees are build on demand for groups of the rules which does overlap each other so each tree contains only the rules which does not overlap.
+
+The rule is iteratively inserted to each tree until it can be inserted to some. After the rule is inserted the order of fields for the tree is recomputed and the tree reshaped if required. The order of fields is resolved by greedy heuristic which takes number of unique values and number of the shared values between the rules in account [SAX-PAC](https://dl.acm.org/citation.cfm?id=2626294).
+
+In this library the multidimensional RB-tree is replaced with the Layered B-tree with path compression.

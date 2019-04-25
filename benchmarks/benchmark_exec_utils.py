@@ -5,6 +5,7 @@ from multiprocessing import Pool
 import time
 import socket
 import json
+import os
 
 def build_test_name(app_name, rule_file, flow_cnt, packet_cnt):
     return "%s_%s_%d_%d" % (basename(app_name), basename(rule_file), flow_cnt, packet_cnt)
@@ -49,6 +50,19 @@ def _exec_benchmark(args):
     exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
 
 def run_benchmarks(db_file, tasks, parallel):
+    
+    requires_sudo = False
+    for (_, req, _), _, _, _ in tasks:
+        if req:
+            requires_sudo = True
+            break
+    
+    if requires_sudo:
+        user = os.getenv("SUDO_USER")
+        if user is None:
+            print("Some tests require 'sudo'")
+            exit()
+    
     conn = sqlite3.connect(db_file)
     conn.execute("INSERT INTO benchmark_execs VALUES (?,?,?)",
                (time.time(), get_repo_rev(), socket.gethostname()))

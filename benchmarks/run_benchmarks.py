@@ -30,31 +30,32 @@ if __name__ == "__main__":
                  (timestamp int, revision text, machine_name text)''')
     conn.commit()
 
-    PARALLEL = True 
-    # PARALLEL = False
+    #PARALLEL = True 
+    PARALLEL = False
 
     CLASSBENCH_ROOT = "../classbench-ng/generated/"
     MESON_BUILD_PATH = "build/meson.debug.linux.x86_64.1/benchmarks/"
     # (filename, requires sudo, repeat cnt)
+    REPEATS = 4
     BENCHMARKS = [
-        (MESON_BUILD_PATH + "1_tree_lookup", False, 2),
-        (MESON_BUILD_PATH + "n_tree_lookup", False, 2),
-        (MESON_BUILD_PATH + "dpdk/1_tree_lookup_dpdk", True, 4),
+        (MESON_BUILD_PATH + "1_tree_lookup", False, REPEATS),
+        (MESON_BUILD_PATH + "n_tree_lookup", False, REPEATS),
+        (MESON_BUILD_PATH + "dpdk/1_tree_lookup_dpdk", True, REPEATS),
     ]
     
     FLOW_CNTS = [
         # 1, 
         16, 128,
-        1024, 4096,
+        1024, 4096, 8192,
         65536
     ]
     PACKET_CNTS = [
         10000000,
         # 100000000,
     ]
-    # rule_files = [
-    #    '../classbench-ng/generated/acl3_5000',
-    # ]
+    #rule_files = [
+    #   '../classbench-ng/generated/acl3_5000',
+    #]
     # pprint(find_all_files(CLASSBENCH_ROOT))
     # sys.exit(1)
     rule_files = [f for f in find_all_files(CLASSBENCH_ROOT) if not f.endswith(".py")]
@@ -63,19 +64,8 @@ if __name__ == "__main__":
     TEST_ARGS = list(
         cartesian(BENCHMARKS, rule_files, FLOW_CNTS, PACKET_CNTS)
     )
-    requires_sudo = False
-    for (_, req, _), _, _, _ in TEST_ARGS:
-        if req:
-            requires_sudo = True
-            break
-    
-    if requires_sudo:
-        user = os.getenv("SUDO_USER")
-        if user is None:
-            print("Some tests require 'sudo'")
-            exit()
     
     run_benchmarks(DB_NAME, TEST_ARGS, PARALLEL)
           
     generate_graph_troughput_with_increasing_number_of_flows(DB_NAME)
-    generate_graph_troughput_with_increasing_number_of_rules(DB_NAME, 4096)
+    generate_graphs_depending_on_ruleset_size(DB_NAME, 4096)

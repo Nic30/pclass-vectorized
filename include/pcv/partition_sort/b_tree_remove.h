@@ -65,6 +65,7 @@ public:
 				current_root = nullptr;
 			} else {
 				current_root = current_root->child(0);
+				current_root->parent = nullptr;
 			}
 			// Free the old root
 			tmp->clean_children();

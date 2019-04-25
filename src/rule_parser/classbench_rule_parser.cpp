@@ -298,7 +298,7 @@ void RuleReader::parse_protocol(Range1d<uint16_t>& Protocol,
 
 	if (split_slash[1] != "0xFF") {
 		Protocol.low = 0;
-		Protocol.high = 255;
+		Protocol.high = std::numeric_limits<uint16_t>::max();
 	} else {
 		Protocol.low = Protocol.high = std::stoul(split_slash[0], nullptr, 16);
 	}

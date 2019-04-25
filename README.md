@@ -4,10 +4,8 @@ Library of vectorized packet classification algorithms
 
 ## Content
 
-* DPDK class. testing app
-
-* sketch of layered b-tree class. alg. similar to [PartitonSort](https://github.com/sorrachai/PartitonSort) optimized for AVX2
-
+* prototype of packet classification alg. similar to [PartitonSort](https://github.com/sorrachai/PartitonSort) optimized for AVX2
+* DPDK rte_acl testing app
 
 
 ### Layered B-trees
@@ -28,10 +26,8 @@ Such a compression has to be taken in account while performing searching or upda
 
 ### Partition Sort classifier with Layered B-trees
 
-[PartitonSort](https://github.com/sorrachai/PartitonSort) is an algorithm for the packet classification. It uses multidimensional RB-trees. The trees are build on demand for groups of the rules which does overlap each other so each tree contains only the rules wich does not overlap.
+[PartitonSort](https://github.com/sorrachai/PartitonSort) is an algorithm for the packet classification. It uses multidimensional RB-trees. The trees are build on demand for groups of the rules which does overlap each other so each tree contains only the rules which does not overlap.
 
 The rule is iteratively inserted to each tree until it can be inserted to some. After the rule is inserted the order of fields for the tree is recomputed and the tree reshaped if required. The order of fields is resolved by greedy heuristic which takes number of unique values and number of the shared values between the rules in account [SAX-PAC](https://dl.acm.org/citation.cfm?id=2626294).
 
-
-In this library the multidimensional RB-tree is replaced with the Layered B-tree with path comreppsion.
-
+In this library the multidimensional RB-tree is replaced with the Layered B-tree with path compression.

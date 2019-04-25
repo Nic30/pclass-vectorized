@@ -10,6 +10,10 @@
 #include <tuple>
 #include <sstream>
 
+#ifndef NDEBUG
+#include <cstring>
+#endif
+
 #include <pcv/common/range.h>
 //#include <pcv/partiton_sort/mempool_mockup.h>
 #include <pcv/partition_sort/b_tree_printer.h>
@@ -228,6 +232,9 @@ public:
 		 * */
 		inline void move_key(uint8_t src_i, Node & dst, uint8_t dst_i) {
 			dst.set_key(dst_i, this->get_key(src_i));
+#ifndef NDEBUG
+			dst.set_dim(dst_i, this->get_dim(src_i));
+#endif
 		}
 
 		inline void move_child(uint8_t src_i, Node & dst, uint8_t dst_i) {
@@ -284,7 +291,7 @@ public:
 				assert(is_leaf);
 				assert(key_cnt > 1);
 				for (size_t i = 0; i < key_cnt; i++) {
-					auto d = dimesion_order[level + i];
+					auto d = dimesion_order.at(level + i);
 					auto actual_d = get_dim(i);
 					assert(d == actual_d);
 				}
@@ -324,6 +331,9 @@ public:
 			for (uint8_t i = 0; i < key_cnt; i++) {
 				delete get_next_layer(i);
 			}
+#ifndef NDEBUG
+			std::memset(this, 0, sizeof(Node));
+#endif
 		}
 	}__attribute__((aligned(64)));
 

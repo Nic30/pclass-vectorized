@@ -60,7 +60,6 @@ def generate_graph_troughput_with_increasing_number_of_rules(db_file_name, numbe
                     |-----
                         [rulesets ordered by decreasing lookup speed]
     """
-    pass
 
     c = sqlite3.connect(db_file_name)
     #last_exec = 0

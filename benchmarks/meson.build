@@ -2,6 +2,7 @@
 benchmarks = [
   ['1_tree_lookup', ['1_tree_lookup.cpp'], ['tests/data/acl1_100', '4096', '10000000', '0']],
   ['n_tree_lookup', ['n_tree_lookup.cpp'], ['tests/data/acl1_100', '4096', '10000000', '0']],
+  ['exact_match_rule_gen', ['exact_match_rule_gen.cpp'], ['0', '1024']],
 ]
 
 # add very short benchmark also to tests to verify that the benchmark is working

@@ -6,6 +6,9 @@ build/
 .settings/
 .pydevproject
 
+# caches
+*.pyc
+
 # Prerequisites
 *.d
 

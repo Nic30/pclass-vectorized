@@ -52,7 +52,6 @@ void simple_collision_check(size_t N) {
 BOOST_AUTO_TEST_CASE( collision_check_wildcard ) {
 	BTree t;
 
-	using V = typename BTree::val_vec_t;
 	using R = typename BTree::rule_spec_t;
 	using R1d = typename BTree::val_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();

@@ -3,8 +3,24 @@
 #include <string>
 #include <assert.h>
 #include <limits>
+#include <byteswap.h>
+#include <linux/byteorder/little_endian.h>
 
 namespace pcv {
+
+namespace endianity_swap {
+
+inline uint16_t to_be(uint16_t val) {
+	return __cpu_to_be16(val);
+}
+inline uint32_t to_be(uint32_t val) {
+	return __cpu_to_be32(val);
+}
+inline uint64_t to_be(uint64_t val) {
+	return __cpu_to_be64(val);
+}
+
+}
 
 template<typename T>
 class Range1d {
@@ -50,18 +66,28 @@ public:
 	 * Extract mask from the rule
 	 **/
 	T get_mask_littleendian() const {
-		T m = std::numeric_limits<T>::max();
 		// [TODO] highly sub optimal use std::mismatch
-		T last_m = m;
-		for (size_t i2 = 0; i2 < sizeof(T) * 8; i2++) {
-			m <<= 1;
-			if ((low & m) != (high & m))
-				return last_m;
-			last_m = m;
-		}
-		return last_m;
-	}
+		T msb = 1;
+		msb <<= (sizeof(T) * 8 - 1);
 
+		T m = 0;
+		T last_mask = m;
+		for (size_t i = 0; i < sizeof(T) * 8; i++) {
+			m >>= 1;
+			m |= msb;
+			if ((low & m) != (high & m)) {
+				break;
+			}
+			last_mask = m;
+		}
+		return last_mask;
+	}
+	T get_mask_bigendian() const {
+		return endianity_swap::to_be(to_be().get_mask_littleendian());
+	}
+	Range1d to_be() const {
+		return Range1d(endianity_swap::to_be(low), endianity_swap::to_be(high));
+	}
 	bool is_wildcard() const {
 		return low == 0 and high == std::numeric_limits<T>::max();
 	}

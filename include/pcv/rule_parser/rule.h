@@ -54,6 +54,16 @@ struct ipv6_t {
 		high <<= v;
 		high |= (l >> (64 - v - 1));
 	}
+	void operator|=(ipv6_t v) {
+		low |= v.low;
+		high |= v.high;
+	}
+	void operator>>=(size_t v) {
+		auto h = high;
+		low >>= v;
+		high >>= v;
+		low |= (h >> (64 - v - 1));
+	}
 	ipv6_t operator&(const ipv6_t & other) const {
 		ipv6_t res;
 		res.high = high & other.high;

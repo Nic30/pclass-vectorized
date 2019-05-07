@@ -16,8 +16,10 @@ foreach b : benchmarks
 	test(b[0], benchmark_exe, workdir : meson.source_root(), args : b[2])
 endforeach
 
-build_dpdk_test_app = get_option('dpdk_test_app')
-if build_dpdk_test_app
+if get_option('dpdk_test_app')
 	subdir('dpdk')
-	#subdir('ovs_tss')
 endif
+if get_option('ovs_test_app')
+	subdir('ovs_tss')
+endif
+	

@@ -17,12 +17,13 @@ In the Layered B-tree each such a level is B-tree. In trie each set of bits is u
 
 Each interval stored in B-tree may have pointer on tree in next level and value which represents the rule stored there.
 
-![Layered B-trees](/doc/layered_b-tree.png)
-
 #### Path compression
 To prevent the long paths trough the levels of tree which contains nodes only with the single key it is possible to utilize path compression. Path compression takes segment of such a nodes and replaces it with the single node which contains the keys from all the nodes on path. 
 
-Such a compression has to be taken in account while performing searching or updating the tree.
+The compressed nodes behave like a vector of the keys.
+
+![Tree path compression](/doc/tree_path_compression.png)
+
 
 ### Partition Sort classifier with Layered B-trees
 
@@ -30,4 +31,8 @@ Such a compression has to be taken in account while performing searching or upda
 
 The rule is iteratively inserted to each tree until it can be inserted to some. After the rule is inserted the order of fields for the tree is recomputed and the tree reshaped if required. The order of fields is resolved by greedy heuristic which takes number of unique values and number of the shared values between the rules in account [SAX-PAC](https://dl.acm.org/citation.cfm?id=2626294).
 
+The trees are ordered byt the max priority rule stored in them so it is posible to avoid checking some trees if they can not contain the rule whith higher priority than was found recently.
+
 In this library the multidimensional RB-tree is replaced with the Layered B-tree with path compression.
+
+![Layered B-trees](/doc/partition_srot_with_layered_b-tree.png)

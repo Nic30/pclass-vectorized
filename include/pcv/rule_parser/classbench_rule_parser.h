@@ -41,4 +41,10 @@ private:
 	void parse_rules(std::ifstream& fp, std::vector<iParsedRule*>& ruleset);
 };
 
+/*
+ * @return vector<pair<rule, priority>>
+ * */
+std::vector<std::pair<iParsedRule*, size_t>> parse_ruleset_file(
+		const std::string & rule_file);
+
 }

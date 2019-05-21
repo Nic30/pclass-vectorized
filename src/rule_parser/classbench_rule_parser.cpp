@@ -27,6 +27,24 @@ Rule_Ipv4_ACL::Rule_Ipv4_ACL() :
 
 }
 
+size_t Rule_Ipv4_ACL::cummulative_prefix_len() {
+	return sip.prefix_len_le() + dip.prefix_len_le() + sport.prefix_len_le()
+			+ dport.prefix_len_le() + proto.prefix_len_le();
+}
+
+size_t Rule_Ipv4_ACL::max_cummulative_prefix_len() {
+	return sip.max_prefix_len() + dip.max_prefix_len() + sport.max_prefix_len()
+			+ dport.max_prefix_len() + proto.max_prefix_len();
+}
+
+void Rule_Ipv4_ACL::reverse_endianity() {
+	sip = sip.to_be();
+	dip = dip.to_be();
+	sport = sport.to_be();
+	dport = dport.to_be();
+	proto = proto.to_be();
+}
+
 std::ostream & print_ipv4(std::ostream & str, const Range1d<uint32_t> & ip) {
 	size_t prefix_len = 32;
 	while (prefix_len > 0) {
@@ -97,8 +115,8 @@ Rule_Ipv4_ACL::operator std::string() const {
 
 namespace OF_range_printer {
 template<typename T>
-bool print(std::ostream & str, const string & val_name,
-		const Range1d<T> & val, bool something_was_before) {
+bool print(std::ostream & str, const string & val_name, const Range1d<T> & val,
+		bool something_was_before) {
 
 	if (val.is_wildcard()) {
 		return something_was_before;
@@ -114,7 +132,7 @@ bool print(std::ostream & str, const string & val_name,
 	} else {
 		auto f = str.flags();
 		str << std::hex << "0x" << val.low << "/0x"
-				<< val.get_mask_littleendian();
+				<< val.get_mask_le();
 		str.flags(f);
 	}
 
@@ -663,6 +681,33 @@ std::vector<Rule_OF_1_5_1*> RuleReader::parse_openflow(
 		}
 		rules.push_back(r);
 	}
+	return rules;
+}
+
+std::vector<std::pair<iParsedRule*, size_t>> parse_ruleset_file(
+		const std::string & rule_file) {
+	RuleReader rp;
+	auto _rules = rp.parse_rules(rule_file);
+	std::vector<std::pair<iParsedRule*, size_t>> rules(_rules.size());
+	std::unordered_map<iParsedRule*, size_t> prefix_len;
+	for (auto _r : _rules) {
+		auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
+		prefix_len[_r] = __r->cummulative_prefix_len();
+	}
+
+	auto rule_specifity_sort_predicate =
+			[&prefix_len](iParsedRule* a, iParsedRule* b) {
+				return prefix_len[a] > prefix_len[b];
+			};
+	std::sort(_rules.begin(), _rules.end(), rule_specifity_sort_predicate);
+
+	size_t i = 0;
+	for (auto _r : _rules) {
+		auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
+		rules[i] = {__r, _rules.size() - i};
+		i++;
+	}
+
 	return rules;
 }
 

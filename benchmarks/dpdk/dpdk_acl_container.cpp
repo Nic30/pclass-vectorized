@@ -48,11 +48,11 @@ void add_rules(const std::vector<iParsedRule*> & rules,
 
 		next->field[SRC_FIELD_IPV4].value.u32 = __bswap_32(ipv4_acl_r->sip.low);
 		next->field[SRC_FIELD_IPV4].mask_range.u32 =
-				ipv4_acl_r->sip.get_mask_bigendian();
+				ipv4_acl_r->sip.get_mask_be();
 
 		next->field[DST_FIELD_IPV4].value.u32 = __bswap_32(ipv4_acl_r->dip.low);
 		next->field[DST_FIELD_IPV4].mask_range.u32 =
-				ipv4_acl_r->dip.get_mask_bigendian();
+				ipv4_acl_r->dip.get_mask_be();
 
 		next->field[SRCP_FIELD_IPV4].value.u16 = ipv4_acl_r->sport.low;
 		next->field[SRCP_FIELD_IPV4].mask_range.u16 =
@@ -64,7 +64,7 @@ void add_rules(const std::vector<iParsedRule*> & rules,
 
 		next->field[PROTO_FIELD_IPV4].value.u16 = ipv4_acl_r->proto.low;
 		next->field[PROTO_FIELD_IPV4].mask_range.u16 =
-				ipv4_acl_r->proto.get_mask_littleendian();
+				ipv4_acl_r->proto.get_mask_le();
 
 		//print_one_ipv4_rule(next, 0);
 		next->data.userdata = i + 1;

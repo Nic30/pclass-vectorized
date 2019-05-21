@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include <vector>
+#include <tuple>
 
 #include <pcv/common/range.h>
 #include <pcv/partition_sort/b_tree_search.h>

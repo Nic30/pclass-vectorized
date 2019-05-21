@@ -84,6 +84,27 @@ std::array<Range1d<uint16_t>, 7> rule_to_array(const Rule_Ipv4_ACL & r) {
 }
 
 template<>
+Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<uint16_t, 7> & a) {
+	Rule_Ipv4_ACL r;
+	uint32_t v = *((uint32_t*) &a[0]);
+	r.sip = {v, v};
+	v = *((uint32_t*) &a[2]);
+	r.dip = {v, v};
+	r.sport = {a[4], a[4]};
+	r.dport = {a[5], a[5]};
+	r.proto = {a[6], a[6]};
+
+	return r;
+}
+
+template<>
+Rule_Ipv4_ACL exact_array_to_rule_be(const std::array<uint16_t, 7> & a) {
+	auto v = exact_array_to_rule_le(a);
+	v.reverse_endianity();
+	return v;
+}
+
+template<>
 std::array<Range1d<uint16_t>, 177> rule_to_array(const Rule_OF_1_5_1 & r) {
 	std::array<Range1d<uint16_t>, 177> _r;
 	auto a = fill(&_r[0], r.in_port);

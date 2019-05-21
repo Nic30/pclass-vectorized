@@ -27,9 +27,15 @@ public:
 
 	Rule_Ipv4_ACL();
 	// serialize rule to classbench format
+	size_t cummulative_prefix_len();
+	size_t max_cummulative_prefix_len();
+
+	void reverse_endianity();
+
 	friend std::ostream & operator<<(std::ostream & str,
 			const Rule_Ipv4_ACL & r);
 	operator std::string() const;
+
 };
 
 using uint24_t = uint32_t;
@@ -142,6 +148,11 @@ template<typename T, size_t D>
 std::array<Range1d<T>, D> rule_to_array(const Rule_Ipv4_ACL & r);
 template<typename T, size_t D>
 std::array<Range1d<T>, D> rule_to_array(const Rule_OF_1_5_1 & r);
+
+template<typename T, size_t D>
+Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<T, D> & a);
+template<typename T, size_t D>
+Rule_Ipv4_ACL exact_array_to_rule_be(const std::array<T, D> & a);
 
 }
 

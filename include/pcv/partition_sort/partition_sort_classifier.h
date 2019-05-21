@@ -59,6 +59,8 @@ public:
 	using KeyInfo = typename TREE_T::KeyInfo;
 	using rule_id_t= typename TREE_T::rule_id_t;
 	using val_vec_t= typename TREE_T::val_vec_t;
+	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
+	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
 
 	// @note the trees are sorted [0] has the greatest max priority rule
 	struct tree_info {

@@ -7,8 +7,10 @@ src = [
 	'lib/bundle.c',
 	'lib/byteq.c',
 	'lib/ccmap.c',
-	'lib/classifier.c',
+	'lib/classifier.cpp',
 	'lib/cmap.c',
+	'lib/cls-rule.c',
+	'lib/classifier-unchanged.c',
 	'lib/colors.c',
 	'lib/connectivity.c',
 	'lib/conntrack-icmp.c',
@@ -145,20 +147,20 @@ libm = cc.find_library('m')
 libunbound = cc.find_library('unbound')
 thread_dep = dependency('threads')
 
-_ovs_inc = include_directories('.', './include', './lib/')
-_ovs_lib = library(
+_ovs_pcv_inc = include_directories('.', './include', './lib/')
+_ovs_pcv_lib = library(
 	'ovs',
     src,
-    dependencies: [thread_dep, librt, libm, libunbound],
-    include_directories : [_ovs_inc, ],
+    dependencies: [thread_dep, librt, libm, pcv_dep, libunbound],
+    include_directories : [_ovs_pcv_inc, ],
     install : true,
     cpp_args: OVS_CXX_ARGS,
     c_args:   OVS_C_ARGS,
 
 )
 install_subdir('../include/', install_dir : 'include')
-ovs_tss_dep = declare_dependency(
-  link_with : _ovs_lib,
-  include_directories : _ovs_inc
+ovs_pcv_dep = declare_dependency(
+  link_with : _ovs_pcv_lib,
+  include_directories : _ovs_pcv_inc
 )
 

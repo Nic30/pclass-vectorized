@@ -20,6 +20,5 @@ if get_option('dpdk_test_app')
 	subdir('dpdk')
 endif
 if get_option('ovs_test_app')
-	subdir('ovs_tss')
+	subdir('ovs')
 endif
-	

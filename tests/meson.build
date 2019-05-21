@@ -11,6 +11,7 @@ tests = [
   ['weighted_interval_scheduling_solver', 'tests for the weighted interval scheduling solver'],
   ['dimension_order_resolver', 'tests for the dimension order solver which is used to resolve structure of the trees'],
   ['partition_sort_classifier', 'tests for the partition sort packet classifer itself'],
+  ['range', 'tests for Range1d<> endianity conversions, masks etc'],
 ]
 
 foreach t : tests

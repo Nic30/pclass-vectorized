@@ -19,9 +19,9 @@ public:
 	std::vector<Interval> & intervals;
 	int *table;
 
-	WeightedIntervalSchedulingSolver(std::vector<Interval> & intervals) :
-			intervals(intervals) {
-		table = new int[intervals.size()];
+	WeightedIntervalSchedulingSolver(std::vector<Interval> & intervals_) :
+			intervals(intervals_) {
+		table = new int[intervals_.size()];
 	}
 
 	static bool intervalComparataor(Interval s1, Interval s2) {

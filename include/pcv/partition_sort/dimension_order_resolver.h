@@ -18,10 +18,10 @@ public:
 	 * @param original_order the order which is used as lowest priority key while sorting
 	 * 	 to keep the order as stable as possible
 	 * */
-	GreedyDimensionOrderResolver(std::vector<rule_spec_t> & rules,
-			const std::array<unsigned, DIM_CNT> & original_order) :
-			rules(rules), original_order(original_order) {
-		for (auto & _r : rules) {
+	GreedyDimensionOrderResolver(std::vector<rule_spec_t> & rules_,
+			const std::array<unsigned, DIM_CNT> & original_order_) :
+			rules(rules_), original_order(original_order_) {
+		for (auto & _r : rules_) {
 			auto & r = _r.first;
 			for (size_t i = 0; i < DIM_CNT; i++) {
 				dim_mask[i] = not r[i].is_wildcard();

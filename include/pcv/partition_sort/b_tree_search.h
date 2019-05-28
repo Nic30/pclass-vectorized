@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <vector>
 
 namespace pcv {
 
@@ -24,10 +25,10 @@ namespace search_fn {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
-		__m256i const a, __m256i const b) {
+inline static __m256i   __attribute__((__always_inline__))   _mm256_cmpgt_epu32(
+		__m256i   const a, __m256i   const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i const fix_val = _mm256_set1_epi32(offset);
+	__m256i   const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 /*
@@ -36,16 +37,18 @@ inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
-		__m256i const a, __m256i const b) {
+inline static __m256i   __attribute__((__always_inline__))   _mm256_cmpgt_epu16(
+		__m256i   const a, __m256i   const b) {
 	constexpr uint16_t offset = 0x1u << 15;
-	__m256i const fix_val = _mm256_set1_epi16(offset);
+	__m256i   const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }
 
 template<typename T>
-SearchResult search_compressed_seq(const __m256i * keys, const __m64 * _dims,
-		const uint8_t key_cnt, const Range1d<T> & val) {
+SearchResult search_compressed_seq(const __m256i * keys,
+		const __m64 * _dims __attribute__((unused)),
+		const uint8_t key_cnt __attribute__((unused)),
+		const Range1d<T> & val __attribute__((unused))) {
 	SearchResult r;
 	r.val_index = 0;
 	// search only the first position as this function is called only for the roots
@@ -77,8 +80,9 @@ SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
 }
 
 template<typename T>
-SearchResult search_compressed_seq(const __m256i * keys, const __m64 * _dims,
-		const uint8_t key_cnt, const T val) {
+SearchResult search_compressed_seq(const __m256i * keys,
+		const __m64 * _dims __attribute__((unused)),
+		const uint8_t key_cnt __attribute__((unused)), const T val) {
 	SearchResult r;
 	r.val_index = 0;
 	// search only the first position as this function is called only for the roots
@@ -133,7 +137,7 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i   const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -448,103 +452,107 @@ public:
 			const rule_spec_t & rule,
 			std::vector<std::tuple<Node *, Node *, unsigned>> & path,
 			size_t start = 0) {
-
-		Node * n = root;
-		unsigned level = start;
-		while (n) {
-			auto d = dimension_order[level];
+		{
+			Node * n = root;
+			unsigned level = start;
+			while (n) {
+				auto d = dimension_order[level];
 #ifndef NDEBUG
-			{
-				auto n_d = n->get_dim(0);
-				assert(n_d == d);
-			}
-#endif
-			auto val = rule.first[d];
-			auto r = search_possition_1d(n, val);
-			if (r.first == nullptr)
-				break;
-
-#ifndef NDEBUG
-			{
-				auto n_d = r.first->get_dim(r.second);
-				assert(n_d == d);
-				auto nl = r.first->get_next_layer(r.second);
-				auto _d = dimension_order[level + 1];
-				if (nl != nullptr) {
-					auto nl_dim = nl->get_dim(0);
-					assert(nl_dim == _d);
+				{
+					auto n_d = n->get_dim(0);
+					assert(n_d == d);
 				}
-			}
 #endif
-			// some matching rule found on path from the root in this node
-			// search in next layer if there is some
-			path.push_back(
-					std::tuple<Node *, Node *, unsigned>(n, r.first, r.second));
+				auto val = rule.first[d];
+				auto r = search_possition_1d(n, val);
+				if (r.first == nullptr)
+					break;
 
-			if (r.first->is_compressed and r.second < n->key_cnt) {
-				// it is required to find the rest of the path in this compressed node
-				//assert(d == n->get_dim(0));
-				assert(n->key_cnt > 1);
-				assert(n == r.first);
-
-				bool match = true;
-				unsigned i2;
-				for (i2 = 1; i2 < n->key_cnt; i2++) {
-					// (the first item was already checked)
-					auto d = dimension_order[level + i2];
 #ifndef NDEBUG
-					auto actual_d = n->get_dim(i2);
-					assert(d == actual_d);
+				{
+					auto n_d = r.first->get_dim(r.second);
+					assert(n_d == d);
+					auto nl = r.first->get_next_layer(r.second);
+					auto _d = dimension_order[level + 1];
+					if (nl != nullptr) {
+						auto nl_dim = nl->get_dim(0);
+						assert(nl_dim == _d);
+					}
+				}
 #endif
-					auto k = rule.first[d];
-					if (n->get_key(i2).key != k) {
-						match = false;
+				// some matching rule found on path from the root in this node
+				// search in next layer if there is some
+				path.push_back(
+						std::tuple<Node *, Node *, unsigned>(n, r.first,
+								r.second));
+
+				if (r.first->is_compressed and r.second < n->key_cnt) {
+					// it is required to find the rest of the path in this compressed node
+					//assert(d == n->get_dim(0));
+					assert(n->key_cnt > 1);
+					assert(n == r.first);
+
+					bool match = true;
+					unsigned i2;
+					for (i2 = 1; i2 < n->key_cnt; i2++) {
+						// (the first item was already checked)
+						auto _d = dimension_order[level + i2];
+#ifndef NDEBUG
+						auto actual_d = n->get_dim(i2);
+						assert(_d == actual_d);
+#endif
+						auto k = rule.first[_d];
+						if (n->get_key(i2).key != k) {
+							match = false;
+							break;
+						}
+						path.push_back(
+								std::tuple<Node *, Node *, unsigned>(n, n, i2));
+					}
+					if (not match) {
 						break;
 					}
-					path.push_back(
-							std::tuple<Node *, Node *, unsigned>(n, n, i2));
-				}
-				if (not match) {
-					break;
-				}
 
-				level += n->key_cnt;
-				n = n->get_next_layer(n->key_cnt - 1);
-			} else {
-				level++;
-				n = r.first->get_next_layer(r.second);
+					level += n->key_cnt;
+					n = n->get_next_layer(n->key_cnt - 1);
+				} else {
+					level++;
+					n = r.first->get_next_layer(r.second);
+				}
 			}
 		}
 #ifndef NDEBUG
-		for (size_t i = 0; i < path.size(); i++) {
-			Node *r, *n;
-			unsigned i2;
-			std::tie(r, n, i2) = path[i];
-			if (i == 0)
-				assert(r == root);
-			else {
-				// asssert that the path is continuous
-				Node *_r, *_n;
-				unsigned _i2;
-				std::tie(_r, _n, _i2) = path[i - 1];
-				if (_n->is_compressed and _n == n) {
-					assert(i2 == _i2 + 1);
-				} else {
-					assert(r == _n->get_next_layer(_i2));
+		{
+			for (size_t i = 0; i < path.size(); i++) {
+				Node *r, *n;
+				unsigned i2;
+				std::tie(r, n, i2) = path[i];
+				if (i == 0)
+					assert(r == root);
+				else {
+					// asssert that the path is continuous
+					Node *_r, *_n;
+					unsigned _i2;
+					std::tie(_r, _n, _i2) = path[i - 1];
+					if (_n->is_compressed and _n == n) {
+						assert(i2 == _i2 + 1);
+					} else {
+						assert(r == _n->get_next_layer(_i2));
+					}
 				}
-			}
 
-			assert(r->parent == nullptr && "root is really root");
-			if (n->is_compressed)
-				assert(r == n);
-			else
-				assert(
-						r->get_dim(0) == n->get_dim(0)
-								&& "root and node are from same tree");
-			auto n_d = n->get_dim(i2);
-			auto l = start + i;
-			auto expected_d = dimension_order[l];
-			assert(n_d == expected_d);
+				assert(r->parent == nullptr && "root is really root");
+				if (n->is_compressed)
+					assert(r == n);
+				else
+					assert(
+							r->get_dim(0) == n->get_dim(0)
+									&& "root and node are from same tree");
+				auto n_d = n->get_dim(i2);
+				auto l = start + i;
+				auto expected_d = dimension_order[l];
+				assert(n_d == expected_d);
+			}
 		}
 #endif
 	}

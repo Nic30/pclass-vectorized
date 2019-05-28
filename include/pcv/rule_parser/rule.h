@@ -45,8 +45,8 @@ struct ipv6_t {
 	ipv6_t() :
 			ipv6_t(0) {
 	}
-	ipv6_t(uint64_t low) :
-			high(0), low(low) {
+	ipv6_t(uint64_t low_) :
+			high(0), low(low_) {
 	}
 	bool operator==(const ipv6_t & other) const {
 		return (low == other.low && high == other.high);

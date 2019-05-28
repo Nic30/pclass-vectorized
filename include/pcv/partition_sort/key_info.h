@@ -10,8 +10,8 @@ public:
 	index_t value;
 	index_t next_level;
 
-	_KeyInfo(Range1d<value_t> key, index_t value, index_t next_level) :
-			key(key), value(value), next_level(next_level) {
+	_KeyInfo(Range1d<value_t> key_, index_t value_, index_t next_level_) :
+			key(key_), value(value_), next_level(next_level_) {
 	}
 
 	bool operator<(const _KeyInfo & other) const {

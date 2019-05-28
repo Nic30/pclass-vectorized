@@ -21,12 +21,12 @@ public:
 	 * Information about insert state
 	 * */
 	class InsertCookie {
-		size_t total_levels_required_cnt(const rule_spec_t & rule) const {
+		size_t total_levels_required_cnt(const rule_spec_t & rule_) const {
 			// iterate from the end of the rule ordered by dimension_order and check
 			// where is the last specified value for the field
 			for (int i = int(dimensio_order.size()) - 1; i >= 0; i--) {
 				auto d = dimensio_order[i];
-				auto & k = rule.first[d];
+				auto & k = rule_.first[d];
 
 				if (not k.is_wildcard())
 					return i + 1;
@@ -42,9 +42,9 @@ public:
 		const uint8_t requires_levels;
 		const rule_spec_t & rule;
 
-		InsertCookie(BTree & tree, const rule_spec_t & rule) :
+		InsertCookie(BTree & tree, const rule_spec_t & rule_) :
 				dimensio_order(tree.dimension_order), level(0), requires_levels(
-						total_levels_required_cnt(rule)), rule(rule) {
+						total_levels_required_cnt(rule_)), rule(rule_) {
 		}
 		inline Range1d<typename BTree::value_t> get_actual_key() const {
 			auto d = dimensio_order.at(level);

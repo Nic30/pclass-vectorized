@@ -169,10 +169,10 @@ public:
 		/*
 		 * Set key_cnt and also update key_mask
 		 * */
-		inline void set_key_cnt(size_t key_cnt) {
-			assert(key_cnt <= MAX_DEGREE);
-			this->key_cnt = key_cnt;
-			key_mask = (1 << key_cnt) - 1;
+		inline void set_key_cnt(size_t key_cnt_) {
+			assert(key_cnt_ <= MAX_DEGREE);
+			this->key_cnt = key_cnt_;
+			key_mask = (1 << key_cnt_) - 1;
 		}
 
 		// get node from mempool from its index
@@ -247,9 +247,9 @@ public:
 		 * @note this node is source
 		 * */
 		inline void transfer_items(unsigned src_start, Node & dst,
-				unsigned dst_start, unsigned key_cnt) {
+				unsigned dst_start, unsigned key_cnt_) {
 			// Copying the keys from
-			auto end = src_start + key_cnt;
+			auto end = src_start + key_cnt_;
 			for (unsigned i = src_start; i < end; ++i)
 				move_key(i, dst, i + dst_start);
 

@@ -40,8 +40,8 @@ public:
 	Range1d() :
 			low(0), high(0) {
 	}
-	Range1d(T low, T high) :
-			low(low), high(high) {
+	Range1d(T low_, T high_) :
+			low(low_), high(high_) {
 		assert(low <= high);
 	}
 	static Range1d from_mask(T low, T mask) {

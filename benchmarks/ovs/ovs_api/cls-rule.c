@@ -1,14 +1,13 @@
 #include "classifier.h"
-
+#include <assert.h>
+#include "flow.h"
 
 /* cls_rule. */
 
 static inline void
 cls_rule_init__(struct cls_rule *rule, unsigned int priority)
 {
-    rculist_init(&rule->node);
     *CONST_CAST(int *, &rule->priority) = priority;
-    ovsrcu_init(&rule->cls_match, NULL);
 }
 
 /* Initializes 'rule' to match packets specified by 'match' at the given
@@ -66,35 +65,17 @@ void
 cls_rule_destroy(struct cls_rule *rule)
     OVS_NO_THREAD_SAFETY_ANALYSIS
 {
-    /* Must not be in a classifier. */
-    ovs_assert(!get_cls_match_protected(rule));
-
     /* Check that the rule has been properly removed from the classifier. */
-    ovs_assert(rule->node.prev == RCULIST_POISON
-               || rculist_is_empty(&rule->node));
-    rculist_poison__(&rule->node);   /* Poisons also the next pointer. */
-
     minimatch_destroy(CONST_CAST(struct minimatch *, &rule->match));
 }
 
 /* This may only be called by the exclusive writer. */
 void
-cls_rule_set_conjunctions(struct cls_rule *cr,
-                          const struct cls_conjunction *conj, size_t n)
+cls_rule_set_conjunctions(struct cls_rule * cr __attribute__((unused)),
+                          const struct cls_conjunction *conj __attribute__((unused)),
+						  size_t n __attribute__((unused)))
 {
-    struct cls_match *match = get_cls_match_protected(cr);
-    struct cls_conjunction_set *old
-        = ovsrcu_get_protected(struct cls_conjunction_set *, &match->conj_set);
-    struct cls_conjunction *old_conj = old ? old->conj : NULL;
-    unsigned int old_n = old ? old->n : 0;
-
-    if (old_n != n || (n && memcmp(old_conj, conj, n * sizeof *conj))) {
-        if (old) {
-            ovsrcu_postpone(free, old);
-        }
-        ovsrcu_set(&match->conj_set,
-                   cls_conjunction_set_alloc(match, conj, n));
-    }
+	assert(false && "not implemented");
 }
 
 
@@ -127,14 +108,10 @@ cls_rule_is_catchall(const struct cls_rule *rule)
  * 'rule' must be in a classifier.
  * This may only be called by the exclusive writer. */
 void
-cls_rule_make_invisible_in_version(const struct cls_rule *rule,
-                                   ovs_version_t remove_version)
+cls_rule_make_invisible_in_version(const struct cls_rule *rule __attribute__((unused)),
+                                   ovs_version_t remove_version __attribute__((unused)))
 {
-    struct cls_match *cls_match = get_cls_match_protected(rule);
-
-    ovs_assert(remove_version >= cls_match->versions.add_version);
-
-    cls_match_set_remove_version(cls_match, remove_version);
+   // [TODO]
 }
 
 /* This undoes the change made by cls_rule_make_invisible_in_version().
@@ -142,21 +119,19 @@ cls_rule_make_invisible_in_version(const struct cls_rule *rule,
  * 'rule' must be in a classifier.
  * This may only be called by the exclusive writer. */
 void
-cls_rule_restore_visibility(const struct cls_rule *rule)
+cls_rule_restore_visibility(const struct cls_rule *rule __attribute__((unused)))
 {
-    cls_match_set_remove_version(get_cls_match_protected(rule),
-                                 OVS_VERSION_NOT_REMOVED);
+	// [TODO]
 }
 
 /* Return true if 'rule' is visible in 'version'.
  *
  * 'rule' must be in a classifier. */
 bool
-cls_rule_visible_in_version(const struct cls_rule *rule, ovs_version_t version)
+cls_rule_visible_in_version(const struct cls_rule *rule __attribute__((unused)), ovs_version_t version __attribute__((unused)))
 {
-    struct cls_match *cls_match = get_cls_match(rule);
-
-    return cls_match && cls_match_visible_in_version(cls_match, version);
+	// [TODO]
+	return true;
 }
 
 /* Returns true if 'rule' exactly matches 'criteria' or if 'rule' is more

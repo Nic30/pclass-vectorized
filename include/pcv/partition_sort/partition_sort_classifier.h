@@ -75,7 +75,7 @@ public:
 	size_t tree_cnt;
 
 	// used to keep track of where are the rules stored for removing;
-	std::unordered_map<rule_spec_t, TREE_T *, rule_spec_t_hasher<rule_spec_t>,
+	std::unordered_map<rule_spec_t, tree_info *, rule_spec_t_hasher<rule_spec_t>,
 			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
 
 	PartitionSortClassifer() :
@@ -186,7 +186,7 @@ public:
 			if (not t.tree.does_rule_colide(rule)) {
 				t.tree.insert(rule);
 				t.rules.push_back(rule);
-				rule_to_tree[rule] = &t.tree;
+				rule_to_tree[rule] = &t;
 				if (t.rules.size() < TREE_FIXATION_THRESHOLD)
 					update_dimension_order(t);
 				if (rule.second > t.max_priority) {
@@ -202,7 +202,7 @@ public:
 			t.max_priority = rule.second;
 			t.tree.insert(rule);
 			t.rules.push_back(rule);
-			rule_to_tree[rule] = &t.tree;
+			rule_to_tree[rule] = &t;
 			update_dimension_order(t);
 			tree_cnt++;
 			resort_on_priority_change(tree_cnt - 1);
@@ -217,11 +217,11 @@ public:
 	 * Remove the rule if it is stored in classifier
 	 * */
 	inline void remove(const rule_spec_t & rule) {
-		auto t = rule_to_tree.find(rule);
-		if (t != rule_to_tree.end()) {
-			t->second->remove(rule);
-			rule_to_tree.remove(t);
-			update_dimension_order(*t);
+		auto ti = rule_to_tree.find(rule);
+		if (ti != rule_to_tree.end()) {
+			ti->second->tree.remove(rule);
+			rule_to_tree.erase(ti);
+			update_dimension_order(*ti->second);
 		}
 	}
 	inline rule_id_t search(const val_vec_t & val) const {

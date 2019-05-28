@@ -72,9 +72,9 @@ const Rule_Ipv4_ACL * OvsWrap::cls_rule_get_pcv_rule(
 }
 
 OvsWrap::~OvsWrap() {
-	classifier_destroy(&cls);
-	for (auto r : ovs_rules)
-		free(r);
+	//classifier_destroy(&cls);
+	//for (auto r : ovs_rules)
+	//	free(r);
 }
 
 }

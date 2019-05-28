@@ -9,7 +9,7 @@ struct classifier_priv {
 };
 
 void classifier_init(struct classifier *cls, const uint8_t *flow_segments) {
-	ovs_assert(flow_segments && "not implemented");
+	ovs_assert(flow_segments == nullptr && "not implemented");
 	cls->priv = new classifier_priv();
 	cls->publish = true;
 }
@@ -19,8 +19,10 @@ void classifier_destroy(struct classifier *cls) {
 }
 
 /* Set the fields for which prefix lookup should be performed. */
-bool classifier_set_prefix_fields(struct classifier *cls,
-		const enum mf_field_id *trie_fields, unsigned int n_fields) {
+bool classifier_set_prefix_fields(
+		struct classifier *cls __attribute__((unused)),
+		const enum mf_field_id *trie_fields __attribute__((unused)),
+		unsigned int n_fields __attribute__((unused))) {
 	return false; /* No change. */
 }
 
@@ -41,14 +43,15 @@ bool classifier_set_prefix_fields(struct classifier *cls,
  */
 const struct cls_rule *
 classifier_replace(struct classifier *cls, const struct cls_rule *rule,
-		ovs_version_t version, const struct cls_conjunction *conjs,
+		ovs_version_t version __attribute__((unused)),
+		const struct cls_conjunction *conjs __attribute__((unused)),
 		size_t n_conjs) {
 	auto p = ((classifier_priv*) cls->priv);
 	//auto a = p->to_pcv_rule.find(rule);
 	Classifier::rule_spec_t tmp;
 	struct match m;
 	minimatch_expand(&rule->match, &m);
-	vec_build::flow_to_array(m.flow, m.wc, tmp.first);
+	vec_build::flow_to_array(&m.flow, &m.wc.masks, tmp.first);
 	tmp.second = rule->priority;
 	assert(n_conjs == 0);
 	p->cls.insert(tmp);
@@ -95,8 +98,9 @@ void classifier_remove_assert(struct classifier *cls,
  * 'flow' is non-const to allow for temporary modifications during the lookup.
  * Any changes are restored before returning. */
 const struct cls_rule *
-classifier_lookup(const struct classifier *_cls, ovs_version_t version,
-		struct flow *flow, struct flow_wildcards *wc) {
+classifier_lookup(const struct classifier *_cls,
+		ovs_version_t version __attribute__((unused)), struct flow *flow,
+		struct flow_wildcards *wc) {
 	assert(wc == nullptr);
 	auto p = ((classifier_priv*) _cls->priv);
 	std::array<uint16_t, DIM_CNT> tmp;
@@ -116,8 +120,10 @@ classifier_lookup(const struct classifier *_cls, ovs_version_t version,
  * of fields. E.g., if one rule matches only on port number, while another only
  * on dl_type, any packet from that specific port and with that specific
  * dl_type could match both, if the rules also have the same priority. */
-bool classifier_rule_overlaps(const struct classifier *cls,
-		const struct cls_rule *target, ovs_version_t version) {
+bool classifier_rule_overlaps(
+		const struct classifier *cls __attribute__((unused)),
+		const struct cls_rule *target __attribute__((unused)),
+		ovs_version_t version __attribute__((unused))) {
 	return false;
 }
 
@@ -126,8 +132,10 @@ bool classifier_rule_overlaps(const struct classifier *cls,
  * Only one such rule may ever exist.  Returns a null pointer if 'cls' doesn't
  * contain an exact match. */
 const struct cls_rule *
-classifier_find_rule_exactly(const struct classifier *cls,
-		const struct cls_rule *target, ovs_version_t version) {
+classifier_find_rule_exactly(
+		const struct classifier *cls __attribute__((unused)),
+		const struct cls_rule *target __attribute__((unused)),
+		ovs_version_t version __attribute__((unused))) {
 	// [TODO]
 	return nullptr;
 }
@@ -144,4 +152,38 @@ int classifier_count(const struct classifier *cls) {
 	/* n_rules is an int, so in the presence of concurrent writers this will
 	 * return either the old or a new value. */
 	return ((Classifier*) cls)->rule_to_tree.size();
+}
+
+struct cls_cursor_pos {
+	std::unordered_map<const struct cls_rule*, Classifier::rule_spec_t>::iterator pos;
+};
+
+struct cls_cursor cls_cursor_start(const struct classifier * cls,
+		const struct cls_rule *target,
+		ovs_version_t ver __attribute__((unused))) {
+	cls_cursor c;
+	c.cls = cls;
+	auto p = reinterpret_cast<classifier_priv*>(cls->priv);
+	auto it = p->to_pcv_rule.begin();
+	static_assert(sizeof(it) == sizeof(c.pos));
+	auto priv = new cls_cursor_pos;
+	priv->pos = it;
+	c.pos = reinterpret_cast<void*>(priv);
+	c.rule = it->first;
+	c.target = target;
+	return c;
+}
+void cls_cursor_advance(struct cls_cursor * cur) {
+	auto p = reinterpret_cast<classifier_priv*>(cur->cls->priv);
+	auto it = reinterpret_cast<cls_cursor_pos *>(cur->pos);
+	if (cur->rule == nullptr || cur->rule == cur->target || it == nullptr
+			|| it->pos == p->to_pcv_rule.end()) {
+		cur->rule = nullptr;
+		delete reinterpret_cast<cls_cursor_pos *>(cur->pos);
+		cur->pos = nullptr;
+		return;
+	} else {
+		++it->pos;
+		cur->rule = it->pos->first;
+	}
 }

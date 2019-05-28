@@ -5,8 +5,41 @@ srcs = [
 	'ovs_wrap.cpp',
 	'table_lookup.cpp',
 ]
-OVS_CXX_ARGS = ['-O3']
-OVS_C_ARGS = ['-O3']
+
+OVS_DEF_C_SETTINGS = [
+ '-DHAVE_CONFIG_H',
+ '-fno-strict-aliasing',
+ '-m64',
+ '-march=haswell',
+ '-mavx2',
+ '-Wall',
+ '-Wbool-compare',
+ '-Wcast-align',
+ '-Wduplicated-cond',
+ '-Wextra',
+ '-Wformat',
+ '-Wformat-security',
+ '-Wlogical-not-parentheses',
+ '-Wmissing-field-initializers',
+ '-Wno-null-pointer-arithmetic',
+ '-Wno-sign-compare',
+ '-Wpointer-arith',
+ '-Wshadow',
+ '-Wshift-negative-value',
+ '-Wsizeof-array-argument',
+ '-Wswitch-bool',
+ '-Wswitch-enum',
+ '-Wunused-parameter',
+ 	#'-O3',
+]
+
+OVS_CXX_ARGS = OVS_DEF_C_SETTINGS
+OVS_C_ARGS = OVS_DEF_C_SETTINGS + [
+  '-Wbad-function-cast',
+  '-Wstrict-prototypes',
+  '-Wold-style-definition',
+  '-Wmissing-prototypes',
+]
 subdir('ovs')
 
 benchmark_ovs_tss_exe = executable('ovs_tss_lookup',

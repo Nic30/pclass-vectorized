@@ -147,6 +147,7 @@ libm = cc.find_library('m')
 libunbound = cc.find_library('unbound')
 thread_dep = dependency('threads')
 
+_OVS_CONFIG = [ '-include', meson.current_source_dir() + '/config.h',]
 _ovs_pcv_inc = include_directories('.', './include', './lib/')
 _ovs_pcv_lib = library(
 	'ovs',
@@ -154,8 +155,8 @@ _ovs_pcv_lib = library(
     dependencies: [thread_dep, librt, libm, pcv_dep, libunbound],
     include_directories : [_ovs_pcv_inc, ],
     install : true,
-    cpp_args: OVS_CXX_ARGS,
-    c_args:   OVS_C_ARGS,
+    cpp_args: OVS_CXX_ARGS + _OVS_CONFIG,
+    c_args:   OVS_C_ARGS + _OVS_CONFIG,
 
 )
 install_subdir('../include/', install_dir : 'include')

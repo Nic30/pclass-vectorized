@@ -114,8 +114,7 @@ bool cls_rule_visible_in_version(const struct cls_rule *, ovs_version_t);
 struct cls_cursor {
     const struct classifier *cls;
     const struct cls_rule *target;
-    ovs_version_t version;   /* Version to iterate. */
-    const struct cls_rule ** pos;
+    void * pos;
     const struct cls_rule *rule;
 };
 

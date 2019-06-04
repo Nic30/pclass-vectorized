@@ -31,30 +31,12 @@ int main(int argc, const char * argv[]) {
 	OvsWrap cls;
 	auto rules = parse_ruleset_file(rule_file);
 	vector<iParsedRule*> _rules;
-// #ifdef OVS_PCV
-// 	size_t rule_i = 0;
-// #endif
 	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
 	stats.construction_start();
 	for (auto _r : rules) {
 		auto r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
 		cls.insert(*r, _r.second);
 		_rules.push_back(r);
-// #ifdef OVS_PCV
-// 		size_t tree_i = 0;
-// 		auto _cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
-// 		for (auto & t : _cls->cls.trees) {
-// 			if (t->rules.size()) {
-// 				ofstream of(
-// 						string("dump/tree_") + to_string(rule_i) + "_"
-// 								+ to_string(tree_i) + ".dot", ofstream::out);
-// 				of << t->tree;
-// 				of.close();
-// 			}
-// 			tree_i++;
-// 		}
-// 		rule_i++;
-// #endif
 	}
 	stats.construction_stop();
 

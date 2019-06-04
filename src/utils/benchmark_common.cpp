@@ -43,7 +43,7 @@ void BenchmarkStats::dump(std::function<void(std::ostream &)> json_extra,
 		out << "[INFO] construction time:" << uint64_t(construction_timer->us())
 				<< "us" << std::endl;
 		out << "[INFO] real_rule_cnt:" << real_rule_cnt << std::endl;
-		out << "[INFO] number_or_tries_or_tables:";
+		out << "[INFO] number_of_tries_or_tables:";
 		if (number_or_tries_or_tables >= 0)
 			out << number_or_tries_or_tables << std::endl;
 		else

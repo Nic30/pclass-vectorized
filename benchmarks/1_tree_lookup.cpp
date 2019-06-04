@@ -23,23 +23,21 @@ int main(int argc, const char * argv[]) {
 
 	// load rules from the file
 	vector<iParsedRule*> _rules;
-	RuleReader rp;
-	_rules = rp.parse_rules(rule_file);
+	auto rules = parse_ruleset_file(rule_file);
 	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
 	stats.construction_start();
 	{
 		// load rules in to a classifier tree
-		size_t i = 0;
-		for (auto _r : _rules) {
-			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
-			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), _rules.size() - i };
+		for (auto _r : rules) {
+			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
+			BTree::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), _r.second };
 			if (not t.does_rule_colide(r)) {
 				t.insert(r);
-				i++;
+				_rules.push_back(__r);
 			}
 		}
 		if (not dump_as_json)
-			cout << "[INFO] Loaded non-colliding rules cnt:" << i << endl;
+			cout << "[INFO] Loaded non-colliding rules cnt:" << _rules.size() << endl;
 	}
 	stats.construction_stop();
 

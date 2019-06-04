@@ -11,6 +11,7 @@
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
 #include <pcv/partition_sort/partition_sort_classifier.h>
+#include <pcv/utils/benchmark_common.h>
 
 using namespace std;
 using namespace pcv;
@@ -30,29 +31,32 @@ int main(int argc, const char * argv[]) {
 	OvsWrap cls;
 	auto rules = parse_ruleset_file(rule_file);
 	vector<iParsedRule*> _rules;
-#ifdef OVS_PCV
-	size_t rule_i = 0;
-#endif
+// #ifdef OVS_PCV
+// 	size_t rule_i = 0;
+// #endif
+	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
+	stats.construction_start();
 	for (auto _r : rules) {
 		auto r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
 		cls.insert(*r, _r.second);
 		_rules.push_back(r);
-#ifdef OVS_PCV
-		size_t tree_i = 0;
-		auto _cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
-		for (auto & t : _cls->cls.trees) {
-			if (t->rules.size()) {
-				ofstream of(
-						string("dump/tree_") + to_string(rule_i) + "_"
-								+ to_string(tree_i) + ".dot", ofstream::out);
-				of << t->tree;
-				of.close();
-			}
-			tree_i++;
-		}
-		rule_i++;
-#endif
+// #ifdef OVS_PCV
+// 		size_t tree_i = 0;
+// 		auto _cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
+// 		for (auto & t : _cls->cls.trees) {
+// 			if (t->rules.size()) {
+// 				ofstream of(
+// 						string("dump/tree_") + to_string(rule_i) + "_"
+// 								+ to_string(tree_i) + ".dot", ofstream::out);
+// 				of << t->tree;
+// 				of.close();
+// 			}
+// 			tree_i++;
+// 		}
+// 		rule_i++;
+// #endif
 	}
+	stats.construction_stop();
 
 	// generate packets
 	auto _packets = generate_packets_from_ruleset(
@@ -64,7 +68,7 @@ int main(int argc, const char * argv[]) {
 		packets.push_back(OvsWrap::flow_from_packet(_p));
 	}
 
-	auto start = chrono::system_clock::now();
+	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
 		// cout << "search:" << exact_array_to_rule_be(p) << endl;
@@ -75,17 +79,15 @@ int main(int argc, const char * argv[]) {
 		//			<< v->priority << endl;
 		//}
 	}
-	auto end = chrono::system_clock::now();
-	auto us = chrono::duration_cast<chrono::microseconds>(end - start).count();
-	auto lookup_speed = (LOOKUP_CNT / double(us));
-	if (dump_as_json) {
-		cout << "{ \"lookup_speed\":" << lookup_speed << "}";
-	} else {
-		cout << "[INFO] lookup speed:" << lookup_speed << "MPkts/s" << endl;
-	}
+	stats.lookup_stop();
+#ifdef OVS_PCV
+	stats.set_number_or_tries_or_tables(
+			reinterpret_cast<struct classifier_priv*>(cls.cls.priv)->cls.tree_cnt);
+#endif
+
+	stats.dump();
 	return 0;
 }
-
 
 //auto r = new Rule_Ipv4_ACL();
 //r->sip = {1,1};

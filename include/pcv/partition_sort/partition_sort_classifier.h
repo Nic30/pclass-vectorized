@@ -183,11 +183,14 @@ public:
 		for (; i < tree_cnt; i++) {
 			auto & t = *trees[i];
 			if (not t.tree.does_rule_colide(rule)) {
-				t.tree.insert(rule);
 				t.rules.push_back(rule);
 				rule_to_tree[rule] = &t;
-				if (t.rules.size() < TREE_FIXATION_THRESHOLD)
+				if (t.rules.size() < TREE_FIXATION_THRESHOLD) {
 					update_dimension_order(t);
+					// the rule is inserted automatically as it is in t.rules
+				} else {
+					t.tree.insert(rule);
+				}
 				if (rule.second > t.max_priority) {
 					t.max_priority = rule.second;
 					resort_on_priority_change(i);

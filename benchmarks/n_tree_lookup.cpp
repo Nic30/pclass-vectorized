@@ -59,7 +59,6 @@ int main(int argc, const char * argv[]) {
 		throw std::runtime_error("probably wrong result");
 	}
 	stats.lookup_stop();
-
 	stats.dump();
 	return 0;
 }

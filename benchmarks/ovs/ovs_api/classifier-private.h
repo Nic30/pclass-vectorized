@@ -9,7 +9,6 @@
 #undef atomic_compare_exchange_weak
 
 #include <byteswap.h>
-//#include <endian.h>
 #include <pcv/partition_sort/b_tree_impl.h>
 #include <pcv/partition_sort/partition_sort_classifier.h>
 

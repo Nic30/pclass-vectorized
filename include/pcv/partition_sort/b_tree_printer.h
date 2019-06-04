@@ -26,7 +26,12 @@ public:
 		}
 		if (n.is_compressed) {
 			str << " compressed ";
+		} else {
+#ifndef NDEBUG
+			str << " D=" << int(n.get_dim(0));
+#endif
 		}
+
 		// print keys
 		str << "|{";
 		for (size_t i = 0; i < Node::MAX_DEGREE; i++) {

@@ -2,12 +2,6 @@
 
 #include "classifier-private.h"
 
-struct classifier_priv {
-	Classifier cls;
-	std::unordered_map<Classifier::rule_id_t, cls_rule *> to_rule;
-	std::unordered_map<const struct cls_rule*, Classifier::rule_spec_t> to_pcv_rule;
-};
-
 void classifier_init(struct classifier *cls, const uint8_t *flow_segments) {
 	ovs_assert(flow_segments == nullptr && "not implemented");
 	cls->priv = new classifier_priv();
@@ -56,6 +50,7 @@ classifier_replace(struct classifier *cls, const struct cls_rule *rule,
 	assert(n_conjs == 0);
 	p->cls.insert(tmp);
 	p->to_pcv_rule[rule] = tmp;
+	p->to_rule[tmp.second] = rule;
 
 	return nullptr;
 }

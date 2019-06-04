@@ -23,7 +23,7 @@ inline uint64_t to_be(uint64_t val) {
 
 }
 
-template<typename T>
+template<typename _T>
 class Range1d {
 	// https://stackoverflow.com/questions/3313909/finding-the-length-of-the-common-prefix-in-two-bytes
 	static int bytePrefix[256];
@@ -35,6 +35,7 @@ class Range1d {
 	}
 
 public:
+	using T = _T;
 	T low;
 	T high;
 	Range1d() :
@@ -163,6 +164,6 @@ int Range1d<T>::bytePrefix[256] = { 8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0 };
 template<typename T>
-uint8_t Range1d<T>::mask_val[9] = { 0, 0b10000000, 0b11000000, 0b11100000, 0xf0, 0b11111000, 0b11111100, 0b11111110,
-		0xff };
+uint8_t Range1d<T>::mask_val[9] = { 0, 0b10000000, 0b11000000, 0b11100000, 0xf0,
+		0b11111000, 0b11111100, 0b11111110, 0xff };
 }

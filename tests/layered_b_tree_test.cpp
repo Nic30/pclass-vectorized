@@ -213,6 +213,7 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	constexpr size_t D = 7;
 	using BTree = _BTree<uint16_t, D, 8, true>;
+	using BTree_insert_t = BTreeInsert<BTree>;
 	BTree t;
 	using V = typename BTree::val_vec_t;
 	using R = typename BTree::rule_spec_t;
@@ -222,7 +223,7 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 
 	R r0 = { { any, any, any, any, any, any, R1d(6, 6) }, 0 };
 	V v0 = { 0, 1, 2, 3, 4, 5, 6 };
-	BTreeInsert<BTree>::InsertCookie c(t, r0);
+	BTree_insert_t::InsertCookie c(t, r0);
 	BOOST_CHECK_EQUAL(c.requires_levels, D);
 	BOOST_CHECK_EQUAL(c.additional_level_required_cnt(), D - 1);
 	BOOST_CHECK_EQUAL(c.required_more_levels(), true);
@@ -237,7 +238,7 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	BOOST_CHECK_EQUAL(res, 0);
 
 	R r_any = { { any, any, any, any, any, any, any }, 0 };
-	BTreeInsert<BTree>::InsertCookie c_any(t, r_any);
+	BTree_insert_t::InsertCookie c_any(t, r_any);
 	BOOST_CHECK_EQUAL(c_any.requires_levels, 1);
 	BOOST_CHECK_EQUAL(c_any.additional_level_required_cnt(), 0);
 	BOOST_CHECK_EQUAL(c_any.required_more_levels(), false);

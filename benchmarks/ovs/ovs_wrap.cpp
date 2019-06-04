@@ -62,8 +62,8 @@ void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t v) {
 	} else {
 		classifier_insert(&cls, rule, version, nullptr, 0);
 		ovs_rules.push_back(rule);
-		//std::cout << r << " inserted" << std::endl;
 		ovs_rule_to_pcv_rule[rule] = &r;
+		//std::cout << r << " inserted" << std::endl;
 	}
 }
 const Rule_Ipv4_ACL * OvsWrap::cls_rule_get_pcv_rule(

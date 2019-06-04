@@ -30,7 +30,7 @@ OVS_DEF_C_SETTINGS = [
  '-Wswitch-bool',
  '-Wswitch-enum',
  '-Wunused-parameter',
- 	#'-O3',
+ #'-O3',
 ]
 
 OVS_CXX_ARGS = OVS_DEF_C_SETTINGS
@@ -46,19 +46,19 @@ benchmark_ovs_tss_exe = executable('ovs_tss_lookup',
     srcs,
     dependencies: [pcv_dep, ovs_tss_dep],
     cpp_args: OVS_CXX_ARGS,
-    include_directories : ['./ovs/', './ovs/include'],
     c_args: OVS_C_ARGS,
+    include_directories : ['./ovs/', './ovs/include'],
 )
-test('ovs_tss_lookup', benchmark_exe, workdir : meson.source_root(),
-	args : ['tests/data/acl1_100', '4096', '10000000', '0'])
+test('ovs_tss_lookup', benchmark_ovs_tss_exe, workdir : meson.source_root(),
+	args : ['tests/data/acl1_100', '4096', '1000000', '0'])
 
 subdir('ovs_pcv')
 benchmark_ovs_pcv_exe = executable('ovs_pcv_lookup',
     srcs,
     dependencies: [pcv_dep, ovs_pcv_dep],
-    cpp_args: OVS_CXX_ARGS,
+    cpp_args: OVS_CXX_ARGS + ['-DOVS_PCV'],
+    c_args: OVS_C_ARGS + ['-DOVS_PCV'],
     include_directories : ['./ovs_pcv/', './ovs_pcv/include'],
-    c_args: OVS_C_ARGS,
 )
-test('ovs_pcv_lookup', benchmark_exe, workdir : meson.source_root(),
-	args : ['tests/data/acl1_100', '4096', '10000000', '0'])
+test('ovs_pcv_lookup', benchmark_ovs_pcv_exe, workdir : meson.source_root(),
+	args : ['tests/data/acl1_100', '4096', '1000000', '0'])

@@ -54,6 +54,55 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 
 }
 
+BOOST_AUTO_TEST_CASE( insert_search_maytimes_any_in_center ) {
+	using BTree = BTreeImp<uint16_t, 8, 4>;
+	BTree t;
+	using rule_t = BTree::rule_spec_t;
+	using R1d = BTree::val_range_t;
+	using vv_t = typename BTree::val_vec_t;
+	auto INV = BTree::INVALID_RULE;
+
+	R1d any(0, std::numeric_limits<typename R1d::T>::max());
+	{
+		rule_t r0 = { { R1d(99, 99), any, any, any, any, any, any, R1d(7, 7) },
+				0 };
+		t.insert(r0);
+		//{
+		//	ofstream o("insert_search_maytimes_any_in_center_0.dot");
+		//	o << t;
+		//	o.close();
+		//}
+		vv_t v = { 99, 1, 2, 3, 4, 5, 6, 7 };
+		auto s = t.search(v);
+		BOOST_CHECK_EQUAL(s, 0);
+
+		v = {99, 1, 2, 3, 4, 5, 6, 8};
+		s = t.search(v);
+		BOOST_CHECK_EQUAL(s, INV);
+
+		v = {99, 1, 2, 3, 4, 5, 6, 6};
+		s = t.search(v);
+		BOOST_CHECK_EQUAL(s, INV);
+	}
+
+	BOOST_CHECK_EQUAL(t.root->key_cnt, 7);
+	for (size_t i = 0; i < 7; i++) {
+		auto k = t.root->get_key(i);
+		BOOST_CHECK_EQUAL(k.key.low, i == 0 ? 99 : 0);
+		BOOST_CHECK_EQUAL(k.value, INV);
+		auto nl = t.root->get_next_layer(i);
+		if (i == 7 - 1) {
+			BOOST_CHECK_EQUAL(nl->key_cnt, 1);
+			auto k = nl->get_key(0);
+			BOOST_CHECK_EQUAL(k.value, 0);
+			BOOST_CHECK_EQUAL(k.next_level, BTree::INVALID_INDEX);
+		} else {
+			BOOST_CHECK_EQUAL(nl, nullptr);
+		}
+	}
+
+}
+
 //____________________________________________________________________________//
 
 BOOST_AUTO_TEST_SUITE_END()

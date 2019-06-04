@@ -8,7 +8,7 @@
 
 namespace pcv {
 
-template<typename BTree>
+template<class BTree>
 class BTreeInsert {
 public:
 	using value_t = typename BTree::value_t;
@@ -24,8 +24,8 @@ public:
 		size_t total_levels_required_cnt(const rule_spec_t & rule_) const {
 			// iterate from the end of the rule ordered by dimension_order and check
 			// where is the last specified value for the field
-			for (int i = int(dimensio_order.size()) - 1; i >= 0; i--) {
-				auto d = dimensio_order[i];
+			for (int i = int(dimension_order.size()) - 1; i >= 0; i--) {
+				auto d = dimension_order[i];
 				auto & k = rule_.first[d];
 
 				if (not k.is_wildcard())
@@ -36,18 +36,18 @@ public:
 			return 1;
 		}
 	public:
-		// [TODO] grammar fix
-		std::array<unsigned, BTree::D> & dimensio_order;
+		std::array<unsigned, BTree::D> & dimension_order;
 		uint8_t level;
 		const uint8_t requires_levels;
 		const rule_spec_t & rule;
 
 		InsertCookie(BTree & tree, const rule_spec_t & rule_) :
-				dimensio_order(tree.dimension_order), level(0), requires_levels(
+				dimension_order(tree.dimension_order), level(0), requires_levels(
 						total_levels_required_cnt(rule_)), rule(rule_) {
+			assert(requires_levels <= BTree::D);
 		}
 		inline Range1d<typename BTree::value_t> get_actual_key() const {
-			auto d = dimensio_order.at(level);
+			auto d = dimension_order.at(level);
 			return rule.first.at(d);
 		}
 		size_t additional_level_required_cnt() const {
@@ -62,7 +62,7 @@ public:
 	inline static void insert(BTree & tree, const rule_spec_t & rule) {
 		InsertCookie cookie(tree, rule);
 		tree.root = insert(tree.root, cookie);
-		tree.root->integrity_check(cookie.dimensio_order);
+		tree.root->integrity_check(cookie.dimension_order);
 	}
 
 	/*
@@ -72,7 +72,7 @@ public:
 		// search if there is some prefix already in decision tree because we do not
 		// want to duplicate keys which are already present
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
-		BTreeSearch<BTree>::search_path(root, cookie.dimensio_order,
+		BTreeSearch<BTree>::search_path(root, cookie.dimension_order,
 				cookie.rule, path, cookie.level);
 
 		if (path.size()) {
@@ -133,7 +133,7 @@ public:
 							BTree::INVALID_RULE : cookie.rule.second;
 			node.set_key(i + 1, KeyInfo(k, r_id, BTree::INVALID_INDEX));
 #ifndef NDEBUG
-			node.set_dim(i + 1, cookie.dimensio_order.at(cookie.level));
+			node.set_dim(i + 1, cookie.dimension_order.at(cookie.level));
 #endif
 			node.set_key_cnt(node.key_cnt + 1);
 
@@ -177,7 +177,7 @@ public:
 				keep_keys_cnt++) {
 #ifndef NDEBUG
 			auto actual_d = root->get_dim(keep_keys_cnt);
-			auto d = cookie.dimensio_order.at(cookie.level);
+			auto d = cookie.dimension_order.at(cookie.level);
 			assert(actual_d == d);
 #endif
 			auto k = cookie.get_actual_key();
@@ -286,7 +286,7 @@ public:
 			return;
 		} else {
 			auto n = decompress_node(root, keep_keys_cnt);
-			n->integrity_check(cookie.dimensio_order, nullptr, cookie.level);
+			n->integrity_check(cookie.dimension_order, nullptr, cookie.level);
 			insert(n, cookie);
 		}
 	}
@@ -298,6 +298,7 @@ public:
 	 * */
 	static void insert_compressed(Node * root, InsertCookie & cookie,
 			size_t keys_to_insert) {
+		assert(keys_to_insert <= BTree::D);
 		auto end = std::min(Node::MAX_DEGREE, root->key_cnt + keys_to_insert);
 		for (size_t i = root->key_cnt; i < end; i++) {
 			bool is_last_key_in_rule = i == keys_to_insert - 1;
@@ -306,8 +307,10 @@ public:
 					is_last_key_in_rule ?
 							cookie.rule.second : BTree::INVALID_RULE;
 			root->set_key(i, KeyInfo(k, r_id, BTree::INVALID_INDEX)); // Insert key
-			root->set_dim(i, cookie.dimensio_order.at(cookie.level));
-			cookie.level++;
+			root->set_dim(i, cookie.dimension_order.at(cookie.level));
+			bool last_it = i + 1 == end;
+			if (!last_it)
+				cookie.level++;
 		}
 		root->set_key_cnt(end);
 		if (cookie.required_more_levels()) {
@@ -339,7 +342,7 @@ public:
 			root->set_key(0,
 					KeyInfo(k, cookie.rule.second, BTree::INVALID_INDEX)); // Insert key
 #ifndef NDEBUG
-			root->set_dim(0, cookie.dimensio_order[cookie.level]);
+			root->set_dim(0, cookie.dimension_order[cookie.level]);
 #endif
 			root->set_key_cnt(1);
 			if (cookie.required_more_levels()) {

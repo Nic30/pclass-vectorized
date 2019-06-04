@@ -8,7 +8,8 @@ src = [
 ]
 
 EXTRA_CXX_ARGS = [
- 	#'-O3',
+ 	'-O3',
+ 	#'-g',
  	'-Wall',
  	'-m64',
  	'-mavx2',

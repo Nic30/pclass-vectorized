@@ -40,14 +40,14 @@ namespace pcv {
  * @tparam _PATH_COMPRESSION is true the path compression is enabled
  * 		and some of the nodes may be compressed as described
  * */
-template<typename Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
+template<typename _Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
 class alignas(64) _BTree {
 public:
 	using rule_id_t = uint16_t;
 	static constexpr size_t D = _D;
-	using val_range_t = Range1d<Key_t>;
+	using val_range_t = Range1d<_Key_t>;
 	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
-	using value_t = Key_t;
+	using value_t = _Key_t;
 	using index_t = uint16_t;
 	using KeyInfo = _KeyInfo<value_t, index_t>;
 	using val_vec_t = std::array<value_t, D>;
@@ -70,7 +70,7 @@ public:
 		static constexpr size_t MAX_DEGREE = 2 * T - 1;
 		// keys for the items in the node
 		__m256i keys[2];
-		static_assert(sizeof(Key_t)* MAX_DEGREE <= sizeof(__m256i));
+		static_assert(sizeof(_Key_t)* MAX_DEGREE <= sizeof(__m256i));
 		// 16*1B dimension index, only used for compressed nodes, the dimension order is same as in tree
 		__m64 dim_index[2];
 		// the value of rule
@@ -287,6 +287,7 @@ public:
 				seen = &_seen;
 			assert(seen->find(this) == seen->end());
 			assert(key_cnt > 0);
+			assert(key_cnt <= MAX_DEGREE);
 			if (is_compressed) {
 				assert(is_leaf);
 				assert(key_cnt > 1);

@@ -25,10 +25,10 @@ namespace search_fn {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i   __attribute__((__always_inline__))   _mm256_cmpgt_epu32(
-		__m256i   const a, __m256i   const b) {
+inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
+		__m256i const a, __m256i const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i   const fix_val = _mm256_set1_epi32(offset);
+	__m256i const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 /*
@@ -37,10 +37,10 @@ inline static __m256i   __attribute__((__always_inline__))   _mm256_cmpgt_epu32(
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i   __attribute__((__always_inline__))   _mm256_cmpgt_epu16(
-		__m256i   const a, __m256i   const b) {
+inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
+		__m256i const a, __m256i const b) {
 	constexpr uint16_t offset = 0x1u << 15;
-	__m256i   const fix_val = _mm256_set1_epi16(offset);
+	__m256i const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }
 
@@ -137,7 +137,7 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i   const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -389,7 +389,37 @@ public:
 			++i;
 		return i;
 	}
-
+	// @param n node to search in
+	// @param _val value vector to search
+	// @param res id or best matching rule
+	// @param i dimension index (the index of the field index in the dimension_order array)
+	static Node * search_rest_of_path_in_compressed_node(Node * n,
+			const val_vec_t & _val, rule_id_t & res, unsigned & i) {
+		// first item was already checked in search_possition_1d
+		// find length of the sequence of the matching ranges in the items stored in node
+		Node * next_n = nullptr;
+		unsigned add_to_i = 0;
+		for (unsigned i2 = 1; i2 < n->key_cnt; i2++) {
+			auto k = n->get_key(i2);
+			auto d = n->get_dim(i2);
+			typename val_vec_t::value_type val = _val[d];
+			if (not k.key.in_range(val)) {
+				break;
+			}
+			auto v = n->value[i2];
+			if (v != BTree::INVALID_RULE) {
+				res = v;
+			}
+			auto _next_n = n->get_next_layer(i2);
+			if (_next_n) {
+				// do not overwrite if there are some non matching items in this node
+				next_n = _next_n;
+				add_to_i = i2 + 1;
+			}
+		}
+		i += add_to_i;
+		return next_n;
+	}
 	/*
 	 * Search in all levels of the tree
 	 *
@@ -405,26 +435,7 @@ public:
 			n = r.first;
 			if (n) {
 				if (n->is_compressed) {
-					// first item was already checked in search_possition_1d
-					// find length of the sequence of the matching ranges in the items stored in node
-					unsigned i2;
-					Node * next_n = nullptr;
-					for (i2 = 1; i2 < n->key_cnt; i2++) {
-						auto k = n->get_key(i2);
-						d = n->get_dim(i2);
-						val = _val[d];
-						if (not k.key.in_range(val)) {
-							break;
-						}
-						auto v = n->value[i2];
-						if (v != BTree::INVALID_RULE) {
-							res = v;
-						}
-						auto _next_n = n->get_next_layer(i2);
-						if (_next_n)
-							next_n = _next_n;
-					}
-					n = next_n;
+					n = search_rest_of_path_in_compressed_node(n, _val, res, i);
 					continue;
 				}
 				auto v = n->value[r.second];
@@ -523,6 +534,7 @@ public:
 		}
 #ifndef NDEBUG
 		{
+			// integrity check of the path continuity
 			for (size_t i = 0; i < path.size(); i++) {
 				Node *r, *n;
 				unsigned i2;

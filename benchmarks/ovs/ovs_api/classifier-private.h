@@ -14,8 +14,14 @@
 #include <pcv/partition_sort/partition_sort_classifier.h>
 
 constexpr size_t DIM_CNT = 193;
-using BTree = pcv::BTreeImp<uint16_t, DIM_CNT, 8>;
+using BTree = pcv::BTreeImp<uint16_t, DIM_CNT, 8, false>;
 using Classifier = pcv::PartitionSortClassifer<BTree, 64, 10>;
+
+struct classifier_priv {
+	Classifier cls;
+	std::unordered_map<Classifier::rule_id_t, const cls_rule *> to_rule;
+	std::unordered_map<const struct cls_rule*, Classifier::rule_spec_t> to_pcv_rule;
+};
 
 namespace vec_build {
 using pcv::Range1d;
@@ -388,7 +394,6 @@ inline void flow_from_array(const std::array<R, DIM_CNT> & a, struct flow * f,
 	const R * r = &a[0];
 
 	pop_flow_tnl(&f->tunnel, &m->tunnel, i, r);
-	assert(i == 36);
 
 	pop_64be(f->metadata, m->metadata, i, r);
 	for (size_t i2 = 0; i2 < FLOW_N_REGS; i2++) {
@@ -407,7 +412,6 @@ inline void flow_from_array(const std::array<R, DIM_CNT> & a, struct flow * f,
 	pop_128(f->ct_label, m->ct_label, i, r);
 	pop_32(f->conj_id, m->conj_id, i, r);
 	pop_32(f->actset_output, m->actset_output, i, r);
-	assert(i == 101);
 	pop_eth_addr(f->dl_dst, m->dl_dst, i, r);
 	pop_eth_addr(f->dl_src, m->dl_src, i, r);
 	pop_16be(f->dl_type, m->dl_type, i, r);
@@ -434,7 +438,6 @@ inline void flow_from_array(const std::array<R, DIM_CNT> & a, struct flow * f,
 	pop_eth_addr(f->arp_sha, m->arp_sha, i, r);
 	pop_eth_addr(f->arp_tha, m->arp_tha, i, r);
 	pop_16be(f->tcp_flags, m->tcp_flags, i, r);
-	assert(i == 177);
 	pop_ovs_key_nsh(f->nsh, m->nsh, i, r);
 
 	pop_16be(f->tp_src, m->tp_src, i, r);
@@ -445,7 +448,7 @@ inline void flow_from_array(const std::array<R, DIM_CNT> & a, struct flow * f,
 	assert(i == DIM_CNT);
 }
 inline void flow_to_array(const struct flow * f, const struct flow * m,
-		std::array<R, DIM_CNT> _r) {
+		std::array<R, DIM_CNT> & _r) {
 	int i = 0;
 	R * r = &_r[0];
 
@@ -517,7 +520,6 @@ inline void flow_from_array(const std::array<uint16_t, DIM_CNT> & a,
 	const uint16_t * r = &a[0];
 
 	pop_flow_tnl(&f->tunnel, i, r);
-	assert(i == 36);
 
 	pop_64be(f->metadata, i, r);
 	for (size_t i2 = 0; i2 < FLOW_N_REGS; i2++) {
@@ -536,7 +538,6 @@ inline void flow_from_array(const std::array<uint16_t, DIM_CNT> & a,
 	pop_128(f->ct_label, i, r);
 	pop_32(f->conj_id, i, r);
 	pop_32(f->actset_output, i, r);
-	assert(i == 101);
 	pop_eth_addr(f->dl_dst, i, r);
 	pop_eth_addr(f->dl_src, i, r);
 	pop_16be(f->dl_type, i, r);
@@ -563,7 +564,6 @@ inline void flow_from_array(const std::array<uint16_t, DIM_CNT> & a,
 	pop_eth_addr(f->arp_sha, i, r);
 	pop_eth_addr(f->arp_tha, i, r);
 	pop_16be(f->tcp_flags, i, r);
-	assert(i == 177);
 	pop_ovs_key_nsh(f->nsh, i, r);
 
 	pop_16be(f->tp_src, i, r);
@@ -579,7 +579,6 @@ inline void flow_to_array(const struct flow * f,
 	uint16_t * r = &_r[0];
 
 	push_flow_tnl(&f->tunnel, i, r);
-	assert(i == 36);
 
 	push_64be(f->metadata, i, r);
 	for (size_t i2 = 0; i2 < FLOW_N_REGS; i2++) {
@@ -598,7 +597,6 @@ inline void flow_to_array(const struct flow * f,
 	push_128(f->ct_label, i, r);
 	push_32(f->conj_id, i, r);
 	push_32(f->actset_output, i, r);
-	assert(i == 101);
 	push_eth_addr(f->dl_dst, i, r);
 	push_eth_addr(f->dl_src, i, r);
 	push_16be(f->dl_type, i, r);
@@ -625,7 +623,6 @@ inline void flow_to_array(const struct flow * f,
 	push_eth_addr(f->arp_sha, i, r);
 	push_eth_addr(f->arp_tha, i, r);
 	push_16be(f->tcp_flags, i, r);
-	assert(i == 177);
 	push_ovs_key_nsh(f->nsh, i, r);
 
 	push_16be(f->tp_src, i, r);

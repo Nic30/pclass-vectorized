@@ -67,16 +67,13 @@ public:
 		TREE_T tree;
 		rule_id_t max_priority;
 		std::vector<rule_spec_t> rules;
-		//~tree_info() {
-		//	// dissabled destructor
-		//}
 	};
 	std::array<tree_info*, MAX_TREE_CNT> trees;
 	size_t tree_cnt;
 
 	// used to keep track of where are the rules stored for removing;
-	std::unordered_map<rule_spec_t, tree_info *, rule_spec_t_hasher<rule_spec_t>,
-			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
+	std::unordered_map<rule_spec_t, tree_info *,
+			rule_spec_t_hasher<rule_spec_t>, rule_spec_t_eq<rule_spec_t>> rule_to_tree;
 
 	PartitionSortClassifer() :
 			tree_cnt(0) {
@@ -171,7 +168,6 @@ public:
 				assert_all_trees_unique();
 				return;
 			}
-
 		}
 	}
 
@@ -180,6 +176,9 @@ public:
 	 * and sort the tress by the max priority rule in descending order
 	 * */
 	inline void insert(const rule_spec_t & rule) {
+		// [TODO] in new dimension is used in rule which was not used in tree previously
+		//        it is required to update dimension order to put the new dimension,
+		//        being previously used, in order to prevent sparse branches in tree.
 		size_t i = 0;
 		for (; i < tree_cnt; i++) {
 			auto & t = *trees[i];
@@ -200,10 +199,20 @@ public:
 			// the rule does not fit to any tree, generate new tree for this rule
 			auto & t = *trees[i];
 			t.max_priority = rule.second;
+			if (t.rules.size() == 0) {
+				// update default dimension order to fit current rule
+				// in order to avoid useless tree reconstruction
+				std::vector<rule_spec_t> _rules = { rule, };
+				GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, value_t> resolver(
+						_rules, t.tree.dimension_order);
+				t.tree.dimension_order = resolver.resolve();
+			}
 			t.tree.insert(rule);
 			t.rules.push_back(rule);
 			rule_to_tree[rule] = &t;
-			update_dimension_order(t);
+			if (t.rules.size() > 1) {
+				update_dimension_order(t);
+			}
 			tree_cnt++;
 			resort_on_priority_change(tree_cnt - 1);
 			//std::cout << "tree_cnt = " << tree_cnt << std::endl;

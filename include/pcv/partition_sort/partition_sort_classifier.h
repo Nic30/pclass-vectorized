@@ -82,7 +82,8 @@ public:
 		}
 	}
 
-	inline void update_dimension_order(tree_info & ti) {
+	// @return true if the dimension order changed
+	inline bool update_dimension_order(tree_info & ti) {
 		TREE_T & tree = ti.tree;
 		GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, value_t> resolver(
 				ti.rules, tree.dimension_order);
@@ -102,7 +103,9 @@ public:
 					tree.insert(r);
 				}
 			}
+			return true;
 		}
+		return false;
 		// else no change is required as the dimension order is optimal (or nearly optimal)
 	}
 	inline void assert_all_trees_unique() {
@@ -176,9 +179,6 @@ public:
 	 * and sort the tress by the max priority rule in descending order
 	 * */
 	inline void insert(const rule_spec_t & rule) {
-		// [TODO] in new dimension is used in rule which was not used in tree previously
-		//        it is required to update dimension order to put the new dimension,
-		//        being previously used, in order to prevent sparse branches in tree.
 		size_t i = 0;
 		for (; i < tree_cnt; i++) {
 			auto & t = *trees[i];
@@ -186,9 +186,13 @@ public:
 				t.rules.push_back(rule);
 				rule_to_tree[rule] = &t;
 				if (t.rules.size() < TREE_FIXATION_THRESHOLD) {
-					update_dimension_order(t);
+					if (update_dimension_order(t) == false)
+						t.tree.insert(rule);
 					// the rule is inserted automatically as it is in t.rules
 				} else {
+					// [TODO] in new dimension is used in rule which was not used in tree previously
+					//        it is required to update dimension order to put the new dimension,
+					//        being previously used, in order to prevent sparse branches in tree.
 					t.tree.insert(rule);
 				}
 				if (rule.second > t.max_priority) {

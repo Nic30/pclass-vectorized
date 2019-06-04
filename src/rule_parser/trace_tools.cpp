@@ -25,10 +25,11 @@ void ramdom_corner_push_value(packet_t & packet, size_t & byte_offset,
 	uint16_t p[2];
 	if (big_endian) {
 		v = __bswap_32(v);
-		*((uint32_t*) p) = v;
+		p[0] = v;
+		p[1] = v >> 16;
 	} else {
-		*((uint32_t*) p) = v;
-		std::swap(p[0], p[1]);
+		p[1] = v;
+		p[0] = v >> 16;
 	}
 
 	packet[byte_offset / 2] = p[0];
@@ -79,7 +80,7 @@ int pareto_distrib(float a, float b, std::mt19937 & rand) {
 }
 
 // Generate headers
-// a,b in ClassBench are 1 0.1 
+// a,b in ClassBench are 1 0.1
 // generate at least 'threshold' number of packets
 // To ensure the generated dataset is deterministic, call this first!!
 std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,

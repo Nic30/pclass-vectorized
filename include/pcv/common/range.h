@@ -138,10 +138,10 @@ public:
 		low = 0;
 		high = std::numeric_limits<T>::max();
 	}
-	size_t prefix_len_le() {
+	size_t prefix_len_le() const {
 		return _get_mask_le().second;
 	}
-	size_t prefix_len_be() {
+	size_t prefix_len_be() const {
 		return to_be().prefix_len_le();
 	}
 	size_t max_prefix_len() {

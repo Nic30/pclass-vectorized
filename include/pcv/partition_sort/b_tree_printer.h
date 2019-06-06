@@ -1,5 +1,8 @@
 #pragma once
 #include <string>
+#include <array>
+#include <functional>
+#include <string>
 
 namespace pcv {
 
@@ -9,7 +12,17 @@ public:
 	using Node = typename BTree::Node;
 	using value_t = typename BTree::value_t;
 
-	static void print_to_stream(std::ostream & str, const Node & n) {
+	using formaters_t = typename BTree::formaters_t;
+	using names_t = typename BTree::names_t;
+
+	const formaters_t & formaters;
+	const names_t & names;
+
+	BTreePrinter(const formaters_t & _formaters, const names_t & _names) :
+			formaters(_formaters), names(_names) {
+	}
+
+	void print_to_stream(std::ostream & str, const Node & n) const {
 		auto id = Node::_Mempool_t::getId(&n);
 		/*
 		 * <id>
@@ -28,7 +41,8 @@ public:
 			str << " compressed ";
 		} else {
 #ifndef NDEBUG
-			str << " D=" << int(n.get_dim(0));
+			str << " D=" << names.at(n.get_dim(0)) << "(" << int(n.get_dim(0))
+					<< ")";
 #endif
 		}
 
@@ -41,9 +55,11 @@ public:
 				// << hex
 
 				// range on first row rule id on second
-				str << "{ <range" << i << ">" << k.key.low << "-" << k.key.high;
+				str << "{ <range" << i << ">";
+				auto d = n.get_dim(i);
+				formaters.at(d)(str, k.key);
 				if (n.is_compressed) {
-					str << " D" << int(n.get_dim(i));
+					str << " D=" << names.at(d) << "(" << int(d) << ")";
 				}
 				str << " | ";
 				if (k.value != BTree::INVALID_RULE)
@@ -94,7 +110,7 @@ public:
 	}
 
 	// serialize graph to string in dot format
-	static std::ostream & print_top(std::ostream & str, const BTree & t) {
+	std::ostream & print_top(std::ostream & str, const BTree & t) {
 		str << "digraph layered_btree {" << std::endl;
 		str << "    " << "node [shape=record];" << std::endl;
 		if (t.root)

@@ -204,4 +204,31 @@ Rule_OF_1_5_1::Rule_OF_1_5_1() {
 	packet_type.set_wildcard();
 }
 
+namespace rule_vec_format {
+
+void rule_vec_format_ipv4_part(std::ostream & str, const Range1d<uint16_t> & k) {
+	auto p_len = k.prefix_len_le();
+	str << (unsigned(k.low) >> 8) << ".";
+	str << (unsigned(k.low) & 0xff) << "/" << p_len;
+}
+
+std::array<std::function<void(std::ostream &, const Range1d<uint16_t>)>, 7> Rule_Ipv4_ACL_formaters =
+		{ rule_vec_format_ipv4_part,
+		  rule_vec_format_ipv4_part,
+		  rule_vec_format_ipv4_part,
+		  rule_vec_format_ipv4_part,
+		  rule_vec_format_default<uint16_t>,
+		  rule_vec_format_default<uint16_t>,
+		  rule_vec_format_default<uint16_t>,
+		};
+std::array<std::string, 7> Rule_Ipv4_ACL_names = { //
+		"sip-high", "sip-low", //
+				"dip-high", "dip-low", //
+				"sport",              //
+				"dport",              //
+				"proto"               //
+		};
+
+};
+
 }

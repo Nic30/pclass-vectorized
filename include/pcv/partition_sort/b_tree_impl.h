@@ -27,9 +27,18 @@ public:
 	using index_t = typename BTree::index_t;
 	using KeyInfo = typename BTree::KeyInfo;
 	using val_vec_t = typename BTree::val_vec_t;
+	using formaters_t = typename BTree::formaters_t;
+	using names_t = typename BTree::names_t;
 
 	static constexpr index_t INVALID_INDEX = BTree::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
+
+	BTreeImp() {
+	}
+
+	BTreeImp(const formaters_t & _formaters, const names_t & _names) :
+			BTree(_formaters, _names) {
+	}
 
 	inline void insert(const rule_spec_t & r) {
 		BTreeInsert<BTreeImp>::insert(*this, r);

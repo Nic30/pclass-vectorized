@@ -59,6 +59,8 @@ public:
 	using KeyInfo = typename TREE_T::KeyInfo;
 	using rule_id_t= typename TREE_T::rule_id_t;
 	using val_vec_t= typename TREE_T::val_vec_t;
+	using formaters_t = typename TREE_T::formaters_t;
+	using names_t = typename TREE_T::names_t;
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
 
@@ -67,6 +69,14 @@ public:
 		TREE_T tree;
 		rule_id_t max_priority;
 		std::vector<rule_spec_t> rules;
+		tree_info() :
+				tree() {
+		}
+
+		tree_info(const formaters_t & _formaters, const names_t & _names) :
+				tree(_formaters, _names) {
+
+		}
 	};
 	std::array<tree_info*, MAX_TREE_CNT> trees;
 	size_t tree_cnt;
@@ -79,6 +89,13 @@ public:
 			tree_cnt(0) {
 		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
 			trees[i] = new tree_info;
+		}
+	}
+	PartitionSortClassifer(const formaters_t & _formaters,
+			const names_t & _names) :
+			tree_cnt(0) {
+		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
+			trees[i] = new tree_info(_formaters, _names);
 		}
 	}
 

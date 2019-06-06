@@ -1,7 +1,9 @@
 #pragma once
 #include <stdint.h>
 #include <array>
+#include <functional>
 #include <pcv/common/range.h>
+#include <iostream>
 
 namespace pcv {
 
@@ -153,6 +155,20 @@ template<typename T, size_t D>
 Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<T, D> & a);
 template<typename T, size_t D>
 Rule_Ipv4_ACL exact_array_to_rule_be(const std::array<T, D> & a);
+
+}
+
+namespace rule_vec_format {
+
+extern std::array<std::function<void(std::ostream &, const Range1d<uint16_t>)>,
+		7> Rule_Ipv4_ACL_formaters;
+extern std::array<std::string, 7> Rule_Ipv4_ACL_names;
+
+template<typename T>
+void rule_vec_format_default(std::ostream & str, const Range1d<T> & k) {
+	str << unsigned(k.low) << "-" << unsigned(k.high);
+}
+void rule_vec_format_ipv4_part(std::ostream & str, const Range1d<uint16_t> & k);
 
 }
 

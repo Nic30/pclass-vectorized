@@ -9,6 +9,8 @@
 #include <set>
 #include <tuple>
 #include <sstream>
+#include <functional>
+
 
 #ifndef NDEBUG
 #include <cstring>
@@ -19,6 +21,8 @@
 #include <pcv/partition_sort/b_tree_printer.h>
 #include <pcv/partition_sort/key_info.h>
 #include <pcv/partition_sort/mempool.h>
+#include <pcv/rule_parser/rule.h>
+
 
 namespace pcv {
 
@@ -40,17 +44,28 @@ namespace pcv {
  * @tparam _PATH_COMPRESSION is true the path compression is enabled
  * 		and some of the nodes may be compressed as described
  * */
-template<typename _Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
+template<typename _Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION =
+		true>
 class alignas(64) _BTree {
 public:
+	// the identifier of the rule store in tree
 	using rule_id_t = uint16_t;
 	static constexpr size_t D = _D;
+	// range which is a key
 	using val_range_t = Range1d<_Key_t>;
+	// specification of the rule for insert/remove ops
 	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
 	using value_t = _Key_t;
+	// index of the node in memorypool
 	using index_t = uint16_t;
+	// util type which keeps informations about the key and child/next layer pointers in for item in node
 	using KeyInfo = _KeyInfo<value_t, index_t>;
+	// type of value vector which can be searched in this data structure
 	using val_vec_t = std::array<value_t, D>;
+
+	// print functions and key names for the debug
+	using formaters_t = std::array< std::function<void(std::ostream & str, val_range_t val)>, D>;
+	using names_t = std::array<std::string, D>;
 
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
@@ -340,6 +355,8 @@ public:
 
 	Node * root;
 	std::array<unsigned, D> dimension_order;
+	const formaters_t formaters;
+	const names_t names;
 
 	// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 	_BTree(_BTree const&) = delete;
@@ -355,8 +372,29 @@ public:
 		return *this;
 	}
 
+	static formaters_t _default_formaters() {
+		formaters_t f;
+		std::fill(f.begin(), f.end(),
+				rule_vec_format::rule_vec_format_default<value_t>);
+		return f;
+	}
+	static names_t _default_names() {
+		names_t names;
+		for (size_t i = 0; i < D; i++) {
+			names[i] = std::to_string(i);
+		}
+
+		return names;
+	}
 	_BTree() :
-			root(nullptr) {
+			root(nullptr), formaters(_default_formaters()), names(
+					_default_names()) {
+		for (size_t i = 0; i < dimension_order.size(); i++)
+			dimension_order[i] = i;
+	}
+
+	_BTree(const formaters_t & _formaters, const names_t & _names) :
+			root(nullptr), formaters(_formaters), names(_names) {
 		for (size_t i = 0; i < dimension_order.size(); i++)
 			dimension_order[i] = i;
 	}
@@ -371,7 +409,8 @@ public:
 
 	// serialize graph to string in dot format
 	friend std::ostream & operator<<(std::ostream & str, const _BTree & t) {
-		return BTreePrinter<_BTree>::print_top(str, t);
+		BTreePrinter<_BTree> p(t.formaters, t.names);
+		return p.print_top(str, t);
 	}
 	operator std::string() const {
 		std::stringstream ss;

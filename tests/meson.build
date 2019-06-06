@@ -12,6 +12,7 @@ tests = [
   ['dimension_order_resolver', 'tests for the dimension order solver which is used to resolve structure of the trees'],
   ['partition_sort_classifier', 'tests for the partition sort packet classifer itself'],
   ['range', 'tests for Range1d<> endianity conversions, masks etc'],
+  ['verif_pcv_list', 'verificate if pcv classifier and list based classifier is working in the same way']
 ]
 
 foreach t : tests

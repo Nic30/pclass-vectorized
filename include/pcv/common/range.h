@@ -41,9 +41,11 @@ public:
 	Range1d() :
 			low(0), high(0) {
 	}
-	Range1d(T low_, T high_) :
+	Range1d(T low_, T high_, bool _be = false) :
 			low(low_), high(high_) {
-		assert(low <= high);
+		if (! _be ) {
+			assert(low <= high);
+		}
 	}
 	static Range1d from_mask(T low, T mask) {
 		return Range1d(low, low | ~mask);
@@ -126,7 +128,7 @@ public:
 		return {mask, prefix_len};
 	}
 	Range1d to_be() const {
-		return Range1d(endianity_swap::to_be(low), endianity_swap::to_be(high));
+		return Range1d(endianity_swap::to_be(low), endianity_swap::to_be(high), true);
 	}
 	bool is_wildcard() const {
 		return low == 0 and high == std::numeric_limits<T>::max();

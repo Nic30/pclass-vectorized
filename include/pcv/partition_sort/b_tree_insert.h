@@ -172,6 +172,7 @@ public:
 		assert(root->is_leaf);
 		assert(root->key_cnt > 1);
 		// search for the longest common prefix
+		// keep_keys_cnt = index of first non matching item
 		uint8_t keep_keys_cnt;
 		for (keep_keys_cnt = 0; keep_keys_cnt < root->key_cnt;
 				keep_keys_cnt++) {
@@ -275,7 +276,9 @@ public:
 		if (keep_keys_cnt == root->key_cnt) {
 			// the rule of exactly same value or same prefix is already stored
 			// in tree
-			if (cookie.required_more_levels()) {
+			// can not use required_more_levels() because level is already incremented
+			bool required_more_levels = cookie.level < cookie.requires_levels;
+			if (required_more_levels) {
 				// continue insert on next level
 				auto nl = root->get_next_layer(keep_keys_cnt - 1);
 				nl = insert(nl, cookie);

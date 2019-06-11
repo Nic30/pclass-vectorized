@@ -207,7 +207,7 @@ public:
 						t.tree.insert(rule);
 					// the rule is inserted automatically as it is in t.rules
 				} else {
-					// [TODO] in new dimension is used in rule which was not used in tree previously
+					// [TODO] if new dimension is used in rule which was not used in tree previously
 					//        it is required to update dimension order to put the new dimension,
 					//        being previously used, in order to prevent sparse branches in tree.
 					t.tree.insert(rule);
@@ -262,7 +262,12 @@ public:
 
 		for (size_t i = 0; i < tree_cnt; i++) {
 			auto & t = *trees[i];
-			actual_found = t.tree.search(val);
+			auto res = t.tree.search(val);
+			if (res != TREE_T::INVALID_RULE
+					&& (actual_found == TREE_T::INVALID_RULE
+							|| actual_found < res)) {
+				actual_found = res;
+			}
 			if (actual_found != TREE_T::INVALID_RULE and i + 1 < tree_cnt
 					and trees[i + 1]->max_priority < actual_found) {
 				break;

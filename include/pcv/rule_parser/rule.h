@@ -146,15 +146,12 @@ public:
 
 namespace rule_conv_fn {
 
-template<typename T, size_t D>
-std::array<Range1d<T>, D> rule_to_array(const Rule_Ipv4_ACL & r);
-template<typename T, size_t D>
-std::array<Range1d<T>, D> rule_to_array(const Rule_OF_1_5_1 & r);
+Rule_Ipv4_ACL rule_from_array(const std::array<Range1d<uint16_t>, 7> & arr);
+std::array<Range1d<uint16_t>, 7> rule_to_array_16b(const Rule_Ipv4_ACL & r);
+std::array<Range1d<uint16_t>, 177> rule_to_array_16b(const Rule_OF_1_5_1 & r);
 
-template<typename T, size_t D>
-Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<T, D> & a);
-template<typename T, size_t D>
-Rule_Ipv4_ACL exact_array_to_rule_be(const std::array<T, D> & a);
+Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<uint16_t, 7> & a);
+Rule_Ipv4_ACL exact_array_to_rule_be(const std::array<uint16_t, 7> & a);
 
 }
 

@@ -1,4 +1,5 @@
 #include <pcv/rule_parser/rule.h>
+#include <pcv/rule_parser/rule_vec_utils.h>
 
 namespace pcv {
 
@@ -24,9 +25,9 @@ Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
 		const Range1d<uint32_t> & val) {
 	using R = Range1d<uint16_t>;
 	auto m = std::numeric_limits<uint16_t>::max();
-	*begin = R((val.low >> 16) & m, (val.high >> 16) & m);
-	begin++;
 	*begin = R(val.low & m, val.high & m);
+	begin++;
+	*begin = R((val.low >> 16) & m, (val.high >> 16) & m);
 	begin++;
 	return begin;
 }
@@ -46,8 +47,9 @@ Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
 		const Range1d<uint64_t> & val) {
 	using R = Range1d<uint16_t>;
 	auto m = std::numeric_limits<uint16_t>::max();
-	for (int i = 4 - 1; i >= 0; i--) {
-		*begin = R((val.low >> (i * 16)) & m, (val.high >> (i * 16)) & m);
+	for (size_t i = 0; i < 4; i++) {
+		*begin = R((val.low >> (i * 16)) & m,
+				   (val.high >> (i * 16)) & m);
 		begin++;
 	}
 	return begin;
@@ -57,12 +59,12 @@ Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
 		const Range1d<ipv6_t> & val) {
 	using R = Range1d<uint16_t>;
 	auto m = std::numeric_limits<uint16_t>::max();
-	for (int i = 4 - 1; i >= 0; i--) {
+	for (size_t i = 0; i < 4; i++) {
 		*begin = R((val.low.high >> (i * 16)) & m,
 				(val.high.high >> (i * 16)) & m);
 		begin++;
 	}
-	for (int i = 4 - 1; i >= 0; i--) {
+	for (size_t i = 0; i < 4; i++) {
 		*begin = R((val.low.low >> (i * 16)) & m,
 				(val.high.low >> (i * 16)) & m);
 		begin++;
@@ -71,8 +73,21 @@ Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
 }
 
 namespace rule_conv_fn {
-template<>
-std::array<Range1d<uint16_t>, 7> rule_to_array(const Rule_Ipv4_ACL & r) {
+
+
+Rule_Ipv4_ACL rule_from_array(const std::array<Range1d<uint16_t>, 7> & arr) {
+	Rule_Ipv4_ACL r;
+	auto a = &arr[0];
+	size_t i = 0;
+	vec_build::pop_32(r.sip, i, a);
+	vec_build::pop_32(r.dip, i, a);
+	r.sport = arr[i];
+	r.dport = arr[i+1];
+	r.proto = arr[i+2];
+	return r;
+}
+
+std::array<Range1d<uint16_t>, 7> rule_to_array_16b(const Rule_Ipv4_ACL & r) {
 	std::array<Range1d<uint16_t>, 7> _r;
 	auto p = fill(&_r[0], r.sip);
 	fill(p, r.dip);
@@ -83,7 +98,6 @@ std::array<Range1d<uint16_t>, 7> rule_to_array(const Rule_Ipv4_ACL & r) {
 	return _r;
 }
 
-template<>
 Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<uint16_t, 7> & a) {
 	Rule_Ipv4_ACL r;
 	uint32_t v = *((uint32_t*) &a[0]);
@@ -97,15 +111,13 @@ Rule_Ipv4_ACL exact_array_to_rule_le(const std::array<uint16_t, 7> & a) {
 	return r;
 }
 
-template<>
 Rule_Ipv4_ACL exact_array_to_rule_be(const std::array<uint16_t, 7> & a) {
 	auto v = exact_array_to_rule_le(a);
 	v.reverse_endianity();
 	return v;
 }
 
-template<>
-std::array<Range1d<uint16_t>, 177> rule_to_array(const Rule_OF_1_5_1 & r) {
+std::array<Range1d<uint16_t>, 177> rule_to_array_16b(const Rule_OF_1_5_1 & r) {
 	std::array<Range1d<uint16_t>, 177> _r;
 	auto a = fill(&_r[0], r.in_port);
 	a = fill(a, r.in_phy_port);
@@ -222,8 +234,8 @@ std::array<std::function<void(std::ostream &, const Range1d<uint16_t>)>, 7> Rule
 		  rule_vec_format_default<uint16_t>,
 		};
 std::array<std::string, 7> Rule_Ipv4_ACL_names = { //
-		"sip-high", "sip-low", //
-				"dip-high", "dip-low", //
+		"sip-low", "sip-high", //
+				"dip-low", "dip-high", //
 				"sport",              //
 				"dport",              //
 				"proto"               //

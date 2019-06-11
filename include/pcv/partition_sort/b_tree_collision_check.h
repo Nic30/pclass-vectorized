@@ -74,6 +74,7 @@ public:
 				lk = p_low.first->get_key(p_low.second).key;
 				lk_found = true;
 			}
+
 			if (lk_found and lk == d_val) {
 				// not overlapping on this level, but we need to check the next level
 			} else {
@@ -82,7 +83,8 @@ public:
 					KeyIterator _it(p_low.first, p_low.second);
 					p_low_next = (*_it.begin()).key;
 				} else {
-					KeyIterator _it(tree.root, 0);
+					auto _min = BTreeSearch<BTree>::get_most_left(t);
+					KeyIterator _it(_min, 0);
 					p_low_next = (*_it.begin()).key;
 				}
 				if (p_low_next.overlaps(d_val)) {

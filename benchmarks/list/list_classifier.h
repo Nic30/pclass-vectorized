@@ -2,8 +2,12 @@
 
 #include <vector>
 #include <algorithm>
+#include <functional>
+#include <sstream>
 
 #include <pcv/common/range.h>
+#include <pcv/rule_parser/rule.h>
+
 
 namespace pcv {
 
@@ -16,13 +20,21 @@ public:
 	using val_range_t = Range1d<_Key_t>;
 	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
 	using val_vec_t = std::array<value_t, D>;
+	// print functions and key names for the debug
+	using formater_t = std::function<void(std::ostream & str, const rule_spec_t & rule)>;
+
 	static constexpr rule_id_t INVALID_RULE =
 			std::numeric_limits<rule_id_t>::max();
+
 	std::vector<rule_spec_t> rules;
 	bool rules_sorted;
-	ListBasedClassifier() :
-			rules_sorted(true) {
+	const formater_t formater;
 
+	ListBasedClassifier() :
+			rules_sorted(true), formater(_default_formater) {
+	}
+	ListBasedClassifier(const formater_t & _formater) :
+		rules_sorted(true), formater(_formater) {
 	}
 	inline void insert(const rule_spec_t & r) {
 		rules.push_back(r);
@@ -58,6 +70,35 @@ public:
 	}
 	inline void remove(const rule_spec_t & r) {
 		rules.erase(std::remove(rules.begin(), rules.end(), r), rules.end());
+	}
+
+	static void _default_formater(std::ostream & str,
+			const rule_spec_t & rule) {
+		for (auto v : rule.first) {
+			rule_vec_format::rule_vec_format_default<value_t>(str, v);
+			str << " ";
+		}
+		str << rule.second;
+	}
+
+	// serialize list to classbench rules
+	friend std::ostream & operator<<(std::ostream & str,
+			const ListBasedClassifier & lc) {
+		if (not lc.rules_sorted)
+			throw std::runtime_error("rules are not prepared");
+		size_t i = 0;
+		for (auto r : lc.rules) {
+			str << i << ": ";
+			lc.formater(str, r);
+			str << std::endl;
+			i++;
+		}
+		return str;
+	}
+	operator std::string() const {
+		std::stringstream ss;
+		ss << *this;
+		return ss.str();
 	}
 };
 

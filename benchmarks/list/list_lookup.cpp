@@ -31,7 +31,7 @@ int main(int argc, const char * argv[]) {
 		// load rules in to a classifier tree
 		for (auto _r : rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
-			Classifier::rule_spec_t r = { rule_to_array<uint16_t, 7>(*__r), _r.second };
+			Classifier::rule_spec_t r = { rule_to_array_16b(*__r), _r.second };
 			cls.insert(r);
 			_rules.push_back(__r);
 		}

@@ -247,7 +247,7 @@ public:
 	}
 
 	//void preprocess_avx2(union b_node* const node) {
-	//	__m256i   const perm_mask = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
+	//	__m256i const perm_mask = _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4);
 	//	__m256i * const middle = (__m256i *) &node->i32[4];
 	//
 	//	__m256i x = _mm256_loadu_si256(middle);
@@ -264,11 +264,11 @@ public:
 		return i;
 	}
 
-	static std::pair<Node*, unsigned> get_most_left(Node * n) {
+	static Node* get_most_left(Node * n) {
 		while (not n->is_leaf) {
 			n = n->child(0);
 		}
-		return {n, 0};
+		return n;
 	}
 
 	static std::pair<Node*, unsigned> get_most_left_after(Node * p, Node * ch) {
@@ -276,7 +276,7 @@ public:
 			// move up to a parent node
 			size_t my_index = index_of_child(p, ch);
 			if (my_index + 1 < p->key_cnt) {
-				return get_most_left(p->child(my_index + 1));
+				return {get_most_left(p->child(my_index + 1)), 0};
 			} else {
 				ch = p;
 				p = p->parent;
@@ -312,7 +312,7 @@ public:
 			}
 		} else if (node.child(idx + 1)) {
 			// move on lowest in right sibling
-			return get_most_left(node.child(idx + 1));
+			return {get_most_left(node.child(idx + 1)), 0};
 		} else {
 			return get_most_left_after(node.parent, &node);
 		}
@@ -397,6 +397,10 @@ public:
 			const val_vec_t & _val, rule_id_t & res, unsigned & i) {
 		// first item was already checked in search_possition_1d
 		// find length of the sequence of the matching ranges in the items stored in node
+		auto v0 = n->value[0];
+		if (v0 != BTree::INVALID_RULE) {
+			res = v0;
+		}
 		Node * next_n = nullptr;
 		unsigned add_to_i = 0;
 		for (unsigned i2 = 1; i2 < n->key_cnt; i2++) {

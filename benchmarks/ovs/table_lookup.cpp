@@ -31,7 +31,7 @@ int main(int argc, const char * argv[]) {
 	OvsWrap cls;
 	auto rules = parse_ruleset_file(rule_file);
 	vector<iParsedRule*> _rules;
-	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
+	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, rules.size());
 	stats.construction_start();
 	for (auto _r : rules) {
 		auto r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);

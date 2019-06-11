@@ -25,7 +25,7 @@ int main(int argc, const char * argv[]) {
 	// load rules from the file
 	vector<iParsedRule*> _rules;
 	auto rules = parse_ruleset_file(rule_file);
-	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
+	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, rules.size());
 	stats.construction_start();
 	{
 		// load rules in to a classifier tree

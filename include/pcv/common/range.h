@@ -147,7 +147,6 @@ public:
 	size_t max_prefix_len() {
 		return sizeof(T) * 8;
 	}
-
 };
 
 template<typename T>

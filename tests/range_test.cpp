@@ -52,6 +52,15 @@ BOOST_AUTO_TEST_CASE( masks ) {
 		BOOST_CHECK_EQUAL(m.second, 12);
 	}
 
+	{
+		auto a = Range1d<uint16_t>::from_mask((199 << 8) | 190, 0xFFFF);
+		auto b = Range1d<uint16_t>::from_mask((198 << 8), 0xFE00);
+		BOOST_CHECK(a.overlaps(a));
+		BOOST_CHECK(a.overlaps(b));
+		BOOST_CHECK(b.overlaps(a));
+		BOOST_CHECK(b.overlaps(b));
+	}
+
 }
 
 //____________________________________________________________________________//

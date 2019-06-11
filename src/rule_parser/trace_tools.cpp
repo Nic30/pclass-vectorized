@@ -28,8 +28,8 @@ void ramdom_corner_push_value(packet_t & packet, size_t & byte_offset,
 		p[0] = v;
 		p[1] = v >> 16;
 	} else {
-		p[1] = v;
-		p[0] = v >> 16;
+		p[0] = v;
+		p[1] = v >> 16;
 	}
 
 	packet[byte_offset / 2] = p[0];

@@ -65,7 +65,7 @@ public:
 				}
 				str << " | ";
 				if (k.value != BTree::INVALID_RULE)
-					str << k.value;
+					str << "r" <<  k.value;
 				str << "}";
 				str.flags(f);
 			}

@@ -60,6 +60,7 @@ int main(int argc, const char * argv[]) {
 		//	cout << "found : " << *cls.cls_rule_get_pcv_rule(v) << " priority: "
 		//			<< v->priority << endl;
 		//}
+		assert(v);
 	}
 	stats.lookup_stop();
 #ifdef OVS_PCV

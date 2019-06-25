@@ -14,12 +14,12 @@ namespace pcv {
 template<typename _Key_t, size_t _D>
 class ListBasedClassifier {
 public:
-	using value_t = _Key_t;
+	using key_t = _Key_t;
 	using rule_id_t = uint16_t;
 	static constexpr size_t D = _D;
 	using val_range_t = Range1d<_Key_t>;
 	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
-	using val_vec_t = std::array<value_t, D>;
+	using val_vec_t = std::array<key_t, D>;
 	// print functions and key names for the debug
 	using formater_t = std::function<void(std::ostream & str, const rule_spec_t & rule)>;
 
@@ -75,7 +75,7 @@ public:
 	static void _default_formater(std::ostream & str,
 			const rule_spec_t & rule) {
 		for (auto v : rule.first) {
-			rule_vec_format::rule_vec_format_default<value_t>(str, v);
+			rule_vec_format::rule_vec_format_default<key_t>(str, v);
 			str << " ";
 		}
 		str << rule.second;

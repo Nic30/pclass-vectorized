@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 	using BTree = BTreeImp<uint16_t, 2>;
 	using Classifier = PartitionSortClassifer<BTree, 32>;
-	using R1d = typename BTree::val_range_t;
+	using R1d = typename BTree::key_range_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using val_vec_t = typename BTree::val_vec_t;
 	R1d any(0, numeric_limits<uint16_t>::max());

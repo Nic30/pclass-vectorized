@@ -4,26 +4,26 @@
 
 namespace pcv {
 
-template<typename Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
+template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class _BTreeToRules {
 	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using Node = typename BTree::Node;
-	using val_range_t = typename BTree::val_range_t;
+	using key_range_t = typename BTree::key_range_t;
 	using rule_id_t = typename BTree::rule_id_t;
 	static constexpr size_t D = BTree::D;
-	using path_t = std::array<val_range_t, D>;
+	using path_t = std::array<key_range_t, D>;
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
 
 	const BTree & t;
 	std::vector<rule_spec_t> & res;
 	path_t actual_path;
-	const val_range_t any;
+	const key_range_t any;
 
 public:
 	_BTreeToRules(const BTree & _t, std::vector<rule_spec_t> & _res) :
 			t(_t), res(_res), any(0,
-					std::numeric_limits<typename val_range_t::T>::max()) {
+					std::numeric_limits<typename key_range_t::T>::max()) {
 		std::fill(actual_path.begin(), actual_path.end(), any);
 	}
 

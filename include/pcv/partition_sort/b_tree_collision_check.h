@@ -6,17 +6,19 @@
 
 namespace pcv {
 
-template<typename BTree>
+template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class BTreeCollisionCheck {
+	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTreeSearch_t = BTreeSearch<Key_t, _D, _T, _PATH_COMPRESSION>;
 public:
 	using rule_spec_t = typename BTree::rule_spec_t;
-	using value_t = typename BTree::value_t;
+	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;
 	using KeyInfo = typename BTree::KeyInfo;
-	using KeyIterator = typename BTreeSearch<BTree>::KeyIterator;
+	using KeyIterator = typename BTreeSearch_t::KeyIterator;
 private:
 	static SearchResult search_closest_lower_or_equal_seq(const Node & node,
-			value_t val) {
+			key_t val) {
 		SearchResult r;
 		for (r.val_index = 0; r.val_index < node.key_cnt; r.val_index++) {
 			KeyInfo cur = node.get_key(r.val_index);
@@ -31,7 +33,7 @@ private:
 	}
 
 	static std::pair<Node*, unsigned> search_closest_lower_or_equal_key(
-			Node * n, const value_t val) {
+			Node * n, const key_t val) {
 		while (n) {
 			auto s = search_closest_lower_or_equal_seq(*n, val);
 			if (s.in_range) {
@@ -70,7 +72,7 @@ public:
 			auto d = tree.dimension_order[level];
 			auto d_val = rule.first[d];
 			auto p_low = search_closest_lower_or_equal_key(t, d_val.low);
-			Range1d<value_t> lk;
+			Range1d<key_t> lk;
 			bool lk_found = false;
 			if (p_low.first) {
 				lk = p_low.first->get_key(p_low.second).key;
@@ -80,12 +82,12 @@ public:
 			if (lk_found and lk == d_val) {
 				// not overlapping on this level, but we need to check the next level
 			} else {
-				Range1d<value_t> p_low_next;
+				Range1d<key_t> p_low_next;
 				if (p_low.first) {
 					KeyIterator _it(p_low.first, p_low.second);
 					p_low_next = (*_it.begin()).key;
 				} else {
-					auto _min = BTreeSearch<BTree>::get_most_left(t);
+					auto _min = BTreeSearch_t::get_most_left(t);
 					KeyIterator _it(_min, 0);
 					p_low_next = (*_it.begin()).key;
 				}

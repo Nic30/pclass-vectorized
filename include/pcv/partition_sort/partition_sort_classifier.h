@@ -52,7 +52,7 @@ template<typename TREE_T, const size_t MAX_TREE_CNT,
 		size_t TREE_FIXATION_THRESHOLD = 10>
 class PartitionSortClassifer {
 public:
-	using value_t = typename TREE_T::value_t;
+	using key_t = typename TREE_T::key_t;
 	using Node = typename TREE_T::Node;
 	using rule_spec_t = typename TREE_T::rule_spec_t;
 	using index_t = typename TREE_T::index_t;
@@ -102,7 +102,7 @@ public:
 	// @return true if the dimension order changed
 	inline bool update_dimension_order(tree_info & ti) {
 		TREE_T & tree = ti.tree;
-		GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, value_t> resolver(
+		GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, key_t> resolver(
 				ti.rules, tree.dimension_order);
 		auto new_dim_order = resolver.resolve();
 		if (tree.dimension_order != new_dim_order) {
@@ -227,7 +227,7 @@ public:
 				// update default dimension order to fit current rule
 				// in order to avoid useless tree reconstruction
 				std::vector<rule_spec_t> _rules = { rule, };
-				GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, value_t> resolver(
+				GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, key_t> resolver(
 						_rules, t.tree.dimension_order);
 				t.tree.dimension_order = resolver.resolve();
 			}

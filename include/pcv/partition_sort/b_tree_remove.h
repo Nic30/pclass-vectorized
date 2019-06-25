@@ -5,17 +5,19 @@
 
 namespace pcv {
 
-template<typename BTree>
+template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class BTreeRemove {
+	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTreeSearch_t = BTreeSearch<Key_t, _D, _T, _PATH_COMPRESSION>;
 public:
 	using Node = typename BTree::Node;
 	using rule_spec_t = typename BTree::rule_spec_t;
-	using value_t = typename BTree::value_t;
+	using key_t = typename BTree::key_t;
 
 	static void remove(BTree & tree, const rule_spec_t & k) {
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
 		path.reserve(64);
-		BTreeSearch<BTree>::search_path(tree.root, tree.dimension_order, k, path);
+		BTreeSearch_t::search_path(tree.root, tree.dimension_order, k, path);
 		//search in boom-up manner
 		for (int i = int(path.size()) - 1; i >= 0; i--) {
 			auto d = tree.dimension_order[i];
@@ -51,7 +53,7 @@ public:
 			prev_node->set_next_layer(prev_index, nl);
 		}
 	}
-	static Node * remove_1d(const Range1d<value_t> & k, Node * current_root) {
+	static Node * remove_1d(const Range1d<key_t> & k, Node * current_root) {
 		assert(current_root && "The tree is empty");
 
 		// Call the remove function for root
@@ -77,8 +79,8 @@ public:
 	/* A wrapper function to remove the key k in subtree rooted with
 	 * this node.
 	 * */
-	static void remove(Node & node, Range1d<value_t> k) {
-		unsigned idx = BTreeSearch<BTree>::findKey(node, k);
+	static void remove(Node & node, Range1d<key_t> k) {
+		unsigned idx = BTreeSearch_t::findKey(node, k);
 
 		// The key to be removed is present in this node
 		if (idx < node.key_cnt && node.get_key(idx).key == k) {
@@ -147,7 +149,7 @@ public:
 			// find the predecessor 'pred' of k in the subtree rooted at
 			// child(idx). Replace k by pred. Recursively delete pred
 			// in child(idx)
-			auto pred = BTreeSearch<BTree>::getPred(node, idx);
+			auto pred = BTreeSearch_t::getPred(node, idx);
 			node.set_key(idx, pred);
 			auto c = node.child(idx);
 			remove(*c, pred.key);
@@ -158,7 +160,7 @@ public:
 			// the subtree rooted at child(idx+1)
 			// Replace k by succ
 			// Recursively delete succ in child(idx+1)
-			auto succ = BTreeSearch<BTree>::getSucc(node, idx);
+			auto succ = BTreeSearch_t::getSucc(node, idx);
 			node.set_key(idx, succ);
 			auto c = node.child(idx + 1);
 			remove(*c, succ.key);

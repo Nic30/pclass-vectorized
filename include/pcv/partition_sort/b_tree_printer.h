@@ -4,18 +4,17 @@
 #include <array>
 #include <functional>
 #include <string>
-
+#include <pcv/partition_sort/b_tree.h>
 
 namespace pcv {
 
-template<typename BTree>
+template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION,
+		typename formaters_t, typename names_t>
 class BTreePrinter {
+	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
 public:
 	using Node = typename BTree::Node;
-	using value_t = typename BTree::value_t;
-
-	using formaters_t = typename BTree::formaters_t;
-	using names_t = typename BTree::names_t;
+	using key_t = typename BTree::key_t;
 
 	const formaters_t & formaters;
 	const names_t & names;
@@ -65,7 +64,7 @@ public:
 				}
 				str << " | ";
 				if (k.value != BTree::INVALID_RULE)
-					str << "r" <<  k.value;
+					str << "r" << k.value;
 				str << "}";
 				str.flags(f);
 			}

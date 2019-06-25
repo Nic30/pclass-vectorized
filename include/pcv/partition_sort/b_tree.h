@@ -11,18 +11,15 @@
 #include <sstream>
 #include <functional>
 
-
 #ifndef NDEBUG
 #include <cstring>
 #endif
 
 #include <pcv/common/range.h>
 //#include <pcv/partiton_sort/mempool_mockup.h>
-#include <pcv/partition_sort/b_tree_printer.h>
 #include <pcv/partition_sort/key_info.h>
 #include <pcv/partition_sort/mempool.h>
 #include <pcv/rule_parser/rule.h>
-
 
 namespace pcv {
 
@@ -52,20 +49,16 @@ public:
 	using rule_id_t = uint16_t;
 	static constexpr size_t D = _D;
 	// range which is a key
-	using val_range_t = Range1d<_Key_t>;
+	using key_t = _Key_t;
+	using key_range_t = Range1d<_Key_t>;
 	// specification of the rule for insert/remove ops
-	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
-	using value_t = _Key_t;
+	using rule_spec_t = std::pair<std::array<key_range_t, D>, rule_id_t>;
 	// index of the node in memorypool
 	using index_t = uint16_t;
 	// util type which keeps informations about the key and child/next layer pointers in for item in node
-	using KeyInfo = _KeyInfo<value_t, index_t>;
+	using KeyInfo = _KeyInfo<key_t, index_t>;
 	// type of value vector which can be searched in this data structure
-	using val_vec_t = std::array<value_t, D>;
-
-	// print functions and key names for the debug
-	using formaters_t = std::array< std::function<void(std::ostream & str, val_range_t val)>, D>;
-	using names_t = std::array<std::string, D>;
+	using val_vec_t = std::array<key_t, D>;
 
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
@@ -141,10 +134,10 @@ public:
 		}
 		inline KeyInfo get_key(uint8_t index) const {
 			assert(index < MAX_DEGREE);
-			auto low = reinterpret_cast<const value_t*>(&keys[0])[index];
-			auto high = reinterpret_cast<const value_t*>(&keys[1])[index];
+			auto low = reinterpret_cast<const key_t*>(&keys[0])[index];
+			auto high = reinterpret_cast<const key_t*>(&keys[1])[index];
 			return {
-				Range1d<value_t>(low, high),
+				Range1d<key_t>(low, high),
 				value[index],
 				next_level[index]
 			};
@@ -152,8 +145,8 @@ public:
 
 		inline void set_key(uint8_t index, const KeyInfo & key_info) {
 			assert(index < MAX_DEGREE);
-			reinterpret_cast<value_t*>(&keys[0])[index] = key_info.key.low;
-			reinterpret_cast<value_t*>(&keys[1])[index] = key_info.key.high;
+			reinterpret_cast<key_t*>(&keys[0])[index] = key_info.key.low;
+			reinterpret_cast<key_t*>(&keys[1])[index] = key_info.key.high;
 
 			this->value[index] = key_info.value;
 			this->next_level[index] = key_info.next_level;
@@ -355,8 +348,6 @@ public:
 
 	Node * root;
 	std::array<unsigned, D> dimension_order;
-	const formaters_t formaters;
-	const names_t names;
 
 	// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 	_BTree(_BTree const&) = delete;
@@ -372,29 +363,8 @@ public:
 		return *this;
 	}
 
-	static formaters_t _default_formaters() {
-		formaters_t f;
-		std::fill(f.begin(), f.end(),
-				rule_vec_format::rule_vec_format_default<value_t>);
-		return f;
-	}
-	static names_t _default_names() {
-		names_t names;
-		for (size_t i = 0; i < D; i++) {
-			names[i] = std::to_string(i);
-		}
-
-		return names;
-	}
 	_BTree() :
-			root(nullptr), formaters(_default_formaters()), names(
-					_default_names()) {
-		for (size_t i = 0; i < dimension_order.size(); i++)
-			dimension_order[i] = i;
-	}
-
-	_BTree(const formaters_t & _formaters, const names_t & _names) :
-			root(nullptr), formaters(_formaters), names(_names) {
+			root(nullptr) {
 		for (size_t i = 0; i < dimension_order.size(); i++)
 			dimension_order[i] = i;
 	}
@@ -405,17 +375,6 @@ public:
 			return root->size();
 		else
 			return 0;
-	}
-
-	// serialize graph to string in dot format
-	friend std::ostream & operator<<(std::ostream & str, const _BTree & t) {
-		BTreePrinter<_BTree> p(t.formaters, t.names);
-		return p.print_top(str, t);
-	}
-	operator std::string() const {
-		std::stringstream ss;
-		ss << *this;
-		return ss.str();
 	}
 
 	~_BTree() {

@@ -5,34 +5,16 @@
 #include "test_common.h"
 
 #include <limits>
-#include <pcv/partition_sort/b_tree.h>
-#include <pcv/partition_sort/b_tree_search.h>
-#include <pcv/partition_sort/b_tree_insert.h>
-#include <pcv/partition_sort/b_tree_remove.h>
+#include <pcv/partition_sort/b_tree_impl.h>
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv__testsuite )
 
-template<typename BTree>
-typename BTree::rule_id_t search(BTree & t,
-		const typename BTree::val_vec_t & v) {
-	return BTreeSearch<BTree>::search(t, v);
-}
-
-template<typename BTree>
-void insert(BTree & t, typename BTree::rule_spec_t & r) {
-	BTreeInsert<BTree>::insert(t, r);
-}
-
-template<typename BTree>
-void remove(BTree & t, const typename BTree::rule_spec_t & r) {
-	BTreeRemove<BTree>::remove(t, r);
-}
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
-	using BTree = _BTree<uint16_t, 2>;
+	using BTree = BTreeImp<uint16_t, 2>;
 	BTree t;
 	using K = BTree::KeyInfo;
 
@@ -51,73 +33,73 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	using V = typename BTree::val_vec_t;
 	{
 		V v = { 0, 0 };
-		auto r = search(t, v);
+		auto r = t.search(v);
 		BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
 	}
 	{
 		V v = { 4, 0 };
-		auto r = search(t, v);
+		auto r = t.search(v);
 		BOOST_CHECK_EQUAL(r, 9);
 	}
 	{
 		V v = { 4, 10 };
-		auto r = search(t, v);
+		auto r = t.search(v);
 		BOOST_CHECK_EQUAL(r, 10);
 	}
 	{
 		V v = { 4, 11 };
-		auto r = search(t, v);
+		auto r = t.search(v);
 		BOOST_CHECK_EQUAL(r, 10);
 	}
 	{
 		V v = { 4, 20 };
-		auto r = search(t, v);
+		auto r = t.search(v);
 		BOOST_CHECK_EQUAL(r, 10);
 	}
 	{
 		V v = { 4, 30 };
-		auto r = search(t, v);
+		auto r = t.search(v);
 		BOOST_CHECK_EQUAL(r, 9);
 	}
 	{
 		V v = { 3, 10 };
-		auto r = search(t, v);
+		auto r = t.search( v);
 		BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
 	}
 }
 
 BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
-	using BTree = _BTree<uint16_t, 4>;
+	using BTree = BTreeImp<uint16_t, 4>;
 	BTree t;
 
 	using V = typename BTree::val_vec_t;
 	using R = typename BTree::rule_spec_t;
-	using R1d = typename BTree::val_range_t;
+	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
 	R1d any(0, U16_MAX);
 	{
 		R r0 = { { R1d(0, 0), any, any, any }, 0 };
-		insert(t, r0);
+		t.insert(r0);
 		V v0 = { 1, 0, 0, 0 };
-		auto res = search(t, v0);
+		auto res = t.search(v0);
 		BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
 
 		V v1 = { 0, 1, 1, 1 };
-		res = search(t, v1);
+		res = t.search(v1);
 		BOOST_CHECK_EQUAL(res, 0);
 
 		BOOST_CHECK_EQUAL(t.root->get_next_layer(0), nullptr);
 		R r1 = { { R1d(0, 0), R1d(1, 1), any, any }, 1 };
-		insert(t, r1);
+		t.insert(r1);
 
-		res = search(t, v1);
+		res = t.search(v1);
 		BOOST_CHECK_EQUAL(res, 1);
 
-		res = search(t, v0);
+		res = t.search(v0);
 		BOOST_CHECK_EQUAL(res, BTree::INVALID_INDEX);
 
 		V v2 = { 0, 0, 0, 0 };
-		res = search(t, v2);
+		res = t.search(v2);
 		BOOST_CHECK_EQUAL(res, 0);
 		//{
 		//	stringstream ss;
@@ -125,7 +107,7 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		//	o << t;
 		//	o.close();
 		//}
-		res = search(t, v1);
+		res = t.search(v1);
 
 		/*
 		 * <0>0-0 <- removing this
@@ -133,43 +115,42 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		 * <1>1-1 <- while keeping this
 		 *
 		 * */
-		remove(t, r0);
+		t.remove(r0);
 
-		res = search(t, v2);
+		res = t.search(v2);
 		BOOST_CHECK_EQUAL(res, BTree::INVALID_INDEX);
 
-		res = search(t, v1);
+		res = t.search(v1);
 		BOOST_CHECK_EQUAL(res, 1);
 	}
-
 }
 
 BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
-	using BTree = _BTree<uint16_t, 4>;
+	using BTree = BTreeImp<uint16_t, 4>;
 	BTree t;
 
 	using V = typename BTree::val_vec_t;
 	using R = typename BTree::rule_spec_t;
-	using R1d = typename BTree::val_range_t;
+	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
 	R1d any(0, U16_MAX);
 	R r0 = { { R1d(0, 0), any, any, any }, 0 };
 	V v0 = { 0, 0, 0, 0 };
 
-	insert(t, r0);
-	auto res = search(t, v0);
+	t.insert(r0);
+	auto res = t.search(v0);
 	BOOST_CHECK_EQUAL(res, 0);
 
 	R r1 = { { R1d(0, 0), any, any, any }, 1 };
-	insert(t, r1);
-	res = search(t, v0);
+	t.insert(r1);
+	res = t.search(v0);
 	BOOST_CHECK_EQUAL(res, 1);
 
 	V v1 = { 1, 2, 3, 4 };
 
 	R r2 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 2 };
-	insert(t, r2);
-	res = search(t, v1);
+	t.insert(r2);
+	res = t.search(v1);
 	BOOST_CHECK_EQUAL(res, 2);
 
 	//{
@@ -180,8 +161,8 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	//}
 
 	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, 3 };
-	insert(t, r3);
-	res = search(t, v1);
+	t.insert(r3);
+	res = t.search(v1);
 	BOOST_CHECK_EQUAL(res, 3);
 	//{
 	//	stringstream ss;
@@ -200,7 +181,7 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	BOOST_CHECK_EQUAL(l1->key_cnt, 3);
 
 	R r4 = { { R1d(1, 1), R1d(2, 2), R1d(4, 4), R1d(4, 4) }, 3 };
-	insert(t, r4);
+	t.insert(r4);
 
 	//{
 	//	stringstream ss;
@@ -212,18 +193,18 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 
 BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	constexpr size_t D = 7;
-	using BTree = _BTree<uint16_t, D, 8, true>;
-	using BTree_insert_t = BTreeInsert<BTree>;
+	using BTree = BTreeImp<uint16_t, D, 8, true>;
+	using InsertCookie = typename BTree::Insert_t::InsertCookie;
 	BTree t;
 	using V = typename BTree::val_vec_t;
 	using R = typename BTree::rule_spec_t;
-	using R1d = typename BTree::val_range_t;
+	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
 	R1d any(0, U16_MAX);
 
 	R r0 = { { any, any, any, any, any, any, R1d(6, 6) }, 0 };
 	V v0 = { 0, 1, 2, 3, 4, 5, 6 };
-	BTree_insert_t::InsertCookie c(t, r0);
+	InsertCookie c(t, r0);
 	BOOST_CHECK_EQUAL(c.requires_levels, D);
 	BOOST_CHECK_EQUAL(c.additional_level_required_cnt(), D - 1);
 	BOOST_CHECK_EQUAL(c.required_more_levels(), true);
@@ -233,12 +214,12 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	c.level = D - 1;
 	BOOST_CHECK_EQUAL(c.additional_level_required_cnt(), 0);
 	BOOST_CHECK_EQUAL(c.required_more_levels(), false);
-	insert(t, r0);
-	auto res = search(t, v0);
+	t.insert(r0);
+	auto res = t.search(v0);
 	BOOST_CHECK_EQUAL(res, 0);
 
 	R r_any = { { any, any, any, any, any, any, any }, 0 };
-	BTree_insert_t::InsertCookie c_any(t, r_any);
+	InsertCookie c_any(t, r_any);
 	BOOST_CHECK_EQUAL(c_any.requires_levels, 1);
 	BOOST_CHECK_EQUAL(c_any.additional_level_required_cnt(), 0);
 	BOOST_CHECK_EQUAL(c_any.required_more_levels(), false);
@@ -246,12 +227,12 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 }
 
 BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
-	using BTree = _BTree<uint16_t, 4>;
+	using BTree = BTreeImp<uint16_t, 4>;
 	BTree t;
 
 	using V = typename BTree::val_vec_t;
 	using R = typename BTree::rule_spec_t;
-	using R1d = typename BTree::val_range_t;
+	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
 	R1d any(0, U16_MAX);
 	R r0 = { { R1d(0, 0), R1d(1, 1), R1d(2, 2), R1d(3, 3) }, 0 };
@@ -259,12 +240,12 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	V v0 = { 0, 0, 0, 0 };
 	V v1 = { 0, 1, 2, 3 };
 	V v2 = { 0, 4, 2, 3 };
-	insert(t, r0);
-	auto res = search(t, v0);
+	t.insert(r0);
+	auto res = t.search(v0);
 	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
-	res = search(t, v1);
+	res = t.search(v1);
 	BOOST_CHECK_EQUAL(res, 0);
-	res = search(t, v2);
+	res = t.search(v2);
 	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
 	//{
 	//	stringstream ss;
@@ -273,7 +254,7 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	//	o.close();
 	//}
 	// the root node must stay only for dimension[0] otherwise the tree can not grow
-	insert(t, r1);
+	t.insert(r1);
 	//{
 	//	stringstream ss;
 	//	ofstream o("rewrite_on_demand_1.dot");
@@ -281,11 +262,11 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	//	o.close();
 	//}
 
-	res = search(t, v0);
+	res = t.search(v0);
 	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
-	res = search(t, v1);
+	res = t.search(v1);
 	BOOST_CHECK_EQUAL(res, 0);
-	res = search(t, v2);
+	res = t.search(v2);
 	BOOST_CHECK_EQUAL(res, 1);
 }
 

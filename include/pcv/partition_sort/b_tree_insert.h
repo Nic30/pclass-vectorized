@@ -8,10 +8,12 @@
 
 namespace pcv {
 
-template<class BTree>
+template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class BTreeInsert {
+	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTreeSearch_t = BTreeSearch<Key_t, _D, _T, _PATH_COMPRESSION>;
 public:
-	using value_t = typename BTree::value_t;
+	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using index_t = typename BTree::index_t;
@@ -46,7 +48,7 @@ public:
 						total_levels_required_cnt(rule_)), rule(rule_) {
 			assert(requires_levels <= BTree::D);
 		}
-		inline Range1d<typename BTree::value_t> get_actual_key() const {
+		inline Range1d<typename BTree::key_t> get_actual_key() const {
 			auto d = dimension_order.at(level);
 			return rule.first.at(d);
 		}
@@ -72,8 +74,8 @@ public:
 		// search if there is some prefix already in decision tree because we do not
 		// want to duplicate keys which are already present
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
-		BTreeSearch<BTree>::search_path(root, cookie.dimension_order,
-				cookie.rule, path, cookie.level);
+		BTreeSearch_t::search_path(root, cookie.dimension_order, cookie.rule,
+				path, cookie.level);
 
 		if (path.size()) {
 			cookie.level += path.size() - 1;

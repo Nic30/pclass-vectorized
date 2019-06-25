@@ -25,10 +25,10 @@ namespace search_fn {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
-		__m256i const a, __m256i const b) {
+inline static __m256i  __attribute__((__always_inline__))  _mm256_cmpgt_epu32(
+		__m256i  const a, __m256i  const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i const fix_val = _mm256_set1_epi32(offset);
+	__m256i  const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 /*
@@ -37,10 +37,10 @@ inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
-		__m256i const a, __m256i const b) {
+inline static __m256i  __attribute__((__always_inline__))  _mm256_cmpgt_epu16(
+		__m256i  const a, __m256i  const b) {
 	constexpr uint16_t offset = 0x1u << 15;
-	__m256i const fix_val = _mm256_set1_epi16(offset);
+	__m256i  const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }
 
@@ -137,7 +137,7 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i  const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -154,11 +154,12 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 
 }
 
-template<typename BTree>
+template<typename _Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class BTreeSearch {
+	using BTree = _BTree<_Key_t, _D, _T, _PATH_COMPRESSION>;
 public:
 	using Node = typename BTree::Node;
-	using value_t = typename BTree::value_t;
+	using key_t = typename BTree::key_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_id_t = typename BTree::rule_id_t;
@@ -383,7 +384,7 @@ public:
 		return KeyIterator(start, start_i);
 	}
 	// Find index of the key in this node
-	static unsigned findKey(Node & node, const Range1d<value_t> k) {
+	static unsigned findKey(Node & node, const Range1d<key_t> k) {
 		unsigned i = 0;
 		while (i < node.key_cnt && node.get_key(i) < k)
 			++i;

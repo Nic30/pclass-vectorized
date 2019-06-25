@@ -4,7 +4,7 @@
 
 namespace pcv {
 
-template<typename rule_spec_t, size_t DIM_CNT, typename value_t>
+template<typename rule_spec_t, size_t DIM_CNT, typename key_t>
 class GreedyDimensionOrderResolver {
 	std::vector<rule_spec_t> & rules;
 	// dimensions which are used by this rules
@@ -35,12 +35,12 @@ public:
 		// [note] the problem of picking of the largest sequence of non overlapping
 		//        intervals is the Intervals Scheduling Problem (Weighted Job Scheduling Problem)
 
-		std::vector<Range1d<value_t>> values(rules.size());
+		std::vector<Range1d<key_t>> values(rules.size());
 		for (size_t i = 0; i < rules.size(); i++) {
 			values[i] = rules[i].first[d];
 		}
 
-		WeightedIntervalSchedulingSolver<value_t> sched(values);
+		WeightedIntervalSchedulingSolver<key_t> sched(values);
 		return sched.findMaxWeightIntervalSequence();
 	}
 

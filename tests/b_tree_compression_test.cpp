@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 	BTree t;
 
 	using rule_t = BTree::rule_spec_t;
-	using R1d = BTree::val_range_t;
+	using R1d = BTree::key_range_t;
 	{
 		rule_t r0 = { { R1d(0, 0), R1d(1, 1), R1d(2, 2), R1d(3, 3) }, 0 };
 		t.insert(r0);
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE( insert_search_maytimes_any_in_center ) {
 	using BTree = BTreeImp<uint16_t, 8, 4>;
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
-	using R1d = BTree::val_range_t;
+	using R1d = BTree::key_range_t;
 	using vv_t = typename BTree::val_vec_t;
 	auto INV = BTree::INVALID_RULE;
 

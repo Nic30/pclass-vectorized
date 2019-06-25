@@ -30,7 +30,6 @@ using namespace pcv::rule_conv_fn;
 using BTree = BTreeImp<uint16_t, 7, 8>;
 using Classifier0 = PartitionSortClassifer<BTree, 64, 10>;
 using Classifier1 = ListBasedClassifier<uint16_t, 7>;
-using BTreeToRules = _BTreeToRules<uint16_t, 7, 8>;
 using rule_spec_t = typename Classifier0::rule_spec_t;
 
 void formater(std::ostream & str, const Classifier1::rule_spec_t & rule) {
@@ -51,7 +50,7 @@ void dump_trees(std::ostream & str, const Classifier0 & cls) {
 				ofstream of(string("dump/tree_") + to_string(tree_i) + ".txt",
 						ofstream::out);
 				std::vector<rule_spec_t> tmp;
-				BTreeToRules tc(t->tree, tmp);
+				BTree::ToRules tc(t->tree, tmp);
 				tc.to_rules();
 				for (auto r : tmp) {
 					formater(of, r);
@@ -73,7 +72,7 @@ void verify_tree_content(const Classifier0 & cls,
 		if (t->rules.size()) {
 			assert(!must_be_empty);
 			std::vector<rule_spec_t> tmp;
-			BTreeToRules tc(t->tree, tmp);
+			BTree::ToRules tc(t->tree, tmp);
 			tc.to_rules();
 			rules_in_tree.push_back(tmp);
 		} else {

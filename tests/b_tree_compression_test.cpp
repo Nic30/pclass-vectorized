@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 	{
 		rule_t r0 = { { R1d(0, 0), R1d(1, 1), R1d(2, 2), R1d(3, 3) }, 0 };
 		t.insert(r0);
-		typename BTree::val_vec_t v = { 0, 1, 2, 3 };
+		typename BTree::key_vec_t v = { 0, 1, 2, 3 };
 		auto s = t.search(v);
 		BOOST_CHECK_EQUAL(s, 0);
 	}
@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 	}
 
 	for (uint16_t i = 0; i < 8; i++) {
-		typename BTree::val_vec_t v = { i, 1, 2, 3 };
+		typename BTree::key_vec_t v = { i, 1, 2, 3 };
 		auto s = t.search(v);
 		BOOST_CHECK_EQUAL(s, i);
 	}
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE( insert_search_maytimes_any_in_center ) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
-	using vv_t = typename BTree::val_vec_t;
+	using vv_t = typename BTree::key_vec_t;
 	auto INV = BTree::INVALID_RULE;
 
 	R1d any(0, std::numeric_limits<typename R1d::T>::max());

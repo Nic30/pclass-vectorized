@@ -163,7 +163,7 @@ public:
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_id_t = typename BTree::rule_id_t;
-	using val_vec_t = typename BTree::val_vec_t;
+	using key_vec_t = typename BTree::key_vec_t;
 
 	class KeyIterator {
 	public:
@@ -395,7 +395,7 @@ public:
 	// @param res id or best matching rule
 	// @param i dimension index (the index of the field index in the dimension_order array)
 	static Node * search_rest_of_path_in_compressed_node(Node * n,
-			const val_vec_t & _val, rule_id_t & res, unsigned & i) {
+			const key_vec_t & _val, rule_id_t & res, unsigned & i) {
 		// first item was already checked in search_possition_1d
 		// find length of the sequence of the matching ranges in the items stored in node
 		auto v0 = n->value[0];
@@ -407,7 +407,7 @@ public:
 		for (unsigned i2 = 1; i2 < n->key_cnt; i2++) {
 			auto k = n->get_key(i2);
 			auto d = n->get_dim(i2);
-			typename val_vec_t::value_type val = _val[d];
+			typename key_vec_t::value_type val = _val[d];
 			if (not k.key.in_range(val)) {
 				break;
 			}
@@ -429,7 +429,7 @@ public:
 	 * Search in all levels of the tree
 	 *
 	 * */
-	static rule_id_t search(const BTree & t, const val_vec_t & _val) {
+	static rule_id_t search(const BTree & t, const key_vec_t & _val) {
 		rule_id_t res = BTree::INVALID_RULE;
 		Node * n = t.root;
 		unsigned i = 0;

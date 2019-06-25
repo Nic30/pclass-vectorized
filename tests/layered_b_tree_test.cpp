@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	K k2( { 10, 20 }, 10, BTree::INVALID_INDEX);
 	nl->set_key(0, k2);
 
-	using V = typename BTree::val_vec_t;
+	using V = typename BTree::key_vec_t;
 	{
 		V v = { 0, 0 };
 		auto r = t.search(v);
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 	using BTree = BTreeImp<uint16_t, 4>;
 	BTree t;
 
-	using V = typename BTree::val_vec_t;
+	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
 	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	using BTree = BTreeImp<uint16_t, 4>;
 	BTree t;
 
-	using V = typename BTree::val_vec_t;
+	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
 	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	using BTree = BTreeImp<uint16_t, D, 8, true>;
 	using InsertCookie = typename BTree::Insert_t::InsertCookie;
 	BTree t;
-	using V = typename BTree::val_vec_t;
+	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
 	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();
@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	using BTree = BTreeImp<uint16_t, 4>;
 	BTree t;
 
-	using V = typename BTree::val_vec_t;
+	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
 	using R1d = typename BTree::key_range_t;
 	auto const U16_MAX = std::numeric_limits<uint16_t>::max();

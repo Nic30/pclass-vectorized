@@ -58,7 +58,7 @@ public:
 	using index_t = typename TREE_T::index_t;
 	using KeyInfo = typename TREE_T::KeyInfo;
 	using rule_id_t= typename TREE_T::rule_id_t;
-	using val_vec_t= typename TREE_T::val_vec_t;
+	using key_vec_t= typename TREE_T::key_vec_t;
 	using formaters_t = typename TREE_T::formaters_t;
 	using names_t = typename TREE_T::names_t;
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
@@ -257,7 +257,7 @@ public:
 			update_dimension_order(*ti->second);
 		}
 	}
-	inline rule_id_t search(const val_vec_t & val) const {
+	inline rule_id_t search(const key_vec_t & val) const {
 		rule_id_t actual_found = TREE_T::INVALID_RULE;
 
 		for (size_t i = 0; i < tree_cnt; i++) {

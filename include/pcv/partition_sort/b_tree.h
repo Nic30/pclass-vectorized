@@ -58,7 +58,7 @@ public:
 	// util type which keeps informations about the key and child/next layer pointers in for item in node
 	using KeyInfo = _KeyInfo<key_t, index_t>;
 	// type of value vector which can be searched in this data structure
-	using val_vec_t = std::array<key_t, D>;
+	using key_vec_t = std::array<key_t, D>;
 
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();

@@ -19,7 +19,7 @@ public:
 	static constexpr size_t D = _D;
 	using val_range_t = Range1d<_Key_t>;
 	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
-	using val_vec_t = std::array<key_t, D>;
+	using key_vec_t = std::array<key_t, D>;
 	// print functions and key names for the debug
 	using formater_t = std::function<void(std::ostream & str, const rule_spec_t & rule)>;
 
@@ -49,7 +49,7 @@ public:
 		rules_sorted = true;
 	}
 
-	rule_id_t search(const val_vec_t & v) const {
+	rule_id_t search(const key_vec_t & v) const {
 		if (not rules_sorted) {
 			throw std::runtime_error("rules not prepared for the lookup");
 		}

@@ -15,12 +15,12 @@ BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 class BTree: public BTreeImp<uint16_t, 2, 4, false> {
 public:
 	rule_id_t search(key_t _v) const {
-		val_vec_t v = { _v, _v };
+		key_vec_t v = { _v, _v };
 		return BTreeImp::search(v);
 	}
 
 	rule_id_t search(const std::vector<key_t> & _v) const {
-		val_vec_t v;
+		key_vec_t v;
 		std::copy(_v.begin(), _v.begin() + D, v.begin());
 		return BTreeImp::search(v);
 	}

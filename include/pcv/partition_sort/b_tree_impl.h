@@ -34,7 +34,7 @@ public:
 	using key_t = typename BTree::key_t;
 	using index_t = typename BTree::index_t;
 	using KeyInfo = typename BTree::KeyInfo;
-	using val_vec_t = typename BTree::val_vec_t;
+	using key_vec_t = typename BTree::key_vec_t;
 	using formaters_t = std::array< std::function<void(std::ostream & str, key_range_t val)>, D>;
 	using names_t = std::array<std::string, D>;
 
@@ -64,7 +64,7 @@ public:
 				*reinterpret_cast<BTree*>(this), r);
 	}
 
-	inline rule_id_t search(const val_vec_t & v) const {
+	inline rule_id_t search(const key_vec_t & v) const {
 		return Search_t::search(*reinterpret_cast<const BTree*>(this), v);
 	}
 	inline void remove(const rule_spec_t & r) {

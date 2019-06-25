@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 	using Classifier = PartitionSortClassifer<BTree, 32>;
 	using R1d = typename BTree::key_range_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
-	using val_vec_t = typename BTree::val_vec_t;
+	using key_vec_t = typename BTree::key_vec_t;
 	R1d any(0, numeric_limits<uint16_t>::max());
 
 	Classifier cls;
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 		rules.push_back(r);
 		cls.insert(r);
 
-		val_vec_t v( { 0, i });
+		key_vec_t v( { 0, i });
 		auto res = cls.search(v);
 		BOOST_CHECK_EQUAL(res, i);
 	}

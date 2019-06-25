@@ -53,19 +53,21 @@ private:
 	}
 public:
 	/*
+	 *
 	 * Check if the rule collides wit any other rule in the tree
 	 *
+	 * [TODO] return also level and node where can insert continue
 	 * @note the rule however can overwrite other rule or can use its prefix without the collision
 	 * */
 	static bool does_rule_colide(BTree & tree, const rule_spec_t & rule) {
 		// for each dimension
 		auto t = tree.root;
 
-		for (size_t i = 0; i < BTree::D; i++) {
+		for (size_t level = 0; level < BTree::D; level++) {
 			if (not t) {
 				return false;
 			}
-			auto d = tree.dimension_order[i];
+			auto d = tree.dimension_order[level];
 			auto d_val = rule.first[d];
 			auto p_low = search_closest_lower_or_equal_key(t, d_val.low);
 			Range1d<value_t> lk;
@@ -90,7 +92,7 @@ public:
 				if (p_low_next.overlaps(d_val)) {
 					return true;
 				}
-				// there is space enough big to fit d_val
+				// there is space big enough to fit d_val
 				return false;
 			}
 
@@ -99,7 +101,7 @@ public:
 				return false;
 			}
 
-			bool last_it = i == BTree::D - 1;
+			bool last_it = level == BTree::D - 1;
 			if (not last_it)
 				t = p_low.first->get_next_layer(p_low.second);
 			// search the key which starts on the larger or equal to this one

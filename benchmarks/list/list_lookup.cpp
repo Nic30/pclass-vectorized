@@ -31,7 +31,9 @@ int main(int argc, const char * argv[]) {
 		// load rules in to a classifier tree
 		for (auto _r : rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
-			Classifier::rule_spec_t r = { rule_to_array_16b(*__r), _r.second };
+			Classifier::rule_spec_t r = { rule_to_array_16b(*__r), {
+					(Classifier::priority_t) __r->cummulative_prefix_len(),
+					(Classifier::rule_id_t) _r.second } };
 			cls.insert(r);
 			_rules.push_back(__r);
 		}
@@ -48,7 +50,8 @@ int main(int argc, const char * argv[]) {
 	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
-		auto v = cls.search(p);
+		cls.search(p);
+		// auto v = cls.search(p);
 		//auto & _r = _rules[v - _rules.size()];
 		//std::cout << *reinterpret_cast<Rule_Ipv4_ACL*>(&_r) << std::endl;
 	}

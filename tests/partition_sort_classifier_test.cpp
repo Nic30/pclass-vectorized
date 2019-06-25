@@ -29,12 +29,12 @@ BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 	Classifier cls;
 	vector<rule_spec_t> rules;
 	// all this should fit in to a single tree where is only 1st dim used
-	for (uint16_t i = 0; i < 5; i++) {
-		rule_spec_t r = { { any, R1d(i, i) }, i };
+	for (BTree::rule_id_t i = 0; i < 5; i++) {
+		rule_spec_t r = { { any, R1d(i, i) }, { 0, i } };
 		rules.push_back(r);
 		cls.insert(r);
 
-		key_vec_t v( { 0, i });
+		key_vec_t v( { 0, (uint16_t) i });
 		auto res = cls.search(v);
 		BOOST_CHECK_EQUAL(res, i);
 	}
@@ -55,17 +55,18 @@ BOOST_AUTO_TEST_CASE( ruleset_acl1_100 ) {
 	_rules = rp.parse_rules(rule_file);
 	{
 		// load rules in to a classifier tree
-		size_t i = 0;
+		BTree::rule_id_t i = 0;
 		for (auto _r : _rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
-			BTree::rule_spec_t r = { rule_to_array_16b(*__r), i };
+			BTree::rule_spec_t r = { rule_to_array_16b(*__r), {
+					(BTree::priority_t) __r->cummulative_prefix_len(), i } };
 			cls.insert(r);
 		}
 	}
 	auto packets = generate_packets_from_ruleset(
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&_rules),
 			UNIQUE_TRACE_CNT);
-	for (auto p: packets) {
+	for (auto p : packets) {
 		auto res = cls.search(p);
 		BOOST_CHECK_NE(res, BTree::INVALID_RULE);
 	}

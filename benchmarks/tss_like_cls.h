@@ -7,9 +7,17 @@
 
 class TSS_like {
 public:
+	using rule_id_t = uint32_t;
+	using priority_t = uint32_t;
+
+	struct rule_val_t {
+		priority_t priority: 8;
+		rule_id_t rule_id: 24;
+	};
+
 	struct rule_spec_t {
 		std::array<pcv::Range1d<uint16_t>, 2> filter;
-		size_t id;
+		rule_val_t value;
 	};
 	// value : rule_id
 	std::array<std::unordered_map<uint32_t, size_t>, 33> tables;
@@ -23,7 +31,7 @@ public:
 		auto pl = v.prefix_len_le();
 		assert(pl <= 32);
 		auto & t = tables.at(pl);
-		t[v.low] = r.id;
+		t[v.low] = r.value.rule_id;
 
 		if (t.size() == 1) {
 			// was newly added regenerate used_tables vector

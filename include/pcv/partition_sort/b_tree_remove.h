@@ -31,7 +31,7 @@ public:
 			auto nl = node->get_next_layer(index);
 			if (nl) {
 				// delete only rule specification
-				node->value[index] = BTree::INVALID_INDEX;
+				node->value[index] = {0, BTree::INVALID_INDEX};
 				// there is something down in the tree and there is not a record about
 				// this rule up in tree
 				break;

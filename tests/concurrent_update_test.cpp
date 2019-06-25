@@ -89,10 +89,10 @@ BOOST_AUTO_TEST_CASE( simple ) {
 	_rules = rp.parse_rules(rule_file);
 	{
 		// load rules in to a classifier tree
-		size_t i = 0;
+		BTree::rule_id_t i = 0;
 		for (auto _r : _rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
-			BTree::rule_spec_t r = { rule_to_array<uint16_t, D>(*__r), i };
+			BTree::rule_spec_t r = { rule_to_array_16b(*__r), {0, i} };
 			rules.push_back(r);
 		}
 	}

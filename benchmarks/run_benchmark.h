@@ -12,9 +12,9 @@ void run_benchmark(CLS_T & cls,
 	pcv::BenchmarkStats stats(LOOKUP_CNT, true, rules.size());
 	{
 		stats.construction_start();
-		size_t i = 0;
+		typename CLS_T::rule_id_t i = 0;
 		for (auto & r : rules) {
-			cls.insert( { r, i });
+			cls.insert( { r, {0, i} });
 			i++;
 		}
 		stats.construction_stop();

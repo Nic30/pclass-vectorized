@@ -7,10 +7,12 @@ namespace pcv {
 template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class _BTreeToRules {
 	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
+
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using Node = typename BTree::Node;
 	using key_range_t = typename BTree::key_range_t;
 	using rule_id_t = typename BTree::rule_id_t;
+	using rule_value_t = typename BTree::rule_value_t;
 	static constexpr size_t D = BTree::D;
 	using path_t = std::array<key_range_t, D>;
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
@@ -34,8 +36,8 @@ public:
 	}
 
 private:
-	void save_actual_path(rule_id_t id) {
-		res.push_back( { actual_path, id });
+	void save_actual_path(rule_value_t prio_and_id) {
+		res.push_back( { actual_path, prio_and_id });
 	}
 	void to_rules(const Node * n, size_t level) {
 		if (n == nullptr)
@@ -48,7 +50,7 @@ private:
 				auto k = n->get_key(i);
 				assert(n->get_dim(i) == d);
 				actual_path[d] = k.key;
-				if (k.value != INVALID_RULE) {
+				if (k.value.rule_id != INVALID_RULE) {
 					save_actual_path(k.value);
 				}
 				to_rules(n->get_next_layer(i), level + i + 1);
@@ -68,7 +70,7 @@ private:
 			for (size_t i = 0; i < n->key_cnt; i++) {
 				auto k = n->get_key(i);
 				actual_path[d] = k.key;
-				if (k.value != INVALID_RULE) {
+				if (k.value.rule_id != INVALID_RULE) {
 					save_actual_path(k.value);
 				}
 				to_rules(n->get_next_layer(i), level + 1);

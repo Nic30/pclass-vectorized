@@ -3,14 +3,14 @@
 
 namespace pcv {
 
-template<typename key_t, typename index_t>
+template<typename key_t, typename index_t, typename rule_value_t>
 class _KeyInfo {
 public:
 	Range1d<key_t> key;
-	index_t value;
+	rule_value_t value;
 	index_t next_level;
 
-	_KeyInfo(Range1d<key_t> key_, index_t value_, index_t next_level_) :
+	_KeyInfo(Range1d<key_t> key_, rule_value_t value_, index_t next_level_) :
 			key(key_), value(value_), next_level(next_level_) {
 	}
 

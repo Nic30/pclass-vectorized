@@ -10,7 +10,8 @@ namespace pcv {
 template<typename rule_spec_t>
 struct rule_spec_t_eq {
 	std::size_t operator()(const rule_spec_t& a, const rule_spec_t& b) const {
-		if (a.second != b.second)
+		if (a.second.rule_id != b.second.rule_id
+				|| a.second.priority != b.second.priority)
 			return false;
 		auto _b = b.first.begin();
 		for (auto v : a.first) {
@@ -33,7 +34,8 @@ struct rule_spec_t_hasher {
 			hash_combine(seed, hash_value(v.low));
 			hash_combine(seed, hash_value(v.high));
 		}
-		hash_combine(seed, hash_value(k.second));
+		hash_combine(seed, hash_value(k.second.priority));
+		hash_combine(seed, hash_value(k.second.rule_id));
 
 		// Return the result.
 		return seed;
@@ -61,6 +63,7 @@ public:
 	using key_vec_t= typename TREE_T::key_vec_t;
 	using formaters_t = typename TREE_T::formaters_t;
 	using names_t = typename TREE_T::names_t;
+	using priority_t = typename TREE_T::priority_t;
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
 
@@ -212,8 +215,8 @@ public:
 					//        being previously used, in order to prevent sparse branches in tree.
 					t.tree.insert(rule);
 				}
-				if (rule.second > t.max_priority) {
-					t.max_priority = rule.second;
+				if (rule.second.priority > t.max_priority) {
+					t.max_priority = rule.second.priority;
 					resort_on_priority_change(i);
 				}
 				return;
@@ -222,7 +225,7 @@ public:
 		if (i < MAX_TREE_CNT) {
 			// the rule does not fit to any tree, generate new tree for this rule
 			auto & t = *trees[i];
-			t.max_priority = rule.second;
+			t.max_priority = rule.second.priority;
 			if (t.rules.size() == 0) {
 				// update default dimension order to fit current rule
 				// in order to avoid useless tree reconstruction

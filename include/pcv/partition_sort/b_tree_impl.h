@@ -37,6 +37,7 @@ public:
 	using key_vec_t = typename BTree::key_vec_t;
 	using formaters_t = std::array< std::function<void(std::ostream & str, key_range_t val)>, D>;
 	using names_t = std::array<std::string, D>;
+	using priority_t = typename BTree::priority_t;
 
 	using Printer_t = BTreePrinter<Key_t, _D, _T, _PATH_COMPRESSION, formaters_t, names_t>;
 
@@ -48,11 +49,11 @@ public:
 	const names_t names;
 
 	BTreeImp() :
-		BTree(), formaters(_default_formaters()), names(_default_names()) {
+			BTree(), formaters(_default_formaters()), names(_default_names()) {
 	}
 
 	BTreeImp(const formaters_t & _formaters, const names_t & _names) :
-		BTree(), formaters(_formaters), names(_names) {
+			BTree(), formaters(_formaters), names(_names) {
 	}
 
 	inline void insert(const rule_spec_t & r) {

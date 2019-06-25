@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
 #include <vector>
+#include <assert.h>
+#include <pcv/common/range.h>
 
 namespace pcv {
 
@@ -164,6 +166,8 @@ public:
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_id_t = typename BTree::rule_id_t;
 	using key_vec_t = typename BTree::key_vec_t;
+
+	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
 
 	class KeyIterator {
 	public:
@@ -399,8 +403,8 @@ public:
 		// first item was already checked in search_possition_1d
 		// find length of the sequence of the matching ranges in the items stored in node
 		auto v0 = n->value[0];
-		if (v0 != BTree::INVALID_RULE) {
-			res = v0;
+		if (v0.rule_id != INVALID_RULE) {
+			res = v0.rule_id;
 		}
 		Node * next_n = nullptr;
 		unsigned add_to_i = 0;
@@ -412,8 +416,8 @@ public:
 				break;
 			}
 			auto v = n->value[i2];
-			if (v != BTree::INVALID_RULE) {
-				res = v;
+			if (v.priority!= INVALID_RULE) {
+				res = v.rule_id;
 			}
 			auto _next_n = n->get_next_layer(i2);
 			if (_next_n) {
@@ -444,9 +448,9 @@ public:
 					continue;
 				}
 				auto v = n->value[r.second];
-				if (v != BTree::INVALID_RULE) {
+				if (v.priority != INVALID_RULE) {
 					// some matching rule found on path from the root in this node
-					res = v;
+					res = v.rule_id;
 				}
 				// search in next layer if there is some
 				n = n->get_next_layer(r.second);

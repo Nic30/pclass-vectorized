@@ -73,10 +73,10 @@ void test_b_tree(const std::string & file_name) {
 		RuleReader rp;
 		_rules = rp.parse_rules(file_name);
 	}
-	size_t i = 0;
+	typename BTree::rule_id_t i = 0;
 	for (auto _r : _rules) {
 		auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r);
-		typename BTree::rule_spec_t r = { rule_to_array_16b(*__r), i };
+		typename BTree::rule_spec_t r = { rule_to_array_16b(*__r), {0, i} };
 		if (not t.does_rule_colide(r)) {
 			//std::cout << i << " " << *__r << std::endl;
 			t.insert(r);

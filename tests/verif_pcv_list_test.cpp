@@ -29,13 +29,15 @@ using namespace pcv::rule_conv_fn;
 
 using BTree = BTreeImp<uint16_t, 7, 8>;
 using Classifier0 = PartitionSortClassifer<BTree, 64, 10>;
-using Classifier1 = ListBasedClassifier<uint16_t, 7>;
 using rule_spec_t = typename Classifier0::rule_spec_t;
+using Classifier1 = ListBasedClassifier<uint16_t, 7>;
 
-void formater(std::ostream & str, const Classifier1::rule_spec_t & rule) {
+template<class CLS_T>
+void formater(std::ostream & str, const typename CLS_T::rule_spec_t & rule) {
 	auto r = rule_from_array(rule.first);
-	str << r << ": id=" << rule.second;
+	str << r << ": p=" << (rule.second.priority) << " id=" << (rule.second.rule_id);
 }
+
 void dump_trees(std::ostream & str, const Classifier0 & cls) {
 	size_t tree_i = 0;
 	for (auto & t : cls.trees) {
@@ -49,11 +51,11 @@ void dump_trees(std::ostream & str, const Classifier0 & cls) {
 			{
 				ofstream of(string("dump/tree_") + to_string(tree_i) + ".txt",
 						ofstream::out);
-				std::vector<rule_spec_t> tmp;
+				std::vector<Classifier0::rule_spec_t> tmp;
 				BTree::ToRules tc(t->tree, tmp);
 				tc.to_rules();
-				for (auto r : tmp) {
-					formater(of, r);
+				for (const auto & r : tmp) {
+					formater<Classifier0>(of, r);
 					of << std::endl;
 				}
 				of.close();
@@ -93,7 +95,7 @@ void verify_tree_content(const Classifier0 & cls,
 				break;
 		}
 		BOOST_CHECK_MESSAGE(found,
-				rule_from_array(e_r.first) << ": id=" << e_r.second << " is missing in classifier");
+				rule_from_array(e_r.first) << ": id=" << e_r.second.rule_id << " is missing in classifier");
 	}
 	// check if everything in classifier is valid
 	for (auto & t_rules : rules_in_tree) {
@@ -105,10 +107,10 @@ void verify_tree_content(const Classifier0 & cls,
 					break;
 				}
 			}
-			if (! found)
+			if (!found)
 				std::cout << endl;
 			BOOST_CHECK_MESSAGE(found,
-					rule_from_array(r.first) << ": id=" << r.second << " is invalid in classifier");
+					rule_from_array(r.first) << ": id=" << r.second.rule_id << " is invalid in classifier");
 		}
 	}
 	// check there are no duplicities
@@ -125,22 +127,24 @@ void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,
 		size_t LOOKUP_CNT) {
 	Classifier0 cls0(rule_vec_format::Rule_Ipv4_ACL_formaters,
 			rule_vec_format::Rule_Ipv4_ACL_names);
-	Classifier1 cls1(formater);
+	Classifier1 cls1(formater<Classifier1>);
 
 	// load rules from the file
 	auto _rules = parse_ruleset_file(rule_file);
+	vector<Classifier0::rule_spec_t> rules_for_check;
 	vector<const Rule_Ipv4_ACL*> rules;
 	{
 		std::mt19937 rand(0);
 		// load rules in to a classifier tree
 		for (auto _r : _rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
-			BTree::rule_spec_t r = { rule_to_array_16b(*__r), _r.second };
+			Classifier0::rule_spec_t r = { rule_to_array_16b(*__r), {
+					(uint32_t)__r->cummulative_prefix_len(), (uint32_t)_r.second } };
 			cls0.insert(r);
-			cls1.insert(r);
+			cls1.insert({r.first, {r.second.priority, r.second.rule_id}});
 			cls1.prepare();
-
-			verify_tree_content(cls0, cls1.rules);
+			rules_for_check.push_back(r);
+			verify_tree_content(cls0, rules_for_check);
 
 			packet_t p;
 			random_corner(*__r, p, 7, rand, false);

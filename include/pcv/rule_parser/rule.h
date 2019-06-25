@@ -28,12 +28,12 @@ public:
 	Range1d<uint16_t> proto;
 
 	Rule_Ipv4_ACL();
-	// serialize rule to classbench format
 	size_t cummulative_prefix_len();
 	size_t max_cummulative_prefix_len();
 
 	void reverse_endianity();
 
+	// serialize rule to classbench format
 	friend std::ostream & operator<<(std::ostream & str,
 			const Rule_Ipv4_ACL & r);
 	operator std::string() const;

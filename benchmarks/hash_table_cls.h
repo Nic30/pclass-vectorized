@@ -8,20 +8,22 @@
 
 class HashTableBasedCls {
 public:
-	struct priority_and_id {
-		int priority;
-		size_t id;
+	using rule_id_t = uint32_t;
+	using priority_t = uint32_t;
+	struct rule_value_t {
+		priority_t priority;
+		rule_id_t id;
 
-		priority_and_id() :
-				priority(-1), id(-1) {
+		rule_value_t() :
+				priority(0), id(-1) {
 		}
-		priority_and_id(int _priority, size_t _id) :
+		rule_value_t(priority_t _priority, size_t _id) :
 				priority(_priority), id(_id) {
 		}
 	};
 	struct rule_spec_t {
 		std::array<pcv::Range1d<uint16_t>, 2> filter;
-		size_t id;
+		rule_value_t value;
 	};
 	struct pair_hash {
 		template<class T1, class T2>
@@ -31,7 +33,7 @@ public:
 	};
 	// any in range to start of range
 	std::unordered_map<uint16_t, uint16_t> data[2];
-	std::unordered_map<std::pair<uint16_t, uint16_t>, priority_and_id, pair_hash> cross_product;
+	std::unordered_map<std::pair<uint16_t, uint16_t>, rule_value_t, pair_hash> cross_product;
 	uint16_t data_2_next_id;
 	HashTableBasedCls() :
 			data_2_next_id(0) {
@@ -56,7 +58,7 @@ public:
 			} else {
 				f1_val = _f1->second;
 			}
-			cross_product[ { f0.low, f1_val }] = priority_and_id(0, r.id);
+			cross_product[ { f0.low, f1_val }] = r.value;
 		}
 	}
 

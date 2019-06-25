@@ -3,6 +3,34 @@
 
 namespace pcv {
 
+Rule_Ipv4_ACL::Rule_Ipv4_ACL() :
+		sip(0, std::numeric_limits<uint32_t>::max()), dip(0,
+				std::numeric_limits<uint32_t>::max()), sport(0,
+				std::numeric_limits<uint16_t>::max()), dport(0,
+				std::numeric_limits<uint16_t>::max()), proto(0,
+				std::numeric_limits<uint16_t>::max()) {
+
+}
+
+size_t Rule_Ipv4_ACL::cummulative_prefix_len() {
+	return sip.prefix_len_le() + dip.prefix_len_le() + sport.prefix_len_le()
+			+ dport.prefix_len_le() + proto.prefix_len_le();
+}
+
+size_t Rule_Ipv4_ACL::max_cummulative_prefix_len() {
+	return sip.max_prefix_len() + dip.max_prefix_len() + sport.max_prefix_len()
+			+ dport.max_prefix_len() + proto.max_prefix_len();
+}
+
+void Rule_Ipv4_ACL::reverse_endianity() {
+	sip = sip.to_be();
+	dip = dip.to_be();
+	sport = sport.to_be();
+	dport = dport.to_be();
+	proto = proto.to_be();
+}
+
+
 Range1d<uint16_t> * fill(Range1d<uint16_t> * begin,
 		const Range1d<uint8_t> & val) {
 	uint16_t high = val.high;

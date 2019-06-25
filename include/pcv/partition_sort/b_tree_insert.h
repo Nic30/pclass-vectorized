@@ -132,8 +132,10 @@ public:
 			bool require_more_levels = cookie.required_more_levels();
 			auto r_id =
 					require_more_levels ?
-							BTree::INVALID_RULE : cookie.rule.second;
-			node.set_key(i + 1, KeyInfo(k, r_id, BTree::INVALID_INDEX));
+							BTree::INVALID_RULE : cookie.rule.second.rule_id;
+			auto p = require_more_levels ? 0 :  cookie.rule.second.priority;
+			KeyInfo new_k(k, {p, r_id}, BTree::INVALID_INDEX);
+			node.set_key(i + 1, new_k);
 #ifndef NDEBUG
 			node.set_dim(i + 1, cookie.dimension_order.at(cookie.level));
 #endif
@@ -310,8 +312,10 @@ public:
 			auto k = cookie.get_actual_key();
 			auto r_id =
 					is_last_key_in_rule ?
-							cookie.rule.second : BTree::INVALID_RULE;
-			root->set_key(i, KeyInfo(k, r_id, BTree::INVALID_INDEX)); // Insert key
+							cookie.rule.second.rule_id : BTree::INVALID_RULE;
+			auto p = is_last_key_in_rule ? cookie.rule.second.priority : 0;
+			KeyInfo new_k(k, { p, r_id }, BTree::INVALID_INDEX);
+			root->set_key(i, new_k); // Insert key
 			root->set_dim(i, cookie.dimension_order.at(cookie.level));
 			bool last_it = i + 1 == end;
 			if (!last_it)

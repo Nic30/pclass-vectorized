@@ -30,14 +30,17 @@ int main(int argc, const char * argv[]) {
 		// load rules in to a classifier tree
 		for (auto _r : rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
-			BTree::rule_spec_t r = { rule_to_array_16b(*__r), _r.second };
+			BTree::rule_spec_t r = { rule_to_array_16b(*__r), {
+					(BTree::priority_t) __r->cummulative_prefix_len(),
+					(BTree::rule_id_t) _r.second } };
 			if (not t.does_rule_colide(r)) {
 				t.insert(r);
 				_rules.push_back(__r);
 			}
 		}
 		if (not dump_as_json)
-			cout << "[INFO] Loaded non-colliding rules cnt:" << _rules.size() << endl;
+			cout << "[INFO] Loaded non-colliding rules cnt:" << _rules.size()
+					<< endl;
 	}
 	stats.construction_stop();
 

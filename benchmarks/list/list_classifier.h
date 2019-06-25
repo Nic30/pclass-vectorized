@@ -15,17 +15,20 @@ template<typename _Key_t, size_t _D>
 class ListBasedClassifier {
 public:
 	using key_t = _Key_t;
-	using rule_id_t = uint16_t;
+	using rule_id_t = uint32_t;
 	static constexpr size_t D = _D;
 	using val_range_t = Range1d<_Key_t>;
-	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_id_t>;
 	using key_vec_t = std::array<key_t, D>;
 	// print functions and key names for the debug
+	using priority_t = uint32_t;
+	static constexpr rule_id_t INVALID_RULE = (1 << 24) - 1;
+	struct rule_value_t {
+		priority_t priority : 8;
+		rule_id_t rule_id : 24;
+	};
+	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_value_t>;
+
 	using formater_t = std::function<void(std::ostream & str, const rule_spec_t & rule)>;
-
-	static constexpr rule_id_t INVALID_RULE =
-			std::numeric_limits<rule_id_t>::max();
-
 	std::vector<rule_spec_t> rules;
 	bool rules_sorted;
 	const formater_t formater;
@@ -44,7 +47,7 @@ public:
 	inline void prepare() {
 		std::sort(rules.begin(), rules.end(),
 				[](const rule_spec_t & a, const rule_spec_t & b) {
-					return a.second > b.second;
+					return a.second.priority > b.second.priority;
 				});
 		rules_sorted = true;
 	}
@@ -64,7 +67,7 @@ public:
 				}
 			}
 			if (match)
-				return r.second;
+				return r.second.rule_id;
 		}
 		return INVALID_RULE;
 	}
@@ -78,7 +81,7 @@ public:
 			rule_vec_format::rule_vec_format_default<key_t>(str, v);
 			str << " ";
 		}
-		str << rule.second;
+		str << rule.second.rule_id;
 	}
 
 	// serialize list to classbench rules

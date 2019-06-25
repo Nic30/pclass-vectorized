@@ -45,26 +45,36 @@ template<typename _Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION =
 		true>
 class alignas(64) _BTree {
 public:
-	// the identifier of the rule store in tree
-	using rule_id_t = uint16_t;
 	static constexpr size_t D = _D;
 	// range which is a key
 	using key_t = _Key_t;
 	using key_range_t = Range1d<_Key_t>;
-	// specification of the rule for insert/remove ops
-	using rule_spec_t = std::pair<std::array<key_range_t, D>, rule_id_t>;
 	// index of the node in memorypool
 	using index_t = uint16_t;
+	static constexpr index_t INVALID_INDEX =
+			std::numeric_limits<index_t>::max();
+
+	static constexpr bool PATH_COMPRESSION = _PATH_COMPRESSION;
+
+	// the identifier of the rule store in tree
+	using rule_id_t = uint32_t;
+	using priority_t = uint32_t;
+	static constexpr rule_id_t INVALID_RULE = (1 << 24) - 1;
+	struct rule_value_t {
+		// invalid rule = rule with rule_id = INVALID_RULE and should have priority set to 0
+		priority_t priority :8;
+		rule_id_t rule_id :24;
+		bool operator==(const rule_value_t & other) const {
+			return priority == other.priority && rule_id == other.rule_id;
+		}
+	};
 	// util type which keeps informations about the key and child/next layer pointers in for item in node
-	using KeyInfo = _KeyInfo<key_t, index_t>;
+	using KeyInfo = _KeyInfo<key_t, index_t, rule_value_t>;
 	// type of value vector which can be searched in this data structure
 	using key_vec_t = std::array<key_t, D>;
 
-	static constexpr index_t INVALID_INDEX =
-			std::numeric_limits<index_t>::max();
-	static constexpr rule_id_t INVALID_RULE = INVALID_INDEX;
-	static constexpr bool PATH_COMPRESSION = _PATH_COMPRESSION;
-
+	// specification of the rule for insert/remove ops
+	using rule_spec_t = std::pair<std::array<key_range_t, D>, rule_value_t>;
 	/*
 	 * The node of B-tree
 	 * the array of the keys, items, and next level pointers together with additional info
@@ -82,7 +92,7 @@ public:
 		// 16*1B dimension index, only used for compressed nodes, the dimension order is same as in tree
 		__m64 dim_index[2];
 		// the value of rule
-		std::array<index_t, MAX_DEGREE> value;
+		std::array<rule_value_t, MAX_DEGREE> value;
 		// the pointers to the root of trees in next level of the tree
 		std::array<index_t, MAX_DEGREE> next_level;
 		// 9*2B child index
@@ -112,7 +122,8 @@ public:
 					std::numeric_limits<uint32_t>::max());
 			dim_index[1] = dim_index[0] = _m_from_int64(
 					std::numeric_limits<uint64_t>::max());
-			std::fill(value.begin(), value.end(), INVALID_INDEX);
+			rule_value_t fillup = { 0, INVALID_RULE };
+			std::fill(value.begin(), value.end(), fillup);
 			clean_children();
 
 			// the only required initialisations

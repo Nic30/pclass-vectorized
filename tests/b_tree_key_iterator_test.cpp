@@ -20,8 +20,8 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges ) {
 	size_t N = 100;
 	BTree t;
 
-	for (size_t i = 0; i < N; i++) {
-		rule_t r = { { R1d(i, i), R1d(0, 0), }, i };
+	for (BTree::rule_id_t i = 0; i < N; i++) {
+		rule_t r = { { R1d(i, i), R1d(0, 0), }, {0, i} };
 		t.insert(r);
 	}
 
@@ -40,8 +40,8 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges_backward ) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
-	for (size_t i = 0; i < N; i++) {
-		rule_t r = { { R1d(i, i), R1d(0, 0), }, i };
+	for (BTree::rule_id_t i = 0; i < N; i++) {
+		rule_t r = { { R1d(i, i), R1d(0, 0), }, {0, i} };
 		t.insert(r);
 	}
 

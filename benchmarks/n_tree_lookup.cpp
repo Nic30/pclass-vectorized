@@ -32,8 +32,8 @@ int main(int argc, const char * argv[]) {
 		size_t i = 0;
 		for (auto _r : _rules) {
 			auto __r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
-			BTree::rule_spec_t r =
-					{ rule_to_array_16b(*__r), _r.second };
+			BTree::rule_spec_t r = { rule_to_array_16b(*__r), {
+					(Classifier::priority_t)__r->cummulative_prefix_len(), _r.second } };
 			//std::cout << *__r << std::endl;
 			t.insert(r);
 			rules.push_back(__r);

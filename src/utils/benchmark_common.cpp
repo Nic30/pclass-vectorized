@@ -1,4 +1,5 @@
 #include <pcv/utils/benchmark_common.h>
+#include <cmath>
 
 namespace pcv {
 
@@ -30,6 +31,8 @@ void BenchmarkStats::set_number_or_tries_or_tables(
 void BenchmarkStats::dump(std::function<void(std::ostream &)> json_extra,
 		std::function<void(std::ostream &)> text_extra) {
 	auto lookup_speed = (LOOKUP_CNT / double(lookup_timer->us()));
+	if (std::isinf(lookup_speed))
+		lookup_speed = 0.0; // time can be lower than 1us and json can not contain inf
 	if (dump_as_json) {
 		out << "{ \"lookup_speed\":" << lookup_speed << "," << std::endl;
 		out << "\"construction_time\":" << uint64_t(construction_timer->us())

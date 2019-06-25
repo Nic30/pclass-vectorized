@@ -8,7 +8,16 @@ benchmarks = [
   ['hash_vs_rb_tree_vs_b_tree', ['hash_vs_rb_tree_vs_b_tree.cpp'], [
        # cls,   rules,  traces,  lookup
 	  ['hash', '8192', '32768', '1000000'],
-	  ['b_tree', '8192', '32768', '1000000'], ]],
+	  ['b_tree', '8192', '32768', '1000000'],
+  ]],
+  ['prefix_combinations', ['prefix_combinations.cpp'], [
+	  # cls, prefix, traces, lookup
+	 # ['hash', '32768', '1000000'],
+	  ['tss',    '1',  '32768', '1000000'],
+	  ['tss',   '32',  '32768', '1000000'],
+	  ['b_tree', '1',  '32768', '1000000'],
+	  ['b_tree', '32', '32768', '1000000'],
+  ]],
   ['exact_match_rule_gen', ['exact_match_rule_gen.cpp'], [['0', '1024'], ]],
 ]
 
@@ -17,7 +26,7 @@ foreach b : benchmarks
 	benchmark_exe = executable(b[0],
 		b[1],
 		dependencies: [pcv_dep],
-		cpp_args: EXTRA_CXX_ARGS #+ ['-O3', ]
+		cpp_args: EXTRA_CXX_ARGS + ['-O3', ]
 		,
         #c_args: EXTRA_C_ARGS,
     )

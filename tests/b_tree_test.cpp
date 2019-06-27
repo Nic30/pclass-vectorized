@@ -26,14 +26,14 @@ public:
 	}
 };
 
-
 void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
 	for (BTree::rule_id_t i = 0; i < N; i++) {
-		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, {0, i} };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, },
+				{ 0, i } };
 		t.insert(r);
 	}
 
@@ -63,7 +63,8 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
 	for (BTree::rule_id_t i = 0; i < N; i++) {
-		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, {0, i} };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, },
+				{ 0, i } };
 		t.insert(r);
 		t.root->integrity_check(t.dimension_order);
 	}
@@ -75,16 +76,16 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	//o.close();
 
 	for (BTree::rule_id_t i = 0; i < N; i++) {
-		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, }, {0, i} };
+		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, },
+				{ 0, i } };
 		t.remove(r);
 		BOOST_CHECK_EQUAL(t.size(), (N - i - 1));
 		for (size_t i3 = i + 1; i3 < N; i3++) {
 			for (size_t i2 = 0; i2 < RANGE_SIZE; i2++) {
 				auto s = (i3 * STEP + i2);
-				//cout << s  << " expecting " << i << endl;
 				auto res = t.search(s);
 				BOOST_CHECK_EQUAL_MESSAGE(res, i3,
-						"searching:" << s << " step:" << i << " expected:" << i3 << " i2:" << i2);
+						"searching:" << s << " step:" << i << " expected:" << i3 << " i2:" << i2 << " got:" << res);
 			}
 		}
 
@@ -115,7 +116,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 BOOST_AUTO_TEST_CASE( simple_search ) {
 	BTree t;
 	t.root = new BTree::Node;
-	BTree::KeyInfo k( { 4, 6 }, {0, 10}, BTree::INVALID_INDEX);
+	BTree::KeyInfo k( { 4, 6 }, { 0, 10 }, BTree::INVALID_INDEX);
 
 	t.root->set_key(0, k);
 	t.root->set_key_cnt(1);
@@ -140,9 +141,9 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
-	rule_t r1 = { { R1d(1, 1), any, }, {0, 1} };
-	rule_t r2 = { { R1d(3, 6), any, }, {0, 2} };
-	rule_t r3 = { { R1d(7, 10), any, },{0, 3} };
+	rule_t r1 = { { R1d(1, 1), any, }, { 0, 1 } };
+	rule_t r2 = { { R1d(3, 6), any, }, { 0, 2 } };
+	rule_t r3 = { { R1d(7, 10), any, }, { 0, 3 } };
 
 	t.insert(r1);
 	t.insert(r2);
@@ -177,7 +178,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {
 	R1d any(0, numeric_limits<BTree::key_t>::max());
 	BTree::rule_id_t i = 0;
 	for (auto val : values) {
-		rule_t r = { { R1d(val.first, val.second), any, }, {0, i} };
+		rule_t r = { { R1d(val.first, val.second), any, }, { 0, i } };
 		t.insert(r);
 		//{
 		//	stringstream ss;
@@ -199,7 +200,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_same ) {
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
 	for (BTree::rule_id_t i = 0; i < 1024; i++) {
-		rule_t r = { { R1d(0, 0), any, }, {0, i} };
+		rule_t r = { { R1d(0, 0), any, }, { 0, i } };
 		t.insert(r);
 	}
 	t.root->integrity_check(t.dimension_order);
@@ -211,11 +212,11 @@ BOOST_AUTO_TEST_CASE( simple_insert_same_into_something ) {
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
 	for (BTree::rule_id_t i = 0; i < 1024; i++) {
-		rule_t r = { { R1d(i, i), any, }, {0, i} };
+		rule_t r = { { R1d(i, i), any, }, { 0, i } };
 		t.insert(r);
 	}
 	for (BTree::rule_id_t i = 0; i < 1024; i++) {
-		rule_t r = { { R1d(512, 512), any, }, {0, i} };
+		rule_t r = { { R1d(512, 512), any, }, { 0, i } };
 		t.insert(r);
 	}
 	t.root->integrity_check(t.dimension_order);

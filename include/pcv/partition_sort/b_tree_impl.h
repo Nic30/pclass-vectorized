@@ -47,15 +47,22 @@ public:
 
 	const formaters_t formaters;
 	const names_t names;
+	Search_t searcher;
 
 	BTreeImp() :
-			BTree(), formaters(_default_formaters()), names(_default_names()) {
+			BTree(), formaters(_default_formaters()), names(_default_names()), searcher(
+					*reinterpret_cast<const BTree*>(this)) {
 	}
 
 	BTreeImp(const formaters_t & _formaters, const names_t & _names) :
-			BTree(), formaters(_formaters), names(_names) {
+			BTree(), formaters(_formaters), names(_names), searcher(
+					*reinterpret_cast<const BTree*>(this)) {
 	}
-
+	BTreeImp(const std::array<typename Search_t::in_packet_position_t, D> in_packet_pos,
+			const formaters_t & _formaters, const names_t & _names) :
+			BTree(), formaters(_formaters), names(_names), searcher(
+					*reinterpret_cast<const BTree*>(this), in_packet_pos) {
+	}
 	inline void insert(const rule_spec_t & r) {
 		Insert_t::insert(*reinterpret_cast<BTree*>(this), r);
 	}
@@ -66,7 +73,7 @@ public:
 	}
 
 	inline rule_id_t search(const key_vec_t & v) const {
-		return Search_t::search(*reinterpret_cast<const BTree*>(this), v);
+		return searcher.search(v);
 	}
 	inline void remove(const rule_spec_t & r) {
 		Remove_t::remove(*this, r);

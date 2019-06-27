@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		t.remove(r0);
 
 		res = t.search(v2);
-		BOOST_CHECK_EQUAL(res, BTree::INVALID_INDEX);
+		BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
 
 		res = t.search(v1);
 		BOOST_CHECK_EQUAL(res, 1);

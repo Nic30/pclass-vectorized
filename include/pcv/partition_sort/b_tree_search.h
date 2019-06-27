@@ -2,7 +2,10 @@
 #include <array>
 #include <vector>
 #include <assert.h>
+#include <byteswap.h>
+
 #include <pcv/common/range.h>
+#include <pcv/partition_sort/b_tree_key_iterator.h>
 
 namespace pcv {
 
@@ -27,10 +30,10 @@ namespace search_fn {
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i  __attribute__((__always_inline__))  _mm256_cmpgt_epu32(
-		__m256i  const a, __m256i  const b) {
+inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu32(
+		__m256i const a, __m256i const b) {
 	constexpr uint32_t offset = 0x1 << 31;
-	__m256i  const fix_val = _mm256_set1_epi32(offset);
+	__m256i const fix_val = _mm256_set1_epi32(offset);
 	return _mm256_cmpgt_epi32(_mm256_add_epi32(a, fix_val), b); // PCMPGTD
 }
 /*
@@ -39,10 +42,10 @@ inline static __m256i  __attribute__((__always_inline__))  _mm256_cmpgt_epu32(
  * @param a the signed integer vector
  * @param b the unsigned integer vector
  * */
-inline static __m256i  __attribute__((__always_inline__))  _mm256_cmpgt_epu16(
-		__m256i  const a, __m256i  const b) {
+inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
+		__m256i const a, __m256i const b) {
 	constexpr uint16_t offset = 0x1u << 15;
-	__m256i  const fix_val = _mm256_set1_epi16(offset);
+	__m256i const fix_val = _mm256_set1_epi16(offset);
 	return _mm256_cmpgt_epi16(_mm256_add_epi16(a, fix_val), b); // PCMPGTD
 }
 
@@ -139,7 +142,7 @@ SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
 	// alternately, you could pre-process your data to remove the need
 	// for the permute.
 
-	__m256i  const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
+	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
 	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
 	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
 
@@ -166,61 +169,51 @@ public:
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_id_t = typename BTree::rule_id_t;
 	using key_vec_t = typename BTree::key_vec_t;
-
-	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
-
-	class KeyIterator {
-	public:
-		class State {
-		public:
-			Node * actual;
-			unsigned index;
-
-			bool operator!=(const State & other) const {
-				return actual != other.actual or index != other.index;
-			}
-			void operator++() {
-				std::tie(actual, index) = getSucc_global(*actual, index);
-			}
-			void operator--() {
-				std::tie(actual, index) = getPred_global(*actual, index);
-			}
-			KeyInfo operator*() {
-				return actual->get_key(index);
-			}
-
-		};
-
-		State _end;
-		State _begin;
-
-		KeyIterator(Node * start_node, unsigned start_index) {
-			_begin.actual = start_node;
-			_begin.index = start_index;
-
-			_end.actual = nullptr;
-			_end.index = 0;
-		}
-
-		static Node * left_most(Node * n) {
-			while (n->child(0)) {
-				n = n->child(0);
-			}
-			return n;
-		}
-
-		KeyIterator(Node * root) :
-				KeyIterator(left_most(root), 0) {
-		}
-
-		constexpr State & end() {
-			return _end;
-		}
-
-		constexpr State & begin() {
-			return _begin;
-		}
+	// the position of the data in input packet
+	struct in_packet_position_t {
+		uint16_t offset;
+		uint16_t big_endian;
 	};
+	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
+	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
+
+	const BTree & t;
+	std::array<in_packet_position_t, _D> in_packet_position;
+
+	/*
+	 * Constructor with specified in packet positions
+	 * */
+	BTreeSearch(const BTree & _t, std::array<in_packet_position_t, _D> _in_packet_pos) :
+			t(_t), in_packet_position(_in_packet_pos) {
+		static_assert(_D <= 128);
+	}
+
+	/*
+	 * Constructor with a dummy in_packet_position for just simple array of values
+	 * */
+	BTreeSearch(const BTree & _t) :
+			t(_t) {
+		assert(_D <= 128);
+		for (uint16_t i = 0; i < _D; i++) {
+			in_packet_position[i] = {
+				static_cast<uint16_t>(i*2),
+				static_cast<uint16_t>(false)};
+		}
+	}
+
+	key_t get_val(const uint8_t * val_vec, unsigned dim) const {
+#ifndef NDEBUG
+		assert(dim < in_packet_position.size());
+#endif
+		auto p = in_packet_position[dim];
+		const key_t * k = reinterpret_cast<const key_t *>(val_vec + p.offset);
+
+		if (p.big_endian) {
+			return __swab16p(((const key_t *)k));
+		} else {
+			return *k;
+		}
+	}
 
 	/*
 	 * Search the value or range in single level of the tree
@@ -260,114 +253,13 @@ public:
 	//	_mm256_storeu_si256(middle, x);
 	//}
 
-	static unsigned index_of_child(Node *p, Node * ch) {
-		size_t i = 0;
-		for (; p != nullptr and i <= p->key_cnt; i++) {
-			if (p->child(i) == ch)
-				break;
-		}
-		return i;
-	}
-
-	static Node* get_most_left(Node * n) {
-		while (not n->is_leaf) {
-			n = n->child(0);
-		}
-		return n;
-	}
-
-	static std::pair<Node*, unsigned> get_most_left_after(Node * p, Node * ch) {
-		while (p != nullptr) {
-			// move up to a parent node
-			size_t my_index = index_of_child(p, ch);
-			if (my_index + 1 < p->key_cnt) {
-				return {get_most_left(p->child(my_index + 1)), 0};
-			} else {
-				ch = p;
-				p = p->parent;
-			}
-		}
-		return {nullptr, 0};
-	}
-
-	// A function to get position of successor of keys[idx]
-	// @return next node and next index of key in it
-	// 		if there is no key after this one returns {nullptr, 0};
-	static std::pair<Node*, unsigned> getSucc_global(Node & node,
-			unsigned idx) {
-		if (node.is_leaf) {
-			if (int(idx) < int(node.key_cnt) - 1) {
-				// move forward in this node
-				return {&node, idx + 1};
-			} else {
-				Node * p = node.parent;
-				Node * n = &node;
-				while (p) {
-					auto i = index_of_child(p, n);
-					if (i == p->key_cnt) {
-						// this is on end of parent and successor is somewhere up
-						n = p;
-						p = p->parent;
-					} else {
-						// just move to parent key
-						return {p, i};
-					}
-				}
-				return {nullptr, 0};
-			}
-		} else if (node.child(idx + 1)) {
-			// move on lowest in right sibling
-			return {get_most_left(node.child(idx + 1)), 0};
-		} else {
-			return get_most_left_after(node.parent, &node);
-		}
-	}
-	static std::pair<Node*, unsigned> getPred_global(Node & node,
-			unsigned idx) {
-		if (node.is_leaf) {
-			if (idx > 0) {
-				// move backward in this node
-				return {&node, idx - 1};
-			} else {
-				// move to parent and check if there is key on left
-				// if there is not this is the 1st child and the value can be on the parent of the parent
-				Node * p = node.parent, *n = &node;
-				while (p) {
-					size_t i = index_of_child(p, n);
-					if (i > 0) {
-						// key in parent before the keys of this node
-						return {p, i - 1};
-					}
-					// go one level up
-					n = p;
-					p = p->parent;
-				}
-
-				assert(p == nullptr);
-				// we are on top on first item there is nowhere to go
-				return {nullptr, 0};
-			}
-		} else {
-			// in internal node
-			// there has to be previous node because otherwise this would be a leaf node
-			// move to children on the bootom left
-
-			// the indexing of children is shifted against the indexing of the keys by -1
-			auto ch = node.child(idx);
-			while (not ch->is_leaf) {
-				ch = ch->child(ch->key_cnt);
-			}
-			return {ch, ch->key_cnt - 1};
-		}
-	}
-
 	// A function to get predecessor of keys[idx] (only in the local subtree)
 	static typename BTree::KeyInfo getPred(Node & node, unsigned idx) {
 		// Keep moving to the right most node until we reach a leaf
 		auto cur = node.child(idx);
-		while (!cur->is_leaf)
+		while (!cur->is_leaf) {
 			cur = cur->child(cur->key_cnt);
-
+		}
 		// Return the last key of the leaf
 		return cur->get_key(cur->key_cnt - 1);
 	}
@@ -375,9 +267,9 @@ public:
 	static typename BTree::KeyInfo getSucc(Node & node, unsigned idx) {
 		// Keep moving the left most node starting from child(idx+1) until we reach a leaf
 		auto * cur = node.child(idx + 1);
-		while (not cur->is_leaf)
+		while (not cur->is_leaf) {
 			cur = cur->child(0);
-
+		}
 		// Return the first key of the leaf
 		return cur->get_key(0);
 	}
@@ -390,16 +282,17 @@ public:
 	// Find index of the key in this node
 	static unsigned findKey(Node & node, const Range1d<key_t> k) {
 		unsigned i = 0;
-		while (i < node.key_cnt && node.get_key(i) < k)
+		while (i < node.key_cnt && node.get_key(i) < k) {
 			++i;
+		}
 		return i;
 	}
 	// @param n node to search in
 	// @param _val value vector to search
 	// @param res id or best matching rule
 	// @param i dimension index (the index of the field index in the dimension_order array)
-	static Node * search_rest_of_path_in_compressed_node(Node * n,
-			const key_vec_t & _val, rule_id_t & res, unsigned & i) {
+	Node * search_rest_of_path_in_compressed_node(Node * n, const uint8_t * val_vec, rule_id_t & res,
+			unsigned & i) const {
 		// first item was already checked in search_possition_1d
 		// find length of the sequence of the matching ranges in the items stored in node
 		auto v0 = n->value[0];
@@ -411,12 +304,12 @@ public:
 		for (unsigned i2 = 1; i2 < n->key_cnt; i2++) {
 			auto k = n->get_key(i2);
 			auto d = n->get_dim(i2);
-			typename key_vec_t::value_type val = _val[d];
+			typename key_vec_t::value_type val = get_val(val_vec, d);
 			if (not k.key.in_range(val)) {
 				break;
 			}
 			auto v = n->value[i2];
-			if (v.priority!= INVALID_RULE) {
+			if (v.rule_id != INVALID_RULE) {
 				res = v.rule_id;
 			}
 			auto _next_n = n->get_next_layer(i2);
@@ -433,22 +326,27 @@ public:
 	 * Search in all levels of the tree
 	 *
 	 * */
-	static rule_id_t search(const BTree & t, const key_vec_t & _val) {
+	rule_id_t search(const key_vec_t & _val) const {
+		const uint8_t * val_vec = (const uint8_t*) &_val[0];
+		return search(val_vec);
+	}
+
+	rule_id_t search(const uint8_t * val_vec) const {
 		rule_id_t res = BTree::INVALID_RULE;
 		Node * n = t.root;
 		unsigned i = 0;
 		while (n) {
 			auto d = t.dimension_order[i];
-			auto val = _val[d];
+			auto val = get_val(val_vec, d);
 			auto r = search_possition_1d(n, val);
 			n = r.first;
 			if (n) {
 				if (n->is_compressed) {
-					n = search_rest_of_path_in_compressed_node(n, _val, res, i);
+					n = search_rest_of_path_in_compressed_node(n, val_vec, res, i);
 					continue;
 				}
 				auto v = n->value[r.second];
-				if (v.priority != INVALID_RULE) {
+				if (v.rule_id != INVALID_RULE) {
 					// some matching rule found on path from the root in this node
 					res = v.rule_id;
 				}
@@ -485,8 +383,9 @@ public:
 #endif
 				auto val = rule.first[d];
 				auto r = search_possition_1d(n, val);
-				if (r.first == nullptr)
+				if (r.first == nullptr) {
 					break;
+				}
 
 #ifndef NDEBUG
 				{
@@ -548,9 +447,10 @@ public:
 				Node *r, *n;
 				unsigned i2;
 				std::tie(r, n, i2) = path[i];
-				if (i == 0)
+
+				if (i == 0) {
 					assert(r == root);
-				else {
+				} else {
 					// asssert that the path is continuous
 					Node *_r, *_n;
 					unsigned _i2;
@@ -563,12 +463,13 @@ public:
 				}
 
 				assert(r->parent == nullptr && "root is really root");
-				if (n->is_compressed)
+				if (n->is_compressed) {
 					assert(r == n);
-				else
+				} else {
 					assert(
 							r->get_dim(0) == n->get_dim(0)
-									&& "root and node are from same tree");
+							&& "root and node are from same tree");
+				}
 				auto n_d = n->get_dim(i2);
 				auto l = start + i;
 				auto expected_d = dimension_order[l];

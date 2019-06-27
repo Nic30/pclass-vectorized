@@ -3,6 +3,8 @@
 
 #include <pcv/common/range.h>
 #include <pcv/partition_sort/b_tree_search.h>
+#include <pcv/partition_sort/b_tree_key_iterator.h>
+
 
 namespace pcv {
 
@@ -15,7 +17,7 @@ public:
 	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;
 	using KeyInfo = typename BTree::KeyInfo;
-	using KeyIterator = typename BTreeSearch_t::KeyIterator;
+	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
 private:
 	static SearchResult search_closest_lower_or_equal_seq(const Node & node,
 			key_t val) {
@@ -87,7 +89,7 @@ public:
 					KeyIterator _it(p_low.first, p_low.second);
 					p_low_next = (*_it.begin()).key;
 				} else {
-					auto _min = BTreeSearch_t::get_most_left(t);
+					auto _min = KeyIterator::get_most_left(t);
 					KeyIterator _it(_min, 0);
 					p_low_next = (*_it.begin()).key;
 				}

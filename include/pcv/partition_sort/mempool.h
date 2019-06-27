@@ -30,10 +30,8 @@ class alignas(64) StaticMempool final {
 	// pointer of the first item in the list of the free items
 	static Info * m_first_free;
 
-	// sentinel for the allocation
-
 	// spinlock for allocation and deallocation
-	static __attribute__((aligned(64)))                   std::atomic_flag lock;
+	static __attribute__((aligned(64))) std::atomic_flag lock;
 
 	// staic constructor of this mempool which initializes the pointers
 	// in the singly linked list
@@ -169,7 +167,6 @@ public:
 		assert(id < ITEM_CNT);
 		return id;
 	}
-
 };
 
 // static declarations for StaticMempool
@@ -187,7 +184,7 @@ typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Info * StaticMempool<T,
 
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
 std::atomic_flag StaticMempool<T, ITEM_CNT, THREAD_SAFE>::lock =
-		ATOMIC_FLAG_INIT;
+ATOMIC_FLAG_INIT;
 
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
 const size_t StaticMempool<T, ITEM_CNT, THREAD_SAFE>::ITEM_CNT;
@@ -197,7 +194,7 @@ class ObjectWithStaticMempool {
 public:
 	using _Mempool_t = StaticMempool<T, object_cnt, THREAD_SAFE>;
 
-	static void* operator new(__attribute__((unused)) std::size_t sz) {
+	static void* operator new(__attribute__((unused))   std::size_t sz) {
 		return StaticMempool<T, object_cnt, THREAD_SAFE>::get();
 	}
 
@@ -207,5 +204,6 @@ public:
 	}
 	static void* operator new[](std::size_t count) = delete;
 };
+
 
 }

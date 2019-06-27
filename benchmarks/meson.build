@@ -26,9 +26,8 @@ foreach b : benchmarks
 	benchmark_exe = executable(b[0],
 		b[1],
 		dependencies: [pcv_dep],
-		cpp_args: EXTRA_CXX_ARGS + ['-O3', ]
-		,
-        #c_args: EXTRA_C_ARGS,
+		cpp_args: PCV_EXTRA_CXX_ARGS,
+		c_args: PCV_EXTRA_C_ARGS,
     )
     foreach args: b[2]
 		test(b[0] + ' ' + args[0], benchmark_exe, workdir : meson.source_root(), args : args)

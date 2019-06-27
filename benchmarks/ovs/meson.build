@@ -9,9 +9,6 @@ srcs = [
 OVS_DEF_C_SETTINGS = [
  '-DHAVE_CONFIG_H',
  '-fno-strict-aliasing',
- '-m64',
- '-march=haswell',
- '-mavx2',
  '-Wall',
  '-Wbool-compare',
  '-Wcast-align',
@@ -30,11 +27,10 @@ OVS_DEF_C_SETTINGS = [
  '-Wswitch-bool',
  '-Wswitch-enum',
  '-Wunused-parameter',
- #'-O3',
 ]
 
 OVS_CXX_ARGS = OVS_DEF_C_SETTINGS
-OVS_C_ARGS = OVS_DEF_C_SETTINGS + [
+OVS_C_ARGS = PCV_OPT + OVS_DEF_C_SETTINGS + [
   '-Wbad-function-cast',
   '-Wstrict-prototypes',
   '-Wold-style-definition',

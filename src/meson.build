@@ -7,14 +7,10 @@ src = [
 	'utils/benchmark_common.cpp',
 ]
 
-EXTRA_CXX_ARGS = [
- 	#'-O3',
- 	'-g',
+PCV_EXTRA_CXX_ARGS = PCV_OPT + [
  	'-Wall',
- 	'-m64',
- 	'-mavx2',
- 	'-march=haswell',
- ]
+]
+PCV_EXTRA_C_ARGS = PCV_EXTRA_CXX_ARGS
 
 _pcv_inc = include_directories('../include/')
 _pcv_lib = library(
@@ -22,7 +18,8 @@ _pcv_lib = library(
     src,
     include_directories : [_pcv_inc, ],
     install : true,
-    cpp_args: EXTRA_CXX_ARGS,
+    cpp_args: PCV_EXTRA_CXX_ARGS,
+    c_args: PCV_EXTRA_C_ARGS,
 )
 install_subdir('../include/pcv', install_dir : 'include')
 pcv_dep = declare_dependency(

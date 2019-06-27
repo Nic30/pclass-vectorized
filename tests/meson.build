@@ -20,7 +20,7 @@ foreach t : tests
 	test_exe = executable(t[0]  + '_test',
 		[t[0] + '_test.cpp'],
 		dependencies: [boost_deps, pcv_dep],
-		cpp_args: EXTRA_CXX_ARGS,
+		cpp_args: PCV_EXTRA_CXX_ARGS,
         #c_args: EXTRA_C_ARGS,
         #include_directories: pcv_incldir
         )

@@ -53,12 +53,12 @@ public:
 			BTree(), formaters(_default_formaters()), names(_default_names()), searcher(
 					*reinterpret_cast<const BTree*>(this)) {
 	}
-
 	BTreeImp(const formaters_t & _formaters, const names_t & _names) :
 			BTree(), formaters(_formaters), names(_names), searcher(
 					*reinterpret_cast<const BTree*>(this)) {
 	}
-	BTreeImp(const std::array<typename Search_t::in_packet_position_t, D> in_packet_pos,
+	BTreeImp(
+			const std::array<typename Search_t::in_packet_position_t, D> in_packet_pos,
 			const formaters_t & _formaters, const names_t & _names) :
 			BTree(), formaters(_formaters), names(_names), searcher(
 					*reinterpret_cast<const BTree*>(this), in_packet_pos) {
@@ -66,18 +66,17 @@ public:
 	inline void insert(const rule_spec_t & r) {
 		Insert_t::insert(*reinterpret_cast<BTree*>(this), r);
 	}
-
 	inline bool does_rule_colide(const rule_spec_t & r) {
 		return CollisionCheck_t::does_rule_colide(
 				*reinterpret_cast<BTree*>(this), r);
 	}
-
 	inline rule_id_t search(const key_vec_t & v) const {
 		return searcher.search(v);
 	}
 	inline void remove(const rule_spec_t & r) {
 		Remove_t::remove(*this, r);
 	}
+
 	// serialize graph to string in dot format
 	friend std::ostream & operator<<(std::ostream & str, const BTreeImp & t) {
 		Printer_t p(t.formaters, t.names);

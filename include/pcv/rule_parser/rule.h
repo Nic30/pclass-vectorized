@@ -163,9 +163,13 @@ extern std::array<std::string, 7> Rule_Ipv4_ACL_names;
 
 template<typename T>
 void rule_vec_format_default(std::ostream & str, const Range1d<T> & k) {
+	static_assert(sizeof(T) <= sizeof(unsigned));
 	str << unsigned(k.low) << "-" << unsigned(k.high);
 }
 void rule_vec_format_ipv4_part(std::ostream & str, const Range1d<uint16_t> & k);
+void rule_vec_format_ipv6_part(std::ostream & str, const Range1d<uint16_t> & k);
+void rule_vec_format_eth_part(std::ostream & str, const Range1d<uint16_t> & k);
+
 
 }
 

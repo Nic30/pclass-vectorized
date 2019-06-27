@@ -1,6 +1,18 @@
 #include "classifier.h"
+#undef atomic_init
+#undef atomic_store
+#undef atomic_compare_exchange_strong_explicit
+#undef atomic_compare_exchange_strong
+#undef atomic_compare_exchange_weak_explicit
+#undef atomic_compare_exchange_weak
 
 #include "classifier-private.h"
+#include "struct_flow_conversions.h"
+
+classifier_priv::classifier_priv() :
+		cls(struct_flow_packet_spec, struct_flow_packet_formaters,
+				struct_flow_packet_names), next_rule_id(0) {
+}
 
 void classifier_init(struct classifier *cls, const uint8_t *flow_segments) {
 	ovs_assert(flow_segments == nullptr && "not implemented");
@@ -45,12 +57,18 @@ classifier_replace(struct classifier *cls, const struct cls_rule *rule,
 	Classifier::rule_spec_t tmp;
 	struct match m;
 	minimatch_expand(&rule->match, &m);
-	vec_build::flow_to_array(&m.flow, &m.wc.masks, tmp.first);
-	tmp.second = rule->priority;
+	flow_to_array(&m.flow, &m.wc, tmp.first);
+	auto r = p->to_rule.find(p->next_rule_id);
+	while (r != p->to_rule.end()) {
+		p->next_rule_id++;
+		r = p->to_rule.find(p->next_rule_id);
+	}
+	tmp.second.rule_id = p->next_rule_id++;
+	tmp.second.priority = rule->priority;
 	assert(n_conjs == 0);
 	p->cls.insert(tmp);
 	p->to_pcv_rule[rule] = tmp;
-	p->to_rule[tmp.second] = rule;
+	p->to_rule[tmp.second.rule_id] = rule;
 
 	return nullptr;
 }
@@ -98,9 +116,8 @@ classifier_lookup(const struct classifier *_cls,
 		struct flow_wildcards *wc) {
 	assert(wc == nullptr);
 	auto p = ((classifier_priv*) _cls->priv);
-	std::array<uint16_t, DIM_CNT> tmp;
-	vec_build::flow_to_array(flow, tmp);
-	auto res = p->cls.search(tmp);
+	auto tmp = reinterpret_cast<const uint8_t*>(flow);
+	auto res = p->cls.search<const uint8_t*>(tmp);
 	if (res == Classifier::INVALID_RULE)
 		return nullptr;
 	else

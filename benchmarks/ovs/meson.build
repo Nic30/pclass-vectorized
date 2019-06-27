@@ -29,7 +29,7 @@ OVS_DEF_C_SETTINGS = [
  '-Wunused-parameter',
 ]
 
-OVS_CXX_ARGS = OVS_DEF_C_SETTINGS
+OVS_CXX_ARGS = PCV_OPT + OVS_DEF_C_SETTINGS
 OVS_C_ARGS = PCV_OPT + OVS_DEF_C_SETTINGS + [
   '-Wbad-function-cast',
   '-Wstrict-prototypes',

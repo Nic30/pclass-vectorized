@@ -49,6 +49,8 @@ public:
 	// range which is a key
 	using key_t = _Key_t;
 	using key_range_t = Range1d<_Key_t>;
+	// the type of index of the dimension in input vector or rule (0 to D-1)
+	using level_t = unsigned;
 	// index of the node in memorypool
 	using index_t = uint16_t;
 	static constexpr index_t INVALID_INDEX =
@@ -89,8 +91,8 @@ public:
 		// keys for the items in the node
 		__m256i keys[2];
 		static_assert(sizeof(_Key_t)* MAX_DEGREE <= sizeof(__m256i));
-		// 16*1B dimension index, only used for compressed nodes, the dimension order is same as in tree
-		__m64 dim_index[2];
+		// 16*2B dimension index, only used for compressed nodes, the dimension order is same as in tree
+		std::array<level_t, 16> dim_index;
 		// the value of rule
 		std::array<rule_value_t, MAX_DEGREE> value;
 		// the pointers to the root of trees in next level of the tree
@@ -120,8 +122,7 @@ public:
 			// the initialisations which are not required
 			keys[0] = keys[1] = _mm256_set1_epi32(
 					std::numeric_limits<uint32_t>::max());
-			dim_index[1] = dim_index[0] = _m_from_int64(
-					std::numeric_limits<uint64_t>::max());
+			std::fill(next_level.begin(), next_level.end(), 0);
 			rule_value_t fillup = { 0, INVALID_RULE };
 			std::fill(value.begin(), value.end(), fillup);
 			clean_children();
@@ -137,11 +138,11 @@ public:
 			std::fill(child_index.begin(), child_index.end(), INVALID_INDEX);
 		}
 
-		inline uint8_t get_dim(uint8_t index) const {
-			return reinterpret_cast<const uint8_t*>(&dim_index[0])[index];
+		inline level_t get_dim(uint8_t index) const {
+			return reinterpret_cast<const level_t*>(&dim_index[0])[index];
 		}
-		inline void set_dim(uint8_t index, uint8_t val) {
-			reinterpret_cast<uint8_t*>(&dim_index[0])[index] = val;
+		inline void set_dim(uint8_t index, level_t val) {
+			reinterpret_cast<level_t*>(&dim_index[0])[index] = val;
 		}
 		inline KeyInfo get_key(uint8_t index) const {
 			assert(index < MAX_DEGREE);
@@ -358,7 +359,7 @@ public:
 	}__attribute__((aligned(64)));
 
 	Node * root;
-	std::array<unsigned, D> dimension_order;
+	std::array<level_t, D> dimension_order;
 
 	// the copy constructor is disabled in order to ensure there are not any unintended copies of this object
 	_BTree(_BTree const&) = delete;

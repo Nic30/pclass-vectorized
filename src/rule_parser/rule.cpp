@@ -252,6 +252,19 @@ void rule_vec_format_ipv4_part(std::ostream & str, const Range1d<uint16_t> & k) 
 	str << (unsigned(k.low) & 0xff) << "/" << p_len;
 }
 
+void rule_vec_format_ipv6_part(std::ostream & str, const Range1d<uint16_t> & k) {
+	auto p_len = k.prefix_len_le();
+	auto flags = str.flags();
+
+	str << std::hex << (unsigned(k.low) >> 8) << ":";
+	str << std::hex << (unsigned(k.low) & 0xff) << "/" << std::dec << p_len;
+
+	str.flags(flags);
+}
+void rule_vec_format_eth_part(std::ostream & str, const Range1d<uint16_t> & k) {
+	rule_vec_format_ipv6_part(str, k);
+}
+
 std::array<std::function<void(std::ostream &, const Range1d<uint16_t>)>, 7> Rule_Ipv4_ACL_formaters =
 		{ rule_vec_format_ipv4_part,
 		  rule_vec_format_ipv4_part,

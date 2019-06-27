@@ -17,6 +17,7 @@ public:
 	using Node = typename BTree::Node;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using index_t = typename BTree::index_t;
+	using level_t = typename BTree::level_t;
 	using KeyInfo = typename BTree::KeyInfo;
 
 	/*
@@ -38,9 +39,9 @@ public:
 			return 1;
 		}
 	public:
-		std::array<unsigned, BTree::D> & dimension_order;
-		uint8_t level;
-		const uint8_t requires_levels;
+		std::array<level_t, BTree::D> & dimension_order;
+		level_t level;
+		const level_t requires_levels;
 		const rule_spec_t & rule;
 
 		InsertCookie(BTree & tree, const rule_spec_t & rule_) :
@@ -73,7 +74,7 @@ public:
 	static Node * insert(Node * root, InsertCookie & cookie) {
 		// search if there is some prefix already in decision tree because we do not
 		// want to duplicate keys which are already present
-		std::vector<std::tuple<Node *, Node *, unsigned>> path;
+		std::vector<std::tuple<Node *, Node *, level_t>> path;
 		BTreeSearch_t::search_path(root, cookie.dimension_order, cookie.rule,
 				path, cookie.level);
 

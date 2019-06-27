@@ -38,7 +38,7 @@ public:
 	using formaters_t = std::array< std::function<void(std::ostream & str, key_range_t val)>, D>;
 	using names_t = std::array<std::string, D>;
 	using priority_t = typename BTree::priority_t;
-
+	using packet_spec_t = typename Search_t::packet_spec_t;
 	using Printer_t = BTreePrinter<Key_t, _D, _T, _PATH_COMPRESSION, formaters_t, names_t>;
 
 	static constexpr index_t INVALID_INDEX = BTree::INVALID_INDEX;
@@ -57,9 +57,8 @@ public:
 			BTree(), formaters(_formaters), names(_names), searcher(
 					*reinterpret_cast<const BTree*>(this)) {
 	}
-	BTreeImp(
-			const std::array<typename Search_t::in_packet_position_t, D> in_packet_pos,
-			const formaters_t & _formaters, const names_t & _names) :
+	BTreeImp(const packet_spec_t & in_packet_pos, const formaters_t & _formaters,
+			const names_t & _names) :
 			BTree(), formaters(_formaters), names(_names), searcher(
 					*reinterpret_cast<const BTree*>(this), in_packet_pos) {
 	}
@@ -70,7 +69,8 @@ public:
 		return CollisionCheck_t::does_rule_colide(
 				*reinterpret_cast<BTree*>(this), r);
 	}
-	inline rule_id_t search(const key_vec_t & v) const {
+	template<typename search_val_t>
+	inline rule_id_t search(search_val_t v) const {
 		return searcher.search(v);
 	}
 	inline void remove(const rule_spec_t & r) {

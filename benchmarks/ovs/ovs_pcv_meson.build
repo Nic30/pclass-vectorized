@@ -124,6 +124,7 @@ src = [
 	'lib/stream-unix.c',
 	'lib/stream.c',
 	'lib/stream.c',
+	'lib/struct_flow_packet_spec.cpp',
 	'lib/svec.c',
 	'lib/syslog-direct.c',
 	'lib/syslog-libc.c',

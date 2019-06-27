@@ -64,6 +64,9 @@ public:
 	using formaters_t = typename TREE_T::formaters_t;
 	using names_t = typename TREE_T::names_t;
 	using priority_t = typename TREE_T::priority_t;
+	using packet_spec_t = typename TREE_T::packet_spec_t;
+	using Search_t = typename TREE_T::Search_t;
+
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
 
@@ -72,13 +75,17 @@ public:
 		TREE_T tree;
 		rule_id_t max_priority;
 		std::vector<rule_spec_t> rules;
+
 		tree_info() :
 				tree() {
 		}
-
 		tree_info(const formaters_t & _formaters, const names_t & _names) :
 				tree(_formaters, _names) {
 
+		}
+		tree_info(const packet_spec_t & in_packet_pos,
+				const formaters_t & _formaters, const names_t & _names) :
+				tree(in_packet_pos, _formaters, _names) {
 		}
 	};
 	std::array<tree_info*, MAX_TREE_CNT> trees;
@@ -99,6 +106,13 @@ public:
 			tree_cnt(0) {
 		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
 			trees[i] = new tree_info(_formaters, _names);
+		}
+	}
+	PartitionSortClassifer(const packet_spec_t & in_packet_pos,
+			const formaters_t & _formaters, const names_t & _names) :
+			tree_cnt(0) {
+		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
+			trees[i] = new tree_info(in_packet_pos, _formaters, _names);
 		}
 	}
 
@@ -260,7 +274,8 @@ public:
 			update_dimension_order(*ti->second);
 		}
 	}
-	inline rule_id_t search(const key_vec_t & val) const {
+	template<typename search_val_t>
+	inline rule_id_t search(search_val_t val) const {
 		rule_id_t actual_found = TREE_T::INVALID_RULE;
 
 		for (size_t i = 0; i < tree_cnt; i++) {

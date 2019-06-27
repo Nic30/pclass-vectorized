@@ -3,8 +3,10 @@
 #include <vector>
 #include <assert.h>
 #include <byteswap.h>
+#include <immintrin.h>
 
 #include <pcv/common/range.h>
+#include <pcv/partition_sort/b_tree.h>
 #include <pcv/partition_sort/b_tree_key_iterator.h>
 
 namespace pcv {
@@ -50,23 +52,6 @@ inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
 }
 
 template<typename T>
-SearchResult search_compressed_seq(const __m256i * keys,
-		const __m64 * _dims __attribute__((unused)),
-		const uint8_t key_cnt __attribute__((unused)),
-		const Range1d<T> & val __attribute__((unused))) {
-	SearchResult r;
-	r.val_index = 0;
-	// search only the first position as this function is called only for the roots
-	// if there is math the rest of node is checked on different place
-	auto low = reinterpret_cast<const T*>(&keys[0])[0];
-	auto high = reinterpret_cast<const T*>(&keys[1])[0];
-	auto k = Range1d<T>(low, high);
-	r.in_range = k == val;
-
-	return r;
-}
-
-template<typename T>
 SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
 		const Range1d<T> & val) {
 	SearchResult r;
@@ -81,22 +66,6 @@ SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
 			break;
 		}
 	}
-	return r;
-}
-
-template<typename T>
-SearchResult search_compressed_seq(const __m256i * keys,
-		const __m64 * _dims __attribute__((unused)),
-		const uint8_t key_cnt __attribute__((unused)), const T val) {
-	SearchResult r;
-	r.val_index = 0;
-	// search only the first position as this function is called only for the roots
-	// if there is math the rest of node is checked on different place
-
-	auto low = reinterpret_cast<const T*>(&keys[0])[0];
-	auto high = reinterpret_cast<const T*>(&keys[1])[0];
-	auto k = Range1d<T>(low, high);
-	r.in_range = k.in_range(val);
 	return r;
 }
 
@@ -122,40 +91,6 @@ SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt, T val) {
 template<typename T>
 SearchResult search_avx2(const __m256i * keys, T val);
 
-template<>
-SearchResult search_avx2<uint32_t>(const __m256i * keys, uint32_t val) {
-	__m256i value = _mm256_set1_epi32(val);
-	// compare the two halves of the cache line.
-	// load 256b to avx
-	__m256i cmp1 = _mm256_load_si256(&keys[0]);
-	__m256i cmp2 = _mm256_load_si256(&keys[1]);
-
-	// 8* > u32
-	cmp1 = _mm256_cmpgt_epu32(cmp1, value);
-	cmp2 = _mm256_cmpgt_epu32(cmp2, value);
-
-	// merge the comparisons back together.
-	//
-	// a permute is required to get the pack results back into order
-	// because AVX-256 introduced that unfortunate two-lane interleave.
-	//
-	// alternately, you could pre-process your data to remove the need
-	// for the permute.
-
-	__m256i const perm_mask = _mm256_set_epi32(7, 6, 3, 2, 5, 4, 1, 0);
-	__m256i cmp = _mm256_packs_epi32(cmp1, cmp2); // PACKSSDW
-	cmp = _mm256_permutevar8x32_epi32(cmp, perm_mask); // PERMD
-
-	// finally create a move mask and count trailing
-	// zeroes to get an index to the next node.
-	uint32_t mask = _mm256_movemask_epi8(cmp); // PMOVMSKB
-	auto next_index = _tzcnt_u32(mask) / 2; // TZCNT
-
-	SearchResult r;
-	r.val_index = next_index;
-	r.in_range = false; // [TODO]
-	return r;
-}
 
 }
 
@@ -169,48 +104,93 @@ public:
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_id_t = typename BTree::rule_id_t;
 	using key_vec_t = typename BTree::key_vec_t;
+	using level_t = typename BTree::level_t;
 	// the position of the data in input packet
 	struct in_packet_position_t {
 		uint16_t offset;
-		uint16_t big_endian;
+		uint8_t size; // currently only 1 or 2
+		uint8_t is_big_endian;
+		in_packet_position_t() :
+				offset(0), size(0), is_big_endian(0) {
+		}
+		in_packet_position_t(uint16_t _offset, uint8_t _size,
+				uint8_t _is_big_endian) :
+				offset(_offset), size(_size), is_big_endian(_is_big_endian) {
+		}
 	};
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
 	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
 
 	const BTree & t;
-	std::array<in_packet_position_t, _D> in_packet_position;
+	using packet_spec_t = std::array<in_packet_position_t, _D>;
+	const packet_spec_t & in_packet_position;
+	packet_spec_t default_in_packet_position;
 
 	/*
 	 * Constructor with specified in packet positions
 	 * */
-	BTreeSearch(const BTree & _t, std::array<in_packet_position_t, _D> _in_packet_pos) :
+	BTreeSearch(const BTree & _t, const packet_spec_t & _in_packet_pos) :
 			t(_t), in_packet_position(_in_packet_pos) {
-		static_assert(_D <= 128);
 	}
 
 	/*
 	 * Constructor with a dummy in_packet_position for just simple array of values
 	 * */
 	BTreeSearch(const BTree & _t) :
-			t(_t) {
-		assert(_D <= 128);
+			BTreeSearch(_t, default_in_packet_position) {
 		for (uint16_t i = 0; i < _D; i++) {
-			in_packet_position[i] = {
+			default_in_packet_position[i] = {
 				static_cast<uint16_t>(i*2),
-				static_cast<uint16_t>(false)};
+				2,
+				static_cast<uint8_t>(false)};
 		}
 	}
 
-	key_t get_val(const uint8_t * val_vec, unsigned dim) const {
+	template<typename T>
+	static SearchResult search_compressed_seq(const __m256i * keys,
+			const level_t * _dims __attribute__((unused)),
+			const uint8_t key_cnt __attribute__((unused)),
+			const Range1d<T> & val __attribute__((unused))) {
+		SearchResult r;
+		r.val_index = 0;
+		// search only the first position as this function is called only for the roots
+		// if there is math the rest of node is checked on different place
+		auto low = reinterpret_cast<const T*>(&keys[0])[0];
+		auto high = reinterpret_cast<const T*>(&keys[1])[0];
+		auto k = Range1d<T>(low, high);
+		r.in_range = k == val;
+
+		return r;
+	}
+
+	template<typename T>
+	static SearchResult search_compressed_seq(const __m256i * keys,
+			const level_t * _dims __attribute__((unused)),
+			const uint8_t key_cnt __attribute__((unused)), const T val) {
+		SearchResult r;
+		r.val_index = 0;
+		// search only the first position as this function is called only for the roots
+		// if there is math the rest of node is checked on different place
+
+		auto low = reinterpret_cast<const T*>(&keys[0])[0];
+		auto high = reinterpret_cast<const T*>(&keys[1])[0];
+		auto k = Range1d<T>(low, high);
+		r.in_range = k.in_range(val);
+		return r;
+	}
+	key_t get_val(const uint8_t * val_vec, level_t dim) const {
 #ifndef NDEBUG
 		assert(dim < in_packet_position.size());
 #endif
 		auto p = in_packet_position[dim];
 		const key_t * k = reinterpret_cast<const key_t *>(val_vec + p.offset);
-
-		if (p.big_endian) {
+		if (p.size == 1) {
+			return *k;
+		} else if (p.is_big_endian) {
+			assert(p.size == 2);
 			return __swab16p(((const key_t *)k));
 		} else {
+			assert(p.size == 2);
 			return *k;
 		}
 	}
@@ -228,7 +208,7 @@ public:
 			//auto s = search_fn::search_avx2(n->keys, n->key_mask, val);
 			SearchResult s;
 			if (n->is_compressed) {
-				s = search_fn::search_compressed_seq(n->keys, n->dim_index,
+				s = search_compressed_seq(n->keys, &n->dim_index[0],
 						n->key_cnt, val);
 			} else {
 				s = search_fn::search_seq(n->keys, n->key_cnt, val);

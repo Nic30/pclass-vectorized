@@ -3,6 +3,7 @@ src = [
 	'rule_parser/classbench_rule_parser.cpp',
 	'rule_parser/rule.cpp',
 	'rule_parser/trace_tools.cpp',
+	'partition_sort/b_tree_search.cpp',
 	'utils/debug_timer.cpp',
 	'utils/benchmark_common.cpp',
 ]

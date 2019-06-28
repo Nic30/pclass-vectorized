@@ -6,6 +6,7 @@ Library of vectorized packet classification algorithms
 
 * prototype of packet classification alg. similar to [PartitonSort](https://github.com/sorrachai/PartitonSort) optimized for AVX2
 * DPDK rte_acl testing app
+* OVS classifier compatible wrapper / compatiblity layer
 
 
 ### Layered B-trees

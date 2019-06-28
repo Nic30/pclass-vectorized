@@ -45,7 +45,7 @@ int main(int argc, const char * argv[]) {
 
 	// generate packets
 	auto packets = generate_packets_from_ruleset(rules, UNIQUE_TRACE_CNT);
-	stats.set_number_or_tries_or_tables(t.tree_cnt);
+	stats.set_number_of_tries_or_tables(t.tree_cnt);
 	stats.lookup_start();
 
 	Classifier::rule_id_t res = 0;

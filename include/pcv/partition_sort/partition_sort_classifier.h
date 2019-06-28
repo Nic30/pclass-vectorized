@@ -66,6 +66,8 @@ public:
 	using priority_t = typename TREE_T::priority_t;
 	using packet_spec_t = typename TREE_T::packet_spec_t;
 	using Search_t = typename TREE_T::Search_t;
+	using rule_value_t = typename TREE_T::rule_value_t;
+	static constexpr size_t D = TREE_T::D;
 
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
@@ -73,19 +75,21 @@ public:
 	// @note the trees are sorted [0] has the greatest max priority rule
 	struct tree_info {
 		TREE_T tree;
-		rule_id_t max_priority;
+		priority_t max_priority;
+		unsigned used_dim_cnt;
 		std::vector<rule_spec_t> rules;
 
 		tree_info() :
-				tree() {
+				tree(), max_priority(0), used_dim_cnt(0) {
 		}
 		tree_info(const formaters_t & _formaters, const names_t & _names) :
-				tree(_formaters, _names) {
+				tree(_formaters, _names), max_priority(0), used_dim_cnt(0) {
 
 		}
 		tree_info(const packet_spec_t & in_packet_pos,
 				const formaters_t & _formaters, const names_t & _names) :
-				tree(in_packet_pos, _formaters, _names) {
+				tree(in_packet_pos, _formaters, _names), max_priority(0), used_dim_cnt(
+						0) {
 		}
 	};
 	std::array<tree_info*, MAX_TREE_CNT> trees;
@@ -122,11 +126,12 @@ public:
 		GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, key_t> resolver(
 				ti.rules, tree.dimension_order);
 		auto new_dim_order = resolver.resolve();
-		if (tree.dimension_order != new_dim_order) {
+		if (tree.dimension_order != new_dim_order.first) {
 			// rebuild the tree because it has suboptimal dimension order
 			delete tree.root;
 			tree.root = nullptr;
-			tree.dimension_order = new_dim_order;
+			tree.dimension_order = new_dim_order.first;
+			ti.used_dim_cnt = new_dim_order.second;
 			for (auto &r : ti.rules) {
 				if (tree.does_rule_colide(r)) {
 					// try to pick a different tree for this rule as it does not fit to this tree anymore
@@ -213,6 +218,7 @@ public:
 	 * and sort the tress by the max priority rule in descending order
 	 * */
 	inline void insert(const rule_spec_t & rule) {
+		// try to insert rule to a tree with best compatibility
 		size_t i = 0;
 		for (; i < tree_cnt; i++) {
 			auto & t = *trees[i];
@@ -220,13 +226,28 @@ public:
 				t.rules.push_back(rule);
 				rule_to_tree[rule] = &t;
 				if (t.rules.size() < TREE_FIXATION_THRESHOLD) {
-					if (update_dimension_order(t) == false)
+					if (update_dimension_order(t) == false) {
+						assert(not t.tree.does_rule_colide(rule));
 						t.tree.insert(rule);
+					}
 					// the rule is inserted automatically as it is in t.rules
 				} else {
-					// [TODO] if new dimension is used in rule which was not used in tree previously
-					//        it is required to update dimension order to put the new dimension,
-					//        being previously used, in order to prevent sparse branches in tree.
+					if (t.used_dim_cnt < D) {
+						// if new dimension is used in rule which was not used in tree previously
+						// it is required to update dimension order to put the new dimension,
+						// being previously used, in order to prevent sparse levels in tree.
+						//for (size_t d_i = t.used_dim_cnt; d_i < D; d_i++) {
+						//	// for all unused dimensions check if they are used in new rule
+						//	// if it is used swap it with first unused
+						//	auto d = t.tree.dimension_order[d_i];
+						//	if (not rule.first[d].is_wildcard()) {
+						//		std::swap(t.tree.dimension_order[t.used_dim_cnt],
+						//				  t.tree.dimension_order[d_i]);
+						//		t.used_dim_cnt++;
+						//	}
+						//}
+					}
+					assert(not t.tree.does_rule_colide(rule));
 					t.tree.insert(rule);
 				}
 				if (rule.second.priority > t.max_priority) {
@@ -236,6 +257,7 @@ public:
 				return;
 			}
 		}
+		// else create new tree for this rule
 		if (i < MAX_TREE_CNT) {
 			// the rule does not fit to any tree, generate new tree for this rule
 			auto & t = *trees[i];
@@ -246,7 +268,9 @@ public:
 				std::vector<rule_spec_t> _rules = { rule, };
 				GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, key_t> resolver(
 						_rules, t.tree.dimension_order);
-				t.tree.dimension_order = resolver.resolve();
+				auto dor = resolver.resolve();
+				t.tree.dimension_order = dor.first;
+				t.used_dim_cnt = dor.second;
 			}
 			t.tree.insert(rule);
 			t.rules.push_back(rule);
@@ -275,19 +299,17 @@ public:
 		}
 	}
 	template<typename search_val_t>
-	inline rule_id_t search(search_val_t val) const {
-		rule_id_t actual_found = TREE_T::INVALID_RULE;
+	inline rule_value_t search(search_val_t val) const {
+		rule_value_t actual_found = {0, TREE_T::INVALID_RULE};
 
 		for (size_t i = 0; i < tree_cnt; i++) {
 			auto & t = *trees[i];
 			auto res = t.tree.search(val);
-			if (res != TREE_T::INVALID_RULE
-					&& (actual_found == TREE_T::INVALID_RULE
-							|| actual_found < res)) {
+			if (res.is_valid() && (!actual_found.is_valid() || actual_found.priority < res.priority)) {
 				actual_found = res;
 			}
-			if (actual_found != TREE_T::INVALID_RULE and i + 1 < tree_cnt
-					and trees[i + 1]->max_priority < actual_found) {
+			if (actual_found.is_valid() and i + 1 < tree_cnt
+					and trees[i + 1]->max_priority <= actual_found.priority) {
 				break;
 			}
 		}

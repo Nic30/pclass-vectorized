@@ -14,6 +14,9 @@ public:
 		bool operator!=(const State & other) const {
 			return actual != other.actual or index != other.index;
 		}
+		bool operator==(const State & other) const {
+			return actual == other.actual and index == other.index;
+		}
 		void operator++() {
 			std::tie(actual, index) = getSucc_global(*actual, index);
 		}
@@ -23,7 +26,6 @@ public:
 		KeyInfo operator*() {
 			return actual->get_key(index);
 		}
-
 	};
 
 	State _end;

@@ -54,6 +54,9 @@ void dump_trees(std::ostream & str, const Classifier0 & cls) {
 				std::vector<Classifier0::rule_spec_t> tmp;
 				BTree::ToRules tc(t->tree, tmp);
 				tc.to_rules();
+				for (auto d: t->tree.dimension_order)
+					of << unsigned(d) << " ";
+				of << endl;
 				for (const auto & r : tmp) {
 					formater<Classifier0>(of, r);
 					of << std::endl;
@@ -149,17 +152,18 @@ void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,
 			packet_t p;
 			random_corner(*__r, p, 7, rand, false);
 			auto r0 = cls0.search(p);
-			auto r1 = cls1.search(p);
+			auto _r1 = cls1.search(p);
+			Classifier0::rule_value_t r1(_r1.priority, _r1.rule_id);
 
-			BOOST_CHECK_EQUAL(r0, r1);
-			BOOST_CHECK_EQUAL(r0, _r.second);
+			BOOST_CHECK_EQUAL(r0.rule_id, r1.rule_id);
+			BOOST_CHECK_EQUAL(r0.rule_id, _r.second);
 			if (r0 != r1) {
 				std::cout << exact_array_to_rule_le(p) << " - searched data"
 						<< std::endl;
 				std::cout << (*__r) << " id:" << _r.second
 						<< " - corresponding rule" << std::endl;
 				for (auto r2 : _rules) {
-					if (r2.second == r0 or r2.second == r1) {
+					if (r2.second == r0.rule_id or r2.second == r1.rule_id) {
 						auto r3 = reinterpret_cast<Rule_Ipv4_ACL*>(r2.first);
 						std::cout << *r3 << " id:" << r2.second << std::endl;
 					}
@@ -177,32 +181,43 @@ void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,
 	// generate packets
 	auto packets = generate_packets_from_ruleset(rules, UNIQUE_TRACE_CNT);
 	auto print_find_rule =
-			[&] (Classifier0::rule_id_t r_id, std::ostream & out) {
+			[&] (Classifier0::rule_value_t v, std::ostream & out) {
 				std::cerr.flush();
 				std::cout.flush();
-				if (r_id == Classifier0::INVALID_RULE) {
-					out << "<" << r_id <<" NULL>";
+				if (!v.is_valid()) {
+					out << "<" << v.rule_id <<" NULL>";
 					return;
 				}
 				for (auto r: _rules) {
-					if (r.second == r_id) {
-						out << "<" << r_id << " " << *reinterpret_cast<Rule_Ipv4_ACL*>(r.first) << ">";
+					if (r.second == v.rule_id) {
+						out << "<" << v.rule_id << " " << *reinterpret_cast<Rule_Ipv4_ACL*>(r.first) << ">";
 						return;
 					}
 				}
-				out << "<" << r_id << " INVALID>";
+				out << "<" << v.rule_id << " INVALID>";
 			};
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
+		if (i == 2)
+			cout << endl;
 		auto r0 = cls0.search(p);
-		auto r1 = cls1.search(p);
+		auto _r1 = cls1.search(p);
+		Classifier0::rule_value_t r1(_r1.priority, _r1.rule_id);
+
 		// pcv : list
-		BOOST_CHECK_EQUAL(r0, r1);
+		BOOST_CHECK_EQUAL(r0.rule_id, r1.rule_id);
 		if (r0 != r1) {
+			Rule_Ipv4_ACL tmp;
+			cout << "searching: " << exact_array_to_rule_le(p) << std::endl;
+			cout << "(tree) ";
 			print_find_rule(r0, std::cout);
 			std::cout << "  !=  ";
+			cout << "(cam) ";
 			print_find_rule(r1, std::cout);
 			std::cout << std::endl << std::endl;
+
+			dump_trees(std::cout, cls0);
+			exit(1);
 		}
 	}
 }

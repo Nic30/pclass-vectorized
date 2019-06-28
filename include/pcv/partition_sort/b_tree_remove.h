@@ -13,6 +13,7 @@ public:
 	using Node = typename BTree::Node;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using key_t = typename BTree::key_t;
+	using rule_value_t = typename BTree::rule_value_t;
 
 	static void remove(BTree & tree, const rule_spec_t & k) {
 		std::vector<std::tuple<Node *, Node *, unsigned>> path;
@@ -31,7 +32,7 @@ public:
 			auto nl = node->get_next_layer(index);
 			if (nl) {
 				// delete only rule specification
-				node->value[index] = {0, BTree::INVALID_RULE};
+				node->value[index] = rule_value_t();
 				// there is something down in the tree and there is not a record about
 				// this rule up in tree
 				break;

@@ -66,8 +66,20 @@ public:
 		// invalid rule = rule with rule_id = INVALID_RULE and should have priority set to 0
 		priority_t priority :8;
 		rule_id_t rule_id :24;
+		rule_value_t() :
+				priority(0), rule_id(INVALID_RULE) {
+		}
+		rule_value_t(priority_t priority_, rule_id_t rule_id_) :
+				priority(priority_), rule_id(rule_id_) {
+		}
+		bool is_valid() const {
+			return rule_id != INVALID_RULE;
+		}
 		bool operator==(const rule_value_t & other) const {
 			return priority == other.priority && rule_id == other.rule_id;
+		}
+		bool operator!=(const rule_value_t & other) const {
+			return priority != other.priority || rule_id != other.rule_id;
 		}
 	};
 	// util type which keeps informations about the key and child/next layer pointers in for item in node
@@ -123,8 +135,6 @@ public:
 			keys[0] = keys[1] = _mm256_set1_epi32(
 					std::numeric_limits<uint32_t>::max());
 			std::fill(next_level.begin(), next_level.end(), 0);
-			rule_value_t fillup = { 0, INVALID_RULE };
-			std::fill(value.begin(), value.end(), fillup);
 			clean_children();
 
 			// the only required initialisations
@@ -352,9 +362,6 @@ public:
 			for (uint8_t i = 0; i < key_cnt; i++) {
 				delete get_next_layer(i);
 			}
-#ifndef NDEBUG
-			std::memset(this, 0, sizeof(Node));
-#endif
 		}
 	}__attribute__((aligned(64)));
 

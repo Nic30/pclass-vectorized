@@ -1,6 +1,9 @@
 #pragma once
 #include <vector>
+#include <array>
+
 #include <pcv/partition_sort/weighted_interval_scheduling_solver.h>
+#include <pcv/common/range.h>
 
 namespace pcv {
 
@@ -21,11 +24,8 @@ public:
 	GreedyDimensionOrderResolver(std::vector<rule_spec_t> & rules_,
 			const std::array<unsigned, DIM_CNT> & original_order_) :
 			rules(rules_), original_order(original_order_) {
-		for (auto & _r : rules_) {
-			auto & r = _r.first;
-			for (size_t i = 0; i < DIM_CNT; i++) {
-				dim_mask[i] = not r[i].is_wildcard();
-			}
+		for (size_t i = 0; i < DIM_CNT; i++) {
+			dim_mask[i] = false;
 		}
 	}
 	int get_dimension_sel_score(unsigned d) {
@@ -44,7 +44,14 @@ public:
 		return sched.findMaxWeightIntervalSequence();
 	}
 
-	std::array<unsigned, DIM_CNT> resolve() {
+	std::pair<std::array<unsigned, DIM_CNT>, size_t> resolve() {
+		// resolve which dimensions are used
+		for (auto & _r : rules) {
+			auto & r = _r.first;
+			for (size_t i = 0; i < DIM_CNT; i++) {
+				dim_mask[i] |= not r[i].is_wildcard();
+			}
+		}
 		// collect the indexes of the dimensions which are used
 		std::array<unsigned, DIM_CNT> res_dim_order;
 		std::vector<unsigned> pending_dims;
@@ -91,6 +98,7 @@ public:
 		for (auto s : scores) {
 			res_dim_order[dim_resolved_cnt++] = s.first;
 		}
+		size_t used_dim_cnt = dim_resolved_cnt;
 		// the rest of the dimensions which are not used by any the rules
 		// will be added in orders based on their previous order
 		for (unsigned i = 0; i < DIM_CNT; i++) {
@@ -108,7 +116,7 @@ public:
 		}
 #endif
 		assert(dim_resolved_cnt == DIM_CNT);
-		return res_dim_order;
+		return {res_dim_order, used_dim_cnt};
 	}
 
 };

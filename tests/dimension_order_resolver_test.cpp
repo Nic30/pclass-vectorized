@@ -33,8 +33,9 @@ BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 
 	Resolver r(rules, order);
 	auto res = r.resolve();
-	BOOST_TEST(res == vector<unsigned>({1,2,3,0}),
+	BOOST_TEST(res.first == vector<unsigned>({1,2,3,0}),
 			boost::test_tools::per_element());
+	BOOST_TEST(res.second == 2);
 }
 
 //____________________________________________________________________________//

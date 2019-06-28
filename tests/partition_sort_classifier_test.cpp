@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 
 		key_vec_t v( { 0, (uint16_t) i });
 		auto res = cls.search(v);
-		BOOST_CHECK_EQUAL(res, i);
+		BOOST_CHECK_EQUAL(res.rule_id, i);
 	}
 	BOOST_CHECK_EQUAL(cls.tree_cnt, 1);
 }
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE( ruleset_acl1_100 ) {
 			UNIQUE_TRACE_CNT);
 	for (auto p : packets) {
 		auto res = cls.search(p);
-		BOOST_CHECK_NE(res, BTree::INVALID_RULE);
+		BOOST_CHECK_NE(res.rule_id, BTree::INVALID_RULE);
 	}
 }
 

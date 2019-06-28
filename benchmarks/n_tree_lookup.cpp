@@ -53,7 +53,7 @@ int main(int argc, const char * argv[]) {
 		auto & p = packets[i % packets.size()];
 		auto r = t.search(p);
 		//std::cout << r << std::endl;
-		res |= r;
+		res |= r.rule_id;
 	}
 	// this is there to assert the search is not optimised out
 	if (res == 0) {

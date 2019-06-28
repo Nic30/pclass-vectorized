@@ -14,12 +14,12 @@ BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
 class BTree: public BTreeImp<uint16_t, 2, 4, false> {
 public:
-	rule_id_t search(key_t _v) const {
+	rule_value_t search(key_t _v) const {
 		key_vec_t v = { _v, _v };
 		return BTreeImp::search(v);
 	}
 
-	rule_id_t search(const std::vector<key_t> & _v) const {
+	rule_value_t search(const std::vector<key_t> & _v) const {
 		key_vec_t v;
 		std::copy(_v.begin(), _v.begin() + D, v.begin());
 		return BTreeImp::search(v);
@@ -50,7 +50,7 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 			//cout << s  << " expecting " << i << endl;
 			vector<BTree::key_t> v = { s, };
 			auto res = t.search(v);
-			BOOST_CHECK_EQUAL_MESSAGE(res, i,
+			BOOST_CHECK_EQUAL_MESSAGE(res.rule_id, i,
 					"searching:" << s << " i:" << i << " i2:" << i2);
 		}
 	}
@@ -84,8 +84,8 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 			for (size_t i2 = 0; i2 < RANGE_SIZE; i2++) {
 				auto s = (i3 * STEP + i2);
 				auto res = t.search(s);
-				BOOST_CHECK_EQUAL_MESSAGE(res, i3,
-						"searching:" << s << " step:" << i << " expected:" << i3 << " i2:" << i2 << " got:" << res);
+				BOOST_CHECK_EQUAL_MESSAGE(res.rule_id, i3,
+						"searching:" << s << " step:" << i << " expected:" << i3 << " i2:" << i2 << " got:" << res.rule_id);
 			}
 		}
 
@@ -106,7 +106,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 	for (size_t i = 0; i < N; i++) {
 		auto s = (i * STEP);
 		auto res = t.search(s);
-		BOOST_CHECK_EQUAL_MESSAGE(res, BTree::INVALID_RULE,
+		BOOST_CHECK_EQUAL_MESSAGE(res.rule_id, BTree::INVALID_RULE,
 				"searching:" << s << " i:" << i);
 	}
 	BOOST_CHECK_EQUAL(BTree::Node::_Mempool_t::size(),
@@ -122,18 +122,18 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	t.root->set_key_cnt(1);
 
 	auto r = t.search(0);
-	BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(r.rule_id, BTree::INVALID_RULE);
 	r = t.search(4);
-	BOOST_CHECK_EQUAL(r, 10);
+	BOOST_CHECK_EQUAL(r.rule_id, 10);
 
 	r = t.search(5);
-	BOOST_CHECK_EQUAL(r, 10);
+	BOOST_CHECK_EQUAL(r.rule_id, 10);
 
 	r = t.search(6);
-	BOOST_CHECK_EQUAL(r, 10);
+	BOOST_CHECK_EQUAL(r.rule_id, 10);
 
 	r = t.search(7);
-	BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(r.rule_id, BTree::INVALID_RULE);
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert ) {
@@ -149,14 +149,14 @@ BOOST_AUTO_TEST_CASE( simple_insert ) {
 	t.insert(r2);
 	t.insert(r3);
 
-	BOOST_CHECK_EQUAL(t.search(0), BTree::INVALID_RULE);
-	BOOST_CHECK_EQUAL(t.search(1), 1);
-	BOOST_CHECK_EQUAL(t.search(2), BTree::INVALID_RULE);
-	BOOST_CHECK_EQUAL(t.search(3), 2);
-	BOOST_CHECK_EQUAL(t.search(6), 2);
-	BOOST_CHECK_EQUAL(t.search(7), 3);
-	BOOST_CHECK_EQUAL(t.search(10), 3);
-	BOOST_CHECK_EQUAL(t.search(11), BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(t.search(0).rule_id, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(t.search(1).rule_id, 1);
+	BOOST_CHECK_EQUAL(t.search(2).rule_id, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(t.search(3).rule_id, 2);
+	BOOST_CHECK_EQUAL(t.search(6).rule_id, 2);
+	BOOST_CHECK_EQUAL(t.search(7).rule_id, 3);
+	BOOST_CHECK_EQUAL(t.search(10).rule_id, 3);
+	BOOST_CHECK_EQUAL(t.search(11).rule_id, BTree::INVALID_RULE);
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {

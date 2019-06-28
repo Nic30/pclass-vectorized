@@ -63,7 +63,7 @@ public:
 					str << " D=" << names.at(d) << "(" << int(d) << ")";
 				}
 				str << " | ";
-				if (k.value.rule_id != BTree::INVALID_RULE)
+				if (k.value.is_valid())
 					str << "p" << k.value.priority  << " r" << k.value.rule_id;
 				str << "}";
 				str.flags(f);

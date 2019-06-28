@@ -34,37 +34,37 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	{
 		V v = { 0, 0 };
 		auto r = t.search(v);
-		BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
+		BOOST_CHECK_EQUAL(r.rule_id, BTree::INVALID_RULE);
 	}
 	{
 		V v = { 4, 0 };
 		auto r = t.search(v);
-		BOOST_CHECK_EQUAL(r, 9);
+		BOOST_CHECK_EQUAL(r.rule_id, 9);
 	}
 	{
 		V v = { 4, 10 };
 		auto r = t.search(v);
-		BOOST_CHECK_EQUAL(r, 10);
+		BOOST_CHECK_EQUAL(r.rule_id, 10);
 	}
 	{
 		V v = { 4, 11 };
 		auto r = t.search(v);
-		BOOST_CHECK_EQUAL(r, 10);
+		BOOST_CHECK_EQUAL(r.rule_id, 10);
 	}
 	{
 		V v = { 4, 20 };
 		auto r = t.search(v);
-		BOOST_CHECK_EQUAL(r, 10);
+		BOOST_CHECK_EQUAL(r.rule_id, 10);
 	}
 	{
 		V v = { 4, 30 };
 		auto r = t.search(v);
-		BOOST_CHECK_EQUAL(r, 9);
+		BOOST_CHECK_EQUAL(r.rule_id, 9);
 	}
 	{
 		V v = { 3, 10 };
-		auto r = t.search( v);
-		BOOST_CHECK_EQUAL(r, BTree::INVALID_RULE);
+		auto r = t.search(v);
+		BOOST_CHECK_EQUAL(r.rule_id, BTree::INVALID_RULE);
 	}
 }
 
@@ -82,25 +82,25 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		t.insert(r0);
 		V v0 = { 1, 0, 0, 0 };
 		auto res = t.search(v0);
-		BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+		BOOST_CHECK_EQUAL(res.rule_id, BTree::INVALID_RULE);
 
 		V v1 = { 0, 1, 1, 1 };
 		res = t.search(v1);
-		BOOST_CHECK_EQUAL(res, 0);
+		BOOST_CHECK_EQUAL(res.rule_id, 0);
 
 		BOOST_CHECK_EQUAL(t.root->get_next_layer(0), nullptr);
 		R r1 = { { R1d(0, 0), R1d(1, 1), any, any }, {0, 1} };
 		t.insert(r1);
 
 		res = t.search(v1);
-		BOOST_CHECK_EQUAL(res, 1);
+		BOOST_CHECK_EQUAL(res.rule_id, 1);
 
 		res = t.search(v0);
-		BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+		BOOST_CHECK_EQUAL(res.rule_id, BTree::INVALID_RULE);
 
 		V v2 = { 0, 0, 0, 0 };
 		res = t.search(v2);
-		BOOST_CHECK_EQUAL(res, 0);
+		BOOST_CHECK_EQUAL(res.rule_id, 0);
 		//{
 		//	stringstream ss;
 		//	ofstream o("ins_search_rem_4layer_r0_r1.dot");
@@ -118,10 +118,10 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		t.remove(r0);
 
 		res = t.search(v2);
-		BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+		BOOST_CHECK_EQUAL(res.rule_id, BTree::INVALID_RULE);
 
 		res = t.search(v1);
-		BOOST_CHECK_EQUAL(res, 1);
+		BOOST_CHECK_EQUAL(res.rule_id, 1);
 	}
 }
 
@@ -139,19 +139,19 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 
 	t.insert(r0);
 	auto res = t.search(v0);
-	BOOST_CHECK_EQUAL(res, 0);
+	BOOST_CHECK_EQUAL(res.rule_id, 0);
 
 	R r1 = { { R1d(0, 0), any, any, any }, {0, 1} };
 	t.insert(r1);
 	res = t.search(v0);
-	BOOST_CHECK_EQUAL(res, 1);
+	BOOST_CHECK_EQUAL(res.rule_id, 1);
 
 	V v1 = { 1, 2, 3, 4 };
 
 	R r2 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, {0, 2} };
 	t.insert(r2);
 	res = t.search(v1);
-	BOOST_CHECK_EQUAL(res, 2);
+	BOOST_CHECK_EQUAL(res.rule_id, 2);
 
 	//{
 	//	stringstream ss;
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	R r3 = { { R1d(1, 1), R1d(2, 2), R1d(3, 3), R1d(4, 4) }, {0, 3} };
 	t.insert(r3);
 	res = t.search(v1);
-	BOOST_CHECK_EQUAL(res, 3);
+	BOOST_CHECK_EQUAL(res.rule_id, 3);
 	//{
 	//	stringstream ss;
 	//	ofstream o("bt_r3.dot");
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	BOOST_CHECK_EQUAL(c.required_more_levels(), false);
 	t.insert(r0);
 	auto res = t.search(v0);
-	BOOST_CHECK_EQUAL(res, 0);
+	BOOST_CHECK_EQUAL(res.rule_id, 0);
 
 	R r_any = { { any, any, any, any, any, any, any }, (BTree::rule_value_t){0, 0} };
 	InsertCookie c_any(t, r_any);
@@ -242,11 +242,11 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	V v2 = { 0, 4, 2, 3 };
 	t.insert(r0);
 	auto res = t.search(v0);
-	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(res.rule_id, BTree::INVALID_RULE);
 	res = t.search(v1);
-	BOOST_CHECK_EQUAL(res, 0);
+	BOOST_CHECK_EQUAL(res.rule_id, 0);
 	res = t.search(v2);
-	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(res.rule_id, BTree::INVALID_RULE);
 	//{
 	//	stringstream ss;
 	//	ofstream o("rewrite_on_demand_0.dot");
@@ -263,11 +263,11 @@ BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	//}
 
 	res = t.search(v0);
-	BOOST_CHECK_EQUAL(res, BTree::INVALID_RULE);
+	BOOST_CHECK_EQUAL(res.rule_id, BTree::INVALID_RULE);
 	res = t.search(v1);
-	BOOST_CHECK_EQUAL(res, 0);
+	BOOST_CHECK_EQUAL(res.rule_id, 0);
 	res = t.search(v2);
-	BOOST_CHECK_EQUAL(res, 1);
+	BOOST_CHECK_EQUAL(res.rule_id, 1);
 }
 
 //____________________________________________________________________________//

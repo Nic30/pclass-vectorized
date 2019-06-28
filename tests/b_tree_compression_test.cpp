@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 		t.insert(r0);
 		typename BTree::key_vec_t v = { 0, 1, 2, 3 };
 		auto s = t.search(v);
-		BOOST_CHECK_EQUAL(s, 0);
+		BOOST_CHECK_EQUAL(s.rule_id, 0);
 	}
 
 	for (size_t i = 0; i < 4; i++) {
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 	for (uint16_t i = 0; i < 8; i++) {
 		typename BTree::key_vec_t v = { i, 1, 2, 3 };
 		auto s = t.search(v);
-		BOOST_CHECK_EQUAL(s, i);
+		BOOST_CHECK_EQUAL(s.rule_id, i);
 	}
 
 }
@@ -75,15 +75,15 @@ BOOST_AUTO_TEST_CASE( insert_search_maytimes_any_in_center ) {
 		//}
 		vv_t v = { 99, 1, 2, 3, 4, 5, 6, 7 };
 		auto s = t.search(v);
-		BOOST_CHECK_EQUAL(s, 0);
+		BOOST_CHECK_EQUAL(s.rule_id, 0);
 
 		v = {99, 1, 2, 3, 4, 5, 6, 8};
 		s = t.search(v);
-		BOOST_CHECK_EQUAL(s, INV);
+		BOOST_CHECK_EQUAL(s.rule_id, INV);
 
 		v = {99, 1, 2, 3, 4, 5, 6, 6};
 		s = t.search(v);
-		BOOST_CHECK_EQUAL(s, INV);
+		BOOST_CHECK_EQUAL(s.rule_id, INV);
 	}
 
 	BOOST_CHECK_EQUAL(t.root->key_cnt, 7);

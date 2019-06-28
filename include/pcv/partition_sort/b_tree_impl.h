@@ -26,9 +26,9 @@ public:
 	using Remove_t = BTreeRemove<Key_t, _D, _T, _PATH_COMPRESSION>;
 	using ToRules = _BTreeToRules<Key_t, _D, _T, _PATH_COMPRESSION>;
 
+	static constexpr size_t D = BTree::D;
 	using Node = typename BTree::Node;
 	using rule_id_t = typename BTree::rule_id_t;
-	static constexpr size_t D = BTree::D;
 	using key_range_t = typename BTree::key_range_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using key_t = typename BTree::key_t;
@@ -38,6 +38,7 @@ public:
 	using formaters_t = std::array< std::function<void(std::ostream & str, key_range_t val)>, D>;
 	using names_t = std::array<std::string, D>;
 	using priority_t = typename BTree::priority_t;
+	using rule_value_t = typename BTree::rule_value_t;
 	using packet_spec_t = typename Search_t::packet_spec_t;
 	using Printer_t = BTreePrinter<Key_t, _D, _T, _PATH_COMPRESSION, formaters_t, names_t>;
 
@@ -70,7 +71,7 @@ public:
 				*reinterpret_cast<BTree*>(this), r);
 	}
 	template<typename search_val_t>
-	inline rule_id_t search(search_val_t v) const {
+	inline rule_value_t search(search_val_t v) const {
 		return searcher.search(v);
 	}
 	inline void remove(const rule_spec_t & r) {

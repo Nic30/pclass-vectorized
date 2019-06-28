@@ -19,6 +19,7 @@ public:
 	using index_t = typename BTree::index_t;
 	using level_t = typename BTree::level_t;
 	using KeyInfo = typename BTree::KeyInfo;
+	using rule_value_t = typename BTree::rule_value_t;
 
 	/*
 	 * Information about insert state
@@ -131,11 +132,11 @@ public:
 
 			// Insert the new key at found location
 			bool require_more_levels = cookie.required_more_levels();
-			auto r_id =
-					require_more_levels ?
-							BTree::INVALID_RULE : cookie.rule.second.rule_id;
-			auto p = require_more_levels ? 0 :  cookie.rule.second.priority;
-			KeyInfo new_k(k, {p, r_id}, BTree::INVALID_INDEX);
+			rule_value_t rv;
+			if (!require_more_levels) {
+				rv = cookie.rule.second;
+			}
+			KeyInfo new_k(k, rv, BTree::INVALID_INDEX);
 			node.set_key(i + 1, new_k);
 #ifndef NDEBUG
 			node.set_dim(i + 1, cookie.dimension_order.at(cookie.level));
@@ -311,11 +312,11 @@ public:
 		for (size_t i = root->key_cnt; i < end; i++) {
 			bool is_last_key_in_rule = i == keys_to_insert - 1;
 			auto k = cookie.get_actual_key();
-			auto r_id =
-					is_last_key_in_rule ?
-							cookie.rule.second.rule_id : BTree::INVALID_RULE;
-			auto p = is_last_key_in_rule ? cookie.rule.second.priority : 0;
-			KeyInfo new_k(k, { p, r_id }, BTree::INVALID_INDEX);
+			rule_value_t rv;
+			if (is_last_key_in_rule) {
+				rv = cookie.rule.second;
+			}
+			KeyInfo new_k(k, rv, BTree::INVALID_INDEX);
 			root->set_key(i, new_k); // Insert key
 			root->set_dim(i, cookie.dimension_order.at(cookie.level));
 			bool last_it = i + 1 == end;

@@ -102,14 +102,16 @@ public:
 	using key_t = typename BTree::key_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using KeyInfo = typename BTree::KeyInfo;
-	using rule_id_t = typename BTree::rule_id_t;
 	using key_vec_t = typename BTree::key_vec_t;
 	using level_t = typename BTree::level_t;
+	using rule_value_t = typename BTree::rule_value_t;
+
 	// the position of the data in input packet
 	struct in_packet_position_t {
 		uint16_t offset;
 		uint8_t size; // currently only 1 or 2
 		uint8_t is_big_endian;
+
 		in_packet_position_t() :
 				offset(0), size(0), is_big_endian(0) {
 		}
@@ -118,7 +120,6 @@ public:
 				offset(_offset), size(_size), is_big_endian(_is_big_endian) {
 		}
 	};
-	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
 	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
 
 	const BTree & t;
@@ -271,13 +272,13 @@ public:
 	// @param _val value vector to search
 	// @param res id or best matching rule
 	// @param i dimension index (the index of the field index in the dimension_order array)
-	Node * search_rest_of_path_in_compressed_node(Node * n, const uint8_t * val_vec, rule_id_t & res,
+	Node * search_rest_of_path_in_compressed_node(Node * n, const uint8_t * val_vec, rule_value_t & res,
 			unsigned & i) const {
 		// first item was already checked in search_possition_1d
 		// find length of the sequence of the matching ranges in the items stored in node
 		auto v0 = n->value[0];
-		if (v0.rule_id != INVALID_RULE) {
-			res = v0.rule_id;
+		if (v0.is_valid()) {
+			res = v0;
 		}
 		Node * next_n = nullptr;
 		unsigned add_to_i = 0;
@@ -289,8 +290,8 @@ public:
 				break;
 			}
 			auto v = n->value[i2];
-			if (v.rule_id != INVALID_RULE) {
-				res = v.rule_id;
+			if (v.is_valid()) {
+				res = v;
 			}
 			auto _next_n = n->get_next_layer(i2);
 			if (_next_n) {
@@ -306,13 +307,13 @@ public:
 	 * Search in all levels of the tree
 	 *
 	 * */
-	rule_id_t search(const key_vec_t & _val) const {
+	rule_value_t search(const key_vec_t & _val) const {
 		const uint8_t * val_vec = (const uint8_t*) &_val[0];
 		return search(val_vec);
 	}
 
-	rule_id_t search(const uint8_t * val_vec) const {
-		rule_id_t res = BTree::INVALID_RULE;
+	rule_value_t search(const uint8_t * val_vec) const {
+		rule_value_t res;
 		Node * n = t.root;
 		unsigned i = 0;
 		while (n) {
@@ -326,9 +327,9 @@ public:
 					continue;
 				}
 				auto v = n->value[r.second];
-				if (v.rule_id != INVALID_RULE) {
+				if (v.is_valid()) {
 					// some matching rule found on path from the root in this node
-					res = v.rule_id;
+					res = v;
 				}
 				// search in next layer if there is some
 				n = n->get_next_layer(r.second);

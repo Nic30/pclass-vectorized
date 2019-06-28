@@ -7,26 +7,24 @@
 
 #include <pcv/common/range.h>
 #include <pcv/rule_parser/rule.h>
-
+#include <pcv/partition_sort/b_tree.h>
 
 namespace pcv {
 
 template<typename _Key_t, size_t _D>
 class ListBasedClassifier {
+private:
+	using BTree = _BTree<_Key_t, _D>;
 public:
 	using key_t = _Key_t;
-	using rule_id_t = uint32_t;
+	using rule_id_t = typename BTree::rule_id_t;
 	static constexpr size_t D = _D;
-	using val_range_t = Range1d<_Key_t>;
-	using key_vec_t = std::array<key_t, D>;
+	using key_range_t = typename BTree::key_range_t;
+	using key_vec_t = typename BTree::key_vec_t;
 	// print functions and key names for the debug
-	using priority_t = uint32_t;
-	static constexpr rule_id_t INVALID_RULE = (1 << 24) - 1;
-	struct rule_value_t {
-		priority_t priority : 8;
-		rule_id_t rule_id : 24;
-	};
-	using rule_spec_t = std::pair<std::array<val_range_t, D>, rule_value_t>;
+	using priority_t = typename BTree::priority_t;
+	using rule_value_t = typename BTree::rule_value_t;
+	using rule_spec_t = typename BTree::rule_spec_t;
 
 	using formater_t = std::function<void(std::ostream & str, const rule_spec_t & rule)>;
 	std::vector<rule_spec_t> rules;
@@ -52,7 +50,7 @@ public:
 		rules_sorted = true;
 	}
 
-	rule_id_t search(const key_vec_t & v) const {
+	rule_value_t search(const key_vec_t & v) const {
 		if (not rules_sorted) {
 			throw std::runtime_error("rules not prepared for the lookup");
 		}
@@ -67,9 +65,9 @@ public:
 				}
 			}
 			if (match)
-				return r.second.rule_id;
+				return r.second;
 		}
-		return INVALID_RULE;
+		return rule_value_t();
 	}
 	inline void remove(const rule_spec_t & r) {
 		rules.erase(std::remove(rules.begin(), rules.end(), r), rules.end());

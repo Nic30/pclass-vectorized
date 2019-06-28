@@ -118,10 +118,10 @@ classifier_lookup(const struct classifier *_cls,
 	auto p = ((classifier_priv*) _cls->priv);
 	auto tmp = reinterpret_cast<const uint8_t*>(flow);
 	auto res = p->cls.search<const uint8_t*>(tmp);
-	if (res == Classifier::INVALID_RULE)
-		return nullptr;
+	if (res.is_valid())
+		return p->to_rule[res.rule_id];
 	else
-		return p->to_rule[res];
+		return nullptr;
 }
 
 /* Checks if 'target' would overlap any other rule in 'cls' in 'version'.  Two

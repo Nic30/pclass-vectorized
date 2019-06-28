@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&rules),
 			UNIQUE_TRACE_CNT, 0, true);
 
-	stats.set_number_or_tries_or_tables(dpdk_acl.get_number_of_tries());
+	stats.set_number_of_tries_or_tables(dpdk_acl.get_number_of_tries());
 
 	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {

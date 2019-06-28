@@ -24,7 +24,7 @@ int main(int argc, const char * argv[]) {
 	// load rules from the file
 	vector<iParsedRule*> _rules;
 	auto rules = parse_ruleset_file(rule_file);
-	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, _rules.size());
+	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, 0);
 	stats.construction_start();
 	{
 		// load rules in to a classifier tree
@@ -43,13 +43,14 @@ int main(int argc, const char * argv[]) {
 					<< endl;
 	}
 	stats.construction_stop();
+	stats.real_rule_cnt = _rules.size();
 
 	// generate packets
 	auto packets = generate_packets_from_ruleset(
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&_rules),
 			UNIQUE_TRACE_CNT);
 
-	stats.set_number_or_tries_or_tables(1);
+	stats.set_number_of_tries_or_tables(1);
 	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];

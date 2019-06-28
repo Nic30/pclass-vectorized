@@ -116,7 +116,7 @@ void verify_tree_content(const Classifier0 & cls,
 					rule_from_array(r.first) << ": id=" << r.second.rule_id << " is invalid in classifier");
 		}
 	}
-	// check there are no duplicities
+	// check there are no duplicates
 	size_t rule_in_cls_cnt = 0;
 	for (auto & t_rules : rules_in_tree) {
 		rule_in_cls_cnt += t_rules.size();
@@ -222,9 +222,21 @@ void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,
 	}
 }
 
-BOOST_AUTO_TEST_CASE( basic ) {
+BOOST_AUTO_TEST_CASE( basic_acl1_100 ) {
 	run_verification("tests/data/acl1_100", 8192, 8 * 8192);
 }
+BOOST_AUTO_TEST_CASE( basic_simple1_3 ) {
+	run_verification("tests/data/simple1_3", 128, 4096);
+}
+BOOST_AUTO_TEST_CASE( basic_simple2_3 ) {
+	run_verification("tests/data/simple2_3", 128, 4096);
+}
+// [TODO] now as the id is not part of the priority some rules which has same priority
+//        are swapped between list classifier as the priority of rule is same
+// BOOST_AUTO_TEST_CASE( basic_acl1_500 ) {
+//
+//    run_verification("tests/data/acl1_500", 8192, 8 * 8192);
+// }
 //____________________________________________________________________________//
 
 BOOST_AUTO_TEST_SUITE_END()

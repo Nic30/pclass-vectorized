@@ -11,7 +11,7 @@
 #include <pcv/partition_sort/b_tree_impl.h>
 #include <pcv/partition_sort/partition_sort_classifier.h>
 constexpr size_t struct_flow_D = 329;
-using BTree = pcv::BTreeImp<uint16_t, struct_flow_D, 8, false>;
+using BTree = pcv::BTreeImp<uint16_t, struct_flow_D, 8, true>;
 using Classifier = pcv::PartitionSortClassifer<BTree, struct_flow_D, 10>;
 
 /*

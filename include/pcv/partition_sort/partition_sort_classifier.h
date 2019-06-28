@@ -78,18 +78,19 @@ public:
 		priority_t max_priority;
 		unsigned used_dim_cnt;
 		std::vector<rule_spec_t> rules;
+		bool update_pending;
 
 		tree_info() :
-				tree(), max_priority(0), used_dim_cnt(0) {
+				tree(), max_priority(0), used_dim_cnt(0), update_pending(false) {
 		}
 		tree_info(const formaters_t & _formaters, const names_t & _names) :
-				tree(_formaters, _names), max_priority(0), used_dim_cnt(0) {
-
+				tree(_formaters, _names), max_priority(0), used_dim_cnt(0), update_pending(
+						false) {
 		}
 		tree_info(const packet_spec_t & in_packet_pos,
 				const formaters_t & _formaters, const names_t & _names) :
 				tree(in_packet_pos, _formaters, _names), max_priority(0), used_dim_cnt(
-						0) {
+						0), update_pending(false) {
 		}
 	};
 	std::array<tree_info*, MAX_TREE_CNT> trees;
@@ -121,8 +122,21 @@ public:
 	}
 
 	// @return true if the dimension order changed
-	inline bool update_dimension_order(tree_info & ti) {
+	void update_dimension_order(tree_info & ti, const rule_spec_t * rule_to_add_before = nullptr) {
 		TREE_T & tree = ti.tree;
+		if (ti.update_pending) {
+			assert(not tree.does_rule_colide(*rule_to_add_before));
+			// @note it has to be checked before that the insertion is possible
+			if (rule_to_add_before){
+				tree.insert(*rule_to_add_before);
+				ti.rules.push_back(*rule_to_add_before);
+			}
+			return;
+		}
+		ti.update_pending = true;
+		if (rule_to_add_before)
+			ti.rules.push_back(*rule_to_add_before);
+
 		GreedyDimensionOrderResolver<rule_spec_t, TREE_T::D, key_t> resolver(
 				ti.rules, tree.dimension_order);
 		auto new_dim_order = resolver.resolve();
@@ -142,9 +156,10 @@ public:
 					tree.insert(r);
 				}
 			}
-			return true;
+		} else if (rule_to_add_before) {
+			tree.insert(*rule_to_add_before);
 		}
-		return false;
+		ti.update_pending = false;
 		// else no change is required as the dimension order is optimal (or nearly optimal)
 	}
 	inline void assert_all_trees_unique() {
@@ -218,34 +233,37 @@ public:
 	 * and sort the tress by the max priority rule in descending order
 	 * */
 	inline void insert(const rule_spec_t & rule) {
+#ifndef NDEBUG
+		for (auto r : rule.first) {
+			assert(r.low <= r.high);
+		}
+#endif
 		// try to insert rule to a tree with best compatibility
 		size_t i = 0;
 		for (; i < tree_cnt; i++) {
+			assert(i < MAX_TREE_CNT);
 			auto & t = *trees[i];
 			if (not t.tree.does_rule_colide(rule)) {
 				t.rules.push_back(rule);
 				rule_to_tree[rule] = &t;
 				if (t.rules.size() < TREE_FIXATION_THRESHOLD) {
-					if (update_dimension_order(t) == false) {
-						assert(not t.tree.does_rule_colide(rule));
-						t.tree.insert(rule);
-					}
-					// the rule is inserted automatically as it is in t.rules
+					update_dimension_order(t, &rule);
 				} else {
 					if (t.used_dim_cnt < D) {
 						// if new dimension is used in rule which was not used in tree previously
 						// it is required to update dimension order to put the new dimension,
 						// being previously used, in order to prevent sparse levels in tree.
-						//for (size_t d_i = t.used_dim_cnt; d_i < D; d_i++) {
-						//	// for all unused dimensions check if they are used in new rule
-						//	// if it is used swap it with first unused
-						//	auto d = t.tree.dimension_order[d_i];
-						//	if (not rule.first[d].is_wildcard()) {
-						//		std::swap(t.tree.dimension_order[t.used_dim_cnt],
-						//				  t.tree.dimension_order[d_i]);
-						//		t.used_dim_cnt++;
-						//	}
-						//}
+						for (size_t d_i = t.used_dim_cnt; d_i < D; d_i++) {
+							// for all unused dimensions check if they are used in new rule
+							// if it is used swap it with first unused
+							auto d = t.tree.dimension_order[d_i];
+							if (not rule.first[d].is_wildcard()) {
+								std::swap(
+										t.tree.dimension_order[t.used_dim_cnt],
+										t.tree.dimension_order[d_i]);
+								t.used_dim_cnt++;
+							}
+						}
 					}
 					assert(not t.tree.does_rule_colide(rule));
 					t.tree.insert(rule);
@@ -300,12 +318,14 @@ public:
 	}
 	template<typename search_val_t>
 	inline rule_value_t search(search_val_t val) const {
-		rule_value_t actual_found = {0, TREE_T::INVALID_RULE};
+		rule_value_t actual_found = { 0, TREE_T::INVALID_RULE };
 
 		for (size_t i = 0; i < tree_cnt; i++) {
 			auto & t = *trees[i];
 			auto res = t.tree.search(val);
-			if (res.is_valid() && (!actual_found.is_valid() || actual_found.priority < res.priority)) {
+			if (res.is_valid()
+					&& (!actual_found.is_valid()
+							|| actual_found.priority < res.priority)) {
 				actual_found = res;
 			}
 			if (actual_found.is_valid() and i + 1 < tree_cnt

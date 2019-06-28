@@ -3,17 +3,17 @@ boost_deps = dependency('boost', modules: ['unit_test_framework', ])
 tests = [
   ['b_tree', 'simple test of b-tree impl'],
   ['b_tree_key_iterator', 'b-tree key iterator test'],
-  ['b_tree_collision_check', 'test of methods for collision checking between the values stored in tree'],
-  ['b_tree_compression', 'tests for the tree path compression'],
+  ['b_tree_collision_check', 'methods for collision checking between the values stored in tree'],
+  ['b_tree_compression', 'tree path compression'],
   ['mempool', 'tests of static memory mempool'],
-  ['classbench_rule_parser', 'tests for functionality of classbench rule parser'],
-  ['layered_b_tree', 'tests for layering mechanism of the of b-tree impl'],
-  ['weighted_interval_scheduling_solver', 'tests for the weighted interval scheduling solver'],
-  ['dimension_order_resolver', 'tests for the dimension order solver which is used to resolve structure of the trees'],
-  ['partition_sort_classifier', 'tests for the partition sort packet classifer itself'],
-  ['range', 'tests for Range1d<> endianity conversions, masks etc'],
+  ['classbench_rule_parser', 'functionality of classbench rule parser'],
+  ['layered_b_tree', 'layering mechanism of the of b-tree impl'],
+  ['weighted_interval_scheduling_solver', 'weighted interval scheduling solver'],
+  ['dimension_order_resolver', 'dimension order solver which is used to resolve structure of the trees'],
+  ['partition_sort_classifier', 'partition sort packet classifer itself'],
+  ['range', 'Range1d<> endianity conversions, masks etc'],
   ['verif_pcv_list', 'verificate if pcv classifier and list based classifier is working in the same way'],
-  ['rule_conversions', 'tests for conversion between rule objects and array of ranges'],
+  ['rule_conversions', 'conversion between rule objects and array of ranges'],
 ]
 
 foreach t : tests

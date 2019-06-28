@@ -46,7 +46,7 @@ int main(int argc, const char * argv[]) {
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&_rules),
 			UNIQUE_TRACE_CNT);
 
-	stats.set_number_or_tries_or_tables(1);
+	stats.set_number_of_tries_or_tables(1);
 	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];

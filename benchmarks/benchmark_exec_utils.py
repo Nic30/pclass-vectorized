@@ -14,6 +14,8 @@ def build_test_name(app_name, rule_file, flow_cnt, packet_cnt):
 
 
 def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt):
+    print((app_name, rule_file, flow_cnt, packet_cnt))
+
     is_dpkd = "dpdk" in app_name
     if is_dpkd:
         cmd = [app_name, "--", rule_file, str(flow_cnt), str(packet_cnt), "1"]
@@ -23,7 +25,7 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
     lookup_speed = 0.0
     construction_time = 0.0
     real_rule_cnt = None
-    number_or_tries_or_tables = None
+    number_of_tries_or_tables = None
 
     for _ in range(repetition_cnt):
         res = subprocess.check_output(cmd)
@@ -34,15 +36,15 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
         construction_time += float(res["construction_time"])
         if real_rule_cnt is None:
             real_rule_cnt = int(res["real_rule_cnt"])
-        if number_or_tries_or_tables is None:
-            number_or_tries_or_tables = int(res['number_or_tries_or_tables'])
+        if number_of_tries_or_tables is None:
+            number_of_tries_or_tables = int(res['number_of_tries_or_tables'])
 
     lookup_speed /= repetition_cnt
     construction_time /= repetition_cnt
     conn = sqlite3.connect(db_name)
     conn.execute("INSERT INTO test_result VALUES (?,?,?,?,?,?,?,?,?)",
               (time.time(), app_name, rule_file, flow_cnt, packet_cnt, real_rule_cnt,
-               construction_time, number_or_tries_or_tables, lookup_speed))
+               construction_time, number_of_tries_or_tables, lookup_speed))
     conn.commit()
 
 

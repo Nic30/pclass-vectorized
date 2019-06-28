@@ -183,132 +183,131 @@ ipv6_fields = {"ipv6_dst", "ipv6_src", "ipv6_src", "ipv6_dst", "ct_ipv6_src", "c
 eth_fields = {"dl_dst", "dl_src", "arp_sha", "arp_tha"}
 
 
-def generate_formaters_item(field_path, field_name):
-    f_ipv4 = "rule_vec_format_ipv4_part,"
-    f_ipv6 = "rule_vec_format_ipv6_part,"
-    f_eth = "rule_vec_format_eth_part,"
-    f_normal = "rule_vec_format_default<uint16_t>,"
-    if field_name in ipv4_fields:
-        f = f_ipv4
-    elif field_name in ipv6_fields:
-        f = f_ipv6
-    elif field_name in f_eth:
-        f = f_eth
-    else:
-        f = f_normal
 
-    print(f"// {field_path}")
-    print(f)
+class CGen():
+    def __init__(self):
+        self.names = []
+        self.formaters = []
+        self.offsets = []
 
 
-def generate_formaters(parent_name, struct_str):
-    lines = [ line.strip() for line in struct_str.split("\n") if line.strip()]
+    def generate_formater_item(self, path, field_name):
+        f_ipv4 = "rule_vec_format_ipv4_part"
+        f_ipv6 = "rule_vec_format_ipv6_part"
+        f_eth = "rule_vec_format_eth_part"
+        f_normal = "rule_vec_format_default<uint16_t>"
+        if field_name in ipv4_fields:
+            f = f_ipv4
+        elif field_name in ipv6_fields:
+            f = f_ipv6
+        elif field_name in f_eth:
+            f = f_eth
+        else:
+            f = f_normal
 
-    for line in lines:
-        m = re_struct_field.match(line)
-        type_name = m.group(1)
-        field_name = m.group(2)
-        array_size = m.group(4)
+        form = f" {f},// {path}"
+        self.formaters.append(form)
 
-        if is_non_matching_field(field_name, type_name):
-            continue
+    def generate_val(self, path, field_name, type_size, offset, be):
+        if type_size <= 2:
+            offset_str = f'in_packet_position_t({offset}, {type_size},  {be}), // {path}'
+            self.names.append(f'"{path}"')
+            self.offsets.append(offset_str)
+            self.generate_formater_item(path, field_name)
+        else:
+            assert type_size % 2 == 0, type_size
+            part_index = [ i * 2 for i in range(type_size // 2)]
+            if not be:
+                part_index = list(reversed(part_index))
+            # high address first
+            for i in part_index:
+                _path = f"{path}-{i}"
+                _offset = f"{offset} + {i}"
+                offset_str = f'in_packet_position_t({_offset}, 2,  {be}), // {_path}'
+                self.names.append(f'"{_path}"')
+                self.offsets.append(offset_str)
+                self.generate_formater_item(_path, field_name)
 
-        if type_name not in sizes and not type_name.endswith("*"):
-            n = parent_name + field_name + "."
-            generate_formaters(n, stucts[type_name])
-        elif array_size:
+    def generate_item(self, path, field_name, parent_struct_name,
+                      offset_expr_prefix, type_name, array_size):
+        type_size, be = sizes[type_name]
+        be = int(be)
+
+        if offset_expr_prefix:
+            offset = offset_expr_prefix + " + "
+        else:
+            offset = ""
+
+        offset += f"offsetof({parent_struct_name}, {field_name})"
+
+        if array_size is None:
+            self.generate_val(path, field_name, type_size, offset, be)
+        else:
             try:
                 _array_size = int(array_size)
             except ValueError:
                 _array_size = values[array_size]
+            array_size = _array_size
+            if type_size < 2:
+                array_size = array_size//2
+                type_size = 2
 
-            if sizes[type_name][0] < 2:
-                assert _array_size % 2 == 0
-                for i in range(_array_size // 2):
-                    n = parent_name + field_name + "[%d-%d]" % (i * 2, i * 2 + 1)
-                    generate_formaters_item(n, field_name)
+            for arr_item in range(array_size):
+                _offset = arr_item * type_size
+                _offset = f"{offset} + {_offset}"
+                _path = f"{path}[{arr_item}]"
+                self.generate_val(_path, field_name, type_size, _offset, be)
+
+
+    def generate(self, parent_name, offset_expr, struct_name, struct_str):
+        lines = [ line.strip() for line in struct_str.split("\n") if line.strip()]
+
+        for line in lines:
+            m = re_struct_field.match(line)
+            type_name = m.group(1)
+            field_name = m.group(2)
+            array_size = m.group(4)
+
+            if is_non_matching_field(field_name, type_name):
+                continue
+
+            if type_name not in sizes and not type_name.endswith("*"):
+                n = parent_name + field_name + "."
+                if offset_expr:
+                    o = f"{offset_expr} + "
+                else:
+                    o = ""
+                o = f"offsetof({struct_name}, {field_name})"
+
+                self.generate(n, o, type_name, stucts[type_name])
             else:
-                for i in range(_array_size):
-                    n = parent_name + field_name + "[%d]" % i
-                    generate_formaters_item(n, field_name)
-        else:
-            n = parent_name + field_name
-            generate_formaters_item(n , field_name)
-
-
-def generate_in_packet_possitions_val(type_size, offset, be):
-    if type_size <= 2:
-        print(f'in_packet_position_t({offset}, {type_size},  {be}),')
-    else:
-        assert type_size % 2 == 0, type_size
-        part_index = [ i * 2 for i in range(type_size // 2)]
-        if not be:
-            part_index = list(reversed(part_index))
-        # high address first
-        for i in part_index:
-            _offset = f"{offset} + {i}"
-            print(f'in_packet_position_t({_offset}, 2,  {be}),')
-
-def generate_in_packet_possitions_item(path, field_name, parent_struct_name,
-                                       offset_expr_prefix, type_name, array_size):
-    type_size, be = sizes[type_name]
-    be = int(be)
-
-    print(f"// {path}")
-    if offset_expr_prefix:
-        offset = offset_expr_prefix + " + "
-    else:
-        offset = ""
-
-    offset += f"offsetof({parent_struct_name}, {field_name})"
-
-    if array_size is None:
-        generate_in_packet_possitions_val(type_size, offset, be)
-    else:
-        try:
-            _array_size = int(array_size)
-        except ValueError:
-            _array_size = values[array_size]
-        array_size = _array_size
-        if type_size < 2:
-            array_size = array_size//2
-            type_size = 2
-
-        for arr_item in range(array_size):
-            _offset = arr_item * type_size
-            _offset = f"{offset} + {_offset}"
-            generate_in_packet_possitions_val(type_size, _offset, be)
-
-
-def generate_in_packet_possitions(parent_name, offset_expr, struct_name, struct_str):
-    lines = [ line.strip() for line in struct_str.split("\n") if line.strip()]
-
-    for line in lines:
-        m = re_struct_field.match(line)
-        type_name = m.group(1)
-        field_name = m.group(2)
-        array_size = m.group(4)
-
-        if is_non_matching_field(field_name, type_name):
-            continue
-
-        if type_name not in sizes and not type_name.endswith("*"):
-            n = parent_name + field_name + "."
-            if offset_expr:
-                o = f"{offset_expr} + "
-            else:
-                o = ""
-            o = f"offsetof({struct_name}, {field_name})"
-
-            generate_in_packet_possitions(n, o, type_name, stucts[type_name])
-        else:
-            path = parent_name + field_name
-            generate_in_packet_possitions_item(
-                path, field_name, struct_name,
-                offset_expr, type_name, array_size)
-
+                path = parent_name + field_name
+                self.generate_item(
+                    path, field_name, struct_name,
+                    offset_expr, type_name, array_size)
 
 if __name__ == "__main__":
-    # generate_names("", flow)
-    # generate_formaters("", flow)
-    generate_in_packet_possitions("", "", "flow", flow)
+    g = CGen()
+    g.generate("", "", "flow", flow)
+
+    assert len(g.formaters) == len(g.names) == len(g.offsets)
+
+    formaters = "\n".join(["\t" + f for f in g.formaters])
+    names = "\n".join(["\t" + f + ", //" for f in g.names])
+    offsets = "\n".join(["\t" + f for f in g.offsets])
+
+    template = f"""
+typename Classifier::formaters_t struct_flow_packet_formaters = {{
+{formaters}
+}};
+
+typename Classifier::names_t struct_flow_packet_names = {{
+{names}
+}};
+
+typename Classifier::packet_spec_t struct_flow_packet_spec = {{
+{offsets}
+}};
+"""
+    print(template)
+

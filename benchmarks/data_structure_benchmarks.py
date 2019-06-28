@@ -4,7 +4,7 @@ import subprocess
 import json
 import matplotlib.pyplot as plt
 
-ROOT = "build/meson.run.linux.x86_64/benchmarks/"
+ROOT = "build/meson.debug.linux.x86_64/benchmarks/"
 APP_BASIC = "hash_vs_rb_tree_vs_b_tree"
 APP_PREFIX = "prefix_combinations"
 RULE_CNTS = [

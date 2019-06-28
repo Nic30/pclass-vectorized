@@ -37,3 +37,9 @@ The trees are ordered byt the max priority rule stored in them so it is posible 
 In this library the multidimensional RB-tree is replaced with the Layered B-tree with path compression.
 
 ![Layered B-trees](/doc/partition_srot_with_layered_b-tree.png)
+
+### Debuging features
+
+* serialization of the classifier as a tree in dot format (`operator std::string()` on `BTreeImp`)
+* reverse conversion of the classifier back to rules `_BTreeToRules`
+

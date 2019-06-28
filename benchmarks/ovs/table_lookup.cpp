@@ -53,19 +53,34 @@ int main(int argc, const char * argv[]) {
 	stats.lookup_start();
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto & p = packets[i % packets.size()];
-		// cout << "search:" << exact_array_to_rule_be(p) << endl;
+		// cout << "search:" << OvsWrap::flow_to_Rule_Ipv4_ACL(p) << endl;
 		// cout << "search:" << exact_array_to_rule_le(p) << endl;
 		auto v = cls.search(p);
-		//if (v) {
-		//	cout << "found : " << *cls.cls_rule_get_pcv_rule(v) << " priority: "
-		//			<< v->priority << endl;
-		//}
 		assert(v);
+		// if (v) {
+		// 	cout << "found : " << *cls.cls_rule_get_pcv_rule(v) << " priority: "
+		// 			<< v->priority << endl;
+		// }
 	}
 	stats.lookup_stop();
 #ifdef OVS_PCV
-	stats.set_number_or_tries_or_tables(
-			reinterpret_cast<struct classifier_priv*>(cls.cls.priv)->cls.tree_cnt);
+	auto pcv_cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
+	stats.set_number_of_tries_or_tables(pcv_cls->cls.tree_cnt);
+	// size_t i = 0;
+	for (auto & t: pcv_cls->cls.trees) {
+		if (t->rules.size() == 0)
+			continue;
+		assert(t->used_dim_cnt <= 7);
+		// auto fname = string("pcv_") + to_string(i) + string(".dot");
+		// ofstream of(fname);
+		// of << t->tree;
+		// of.close();
+		// i++;
+	}
+
+#else
+	auto v = reinterpret_cast<const pvector_impl**>(&cls.cls.subtables);
+	stats.set_number_of_tries_or_tables((*v)->size);
 #endif
 
 	stats.dump();

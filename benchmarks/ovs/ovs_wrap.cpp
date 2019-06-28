@@ -1,4 +1,7 @@
 #include "ovs_wrap.h"
+#include <pcv/common/range.h>
+#include <byteswap.h>
+
 
 namespace pcv {
 namespace ovs {
@@ -20,16 +23,20 @@ struct flow OvsWrap::flow_from_packet(const packet_t & p) {
 	f.nw_proto = _p.proto.low;
 	return f;
 }
+Rule_Ipv4_ACL OvsWrap::flow_to_Rule_Ipv4_ACL(const struct flow & f) {
+	Rule_Ipv4_ACL r;
+	r.sip.high = r.sip.low  = __swab32p(&f.nw_src);
+	r.dip.high = r.dip.low  = __swab32p(&f.nw_dst);
+	r.sport.high = r.sport.low = __swab16p(&f.tp_src);
+	r.dport.high = r.dport.low = __swab16p(&f.tp_dst);
+	r.proto.high = r.proto.low = f.nw_proto;
+	return r;
+}
 const struct cls_rule * OvsWrap::search(struct flow & f) {
 	return classifier_lookup(&cls, version, &f, nullptr);
 }
 
-const struct cls_rule * OvsWrap::search(packet_t & p) {
-	auto f = flow_from_packet(p);
-	return classifier_lookup(&cls, version, &f, nullptr);
-}
-
-void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t v) {
+void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t prio) {
 	struct match match;
 	match_init_catchall(&match);
 
@@ -53,7 +60,7 @@ void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t v) {
 	match.wc.masks.nw_proto = r.proto.get_mask_le();
 
 	struct cls_rule * rule = (struct cls_rule *) xzalloc(sizeof *rule);
-	int priority = v;
+	int priority = prio;
 	cls_rule_init(rule, &match, priority);
 	auto existing_rule = classifier_find_rule_exactly(&cls, rule, version);
 	if (existing_rule) {
@@ -63,7 +70,7 @@ void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t v) {
 		classifier_insert(&cls, rule, version, nullptr, 0);
 		ovs_rules.push_back(rule);
 		ovs_rule_to_pcv_rule[rule] = &r;
-		//std::cout << r << " inserted" << std::endl;
+		// std::cout << r << " inserted" << std::endl;
 	}
 }
 const Rule_Ipv4_ACL * OvsWrap::cls_rule_get_pcv_rule(

@@ -6,7 +6,7 @@ namespace pcv {
 BenchmarkStats::BenchmarkStats(size_t LOOKUP_CNT, bool dump_as_json,
 		size_t real_rule_cnt, std::ostream & out) :
 		LOOKUP_CNT(LOOKUP_CNT), dump_as_json(dump_as_json), out(out), construction_timer(
-				nullptr), lookup_timer(nullptr), real_rule_cnt(real_rule_cnt), number_or_tries_or_tables(
+				nullptr), lookup_timer(nullptr), real_rule_cnt(real_rule_cnt), number_of_tries_or_tables(
 				-1) {
 }
 void BenchmarkStats::construction_start() {
@@ -23,9 +23,9 @@ void BenchmarkStats::lookup_stop() {
 	lookup_timer->stop();
 }
 
-void BenchmarkStats::set_number_or_tries_or_tables(
-		int number_or_tries_or_tables) {
-	this->number_or_tries_or_tables = number_or_tries_or_tables;
+void BenchmarkStats::set_number_of_tries_or_tables(
+		int number_of_tries_or_tables) {
+	this->number_of_tries_or_tables = number_of_tries_or_tables;
 }
 
 void BenchmarkStats::dump(std::function<void(std::ostream &)> json_extra,
@@ -38,7 +38,7 @@ void BenchmarkStats::dump(std::function<void(std::ostream &)> json_extra,
 		out << "\"construction_time\":" << uint64_t(construction_timer->us())
 				<< "," << std::endl;
 		out << "\"real_rule_cnt\":" << real_rule_cnt << "," << std::endl;
-		out << "\"number_or_tries_or_tables\":" << number_or_tries_or_tables;
+		out << "\"number_of_tries_or_tables\":" << number_of_tries_or_tables;
 		json_extra(out);
 		out << "}";
 	} else {
@@ -47,8 +47,8 @@ void BenchmarkStats::dump(std::function<void(std::ostream &)> json_extra,
 				<< "us" << std::endl;
 		out << "[INFO] real_rule_cnt:" << real_rule_cnt << std::endl;
 		out << "[INFO] number_of_tries_or_tables:";
-		if (number_or_tries_or_tables >= 0)
-			out << number_or_tries_or_tables << std::endl;
+		if (number_of_tries_or_tables >= 0)
+			out << number_of_tries_or_tables << std::endl;
 		else
 			out << "unspecified" << std::endl;
 

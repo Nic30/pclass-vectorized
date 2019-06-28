@@ -13,7 +13,7 @@ public:
 	DebugTimer * construction_timer;
 	DebugTimer * lookup_timer;
 	size_t real_rule_cnt;
-	int number_or_tries_or_tables;
+	int number_of_tries_or_tables;
 
 	BenchmarkStats(size_t LOOKUP_CNT, bool dump_as_json, size_t real_rule_cnt, std::ostream & out =
 			std::cout);
@@ -23,7 +23,7 @@ public:
 	void lookup_start();
 	void lookup_stop();
 
-	void set_number_or_tries_or_tables(int number_or_tries_or_tables);
+	void set_number_of_tries_or_tables(int number_of_tries_or_tables);
 
 	void dump(std::function<void(std::ostream &)> json_extra =
 			[](std::ostream &) {},

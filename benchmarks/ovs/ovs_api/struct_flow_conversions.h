@@ -26,7 +26,9 @@ inline void flow_to_array(const struct flow * f,
 		auto _m =
 				reinterpret_cast<const uint16_t*>(&reinterpret_cast<const uint8_t*>(_masks)[spec.offset]);
 		uint16_t v, m;
+
 		if (spec.is_big_endian) {
+			assert(spec.size == 2);
 			v = __swab16p(_v);
 			m = __swab16p(_m);
 		} else {
@@ -35,10 +37,14 @@ inline void flow_to_array(const struct flow * f,
 		}
 
 		if (spec.size == 1) {
-			_r[i] = pcv::Range1d<uint16_t>::from_mask(v & 0xff, m & 0xff);
-		} else {
-			_r[i] = pcv::Range1d<uint16_t>::from_mask(v, m);
+			v &= 0xff;
+			m &= 0xff;
+			if (m == 0) {
+				// to let the classifier known that this field is ignored
+				v = 0;
+			}
 		}
+		_r[i] = pcv::Range1d<uint16_t>::from_mask(v, m);
 		i++;
 	}
 }

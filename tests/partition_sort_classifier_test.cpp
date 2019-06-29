@@ -19,7 +19,7 @@ using namespace pcv::rule_conv_fn;
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
 BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
-	using BTree = BTreeImp<uint16_t, 2>;
+	using BTree = BTreeImp<uint16_t, IntRuleValue, 2>;
 	using Classifier = PartitionSortClassifer<BTree, 32>;
 	using R1d = typename BTree::key_range_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE( ruleset_acl1_100 ) {
 	string rule_file = "tests/data/acl1_100";
 	constexpr size_t D = 7;
 	constexpr size_t UNIQUE_TRACE_CNT = 128;
-	using BTree = BTreeImp<uint16_t, D>;
+	using BTree = BTreeImp<uint16_t, IntRuleValue, D>;
 	using Classifier = PartitionSortClassifer<BTree, 32>;
 
 	Classifier cls;

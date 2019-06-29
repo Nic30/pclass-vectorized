@@ -13,8 +13,8 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
-using BTree = BTreeImp<uint16_t, 2, 4, false>;
-//using BTree_compressed = BTreeImp<uint16_t, 2, 4, true>;
+using BTree = BTreeImp<uint16_t, IntRuleValue, 2, 4, false>;
+//using BTree_compressed = BTreeImp<uint16_t, IntRuleValue, 2, 4, true>;
 
 
 int main(int argc, const char * argv[]) {

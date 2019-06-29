@@ -8,10 +8,10 @@
 
 namespace pcv {
 
-template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
+template<typename Key_t, typename _Value_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class BTreeInsert {
-	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
-	using BTreeSearch_t = BTreeSearch<Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTree = _BTree<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using BTreeSearch_t = BTreeSearch<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
 public:
 	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;

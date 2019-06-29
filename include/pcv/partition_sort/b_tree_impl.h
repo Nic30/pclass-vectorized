@@ -16,15 +16,15 @@ namespace pcv {
  * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
  * @tparam _T parameter which specifies the number of items per node
  * */
-template<typename Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
-class BTreeImp: public _BTree<Key_t, _D, _T, _PATH_COMPRESSION> {
+template<typename Key_t, typename _Value_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION = true>
+class BTreeImp: public _BTree<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION> {
 public:
-	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
-	using Insert_t = BTreeInsert<Key_t, _D, _T, _PATH_COMPRESSION>;
-	using CollisionCheck_t = BTreeCollisionCheck<Key_t, _D, _T, _PATH_COMPRESSION>;
-	using Search_t = BTreeSearch<Key_t, _D, _T, _PATH_COMPRESSION>;
-	using Remove_t = BTreeRemove<Key_t, _D, _T, _PATH_COMPRESSION>;
-	using ToRules = _BTreeToRules<Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTree = _BTree<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using Insert_t = BTreeInsert<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using CollisionCheck_t = BTreeCollisionCheck<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using Search_t = BTreeSearch<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using Remove_t = BTreeRemove<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using ToRules = _BTreeToRules<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
 
 	static constexpr size_t D = BTree::D;
 	using Node = typename BTree::Node;
@@ -40,7 +40,7 @@ public:
 	using priority_t = typename BTree::priority_t;
 	using rule_value_t = typename BTree::rule_value_t;
 	using packet_spec_t = typename Search_t::packet_spec_t;
-	using Printer_t = BTreePrinter<Key_t, _D, _T, _PATH_COMPRESSION, formaters_t, names_t>;
+	using Printer_t = BTreePrinter<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION, formaters_t, names_t>;
 
 	static constexpr index_t INVALID_INDEX = BTree::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;

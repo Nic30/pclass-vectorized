@@ -71,7 +71,7 @@ def generate_ruleset_size_graph(order, data, x):
 
     ax.set_xlim(left=0)
     ax.set_ylim(bottom=0)
-    ax.set_xticklabels(x, minor=False, rotation=45)
+    ax.set_xticklabels(x, minor=False, rotation=-90)
 
     plt.grid()
     plt.savefig('fig/size_of_ruleset.png')
@@ -92,7 +92,7 @@ def generate_graph_troughput_for_ruleset(ruleset_order, app_data, x, file_name):
     ax.set_xlabel('rule set')
     ax.set_xlim(left=0)
     #ax1.set_xticks(list(range(len(x))))
-    ax.set_xticklabels(x, minor=False, rotation=45)
+    ax.set_xticklabels(x, minor=False, rotation=-90)
 
     # ax.legend()
     # Put a legend below current axis
@@ -126,7 +126,7 @@ def generate_graph_construction_time_for_ruleset(ruleset_order, app_data, x, fil
     ax.set_xlabel('rule set')
     ax.set_xlim(left=0)
     #ax1.set_xticks(list(range(len(x))))
-    ax.set_xticklabels(x, minor=False, rotation=45)
+    ax.set_xticklabels(x, minor=False, rotation=-90)
 
     # ax.legend()
     # Put a legend below current axis
@@ -173,7 +173,7 @@ def generate_tree_cnt_for_ruleset(ruleset_order, app_data, x, file_name):
     ax.set_xlabel('rule set')
     ax.set_xlim(left=0)
     #ax1.set_xticks(list(range(len(x))))
-    ax.set_xticklabels(x, minor=False, rotation=45)
+    ax.set_xticklabels(x, minor=False, rotation=-90)
 
     # ax.legend()
     # Put a legend below current axis

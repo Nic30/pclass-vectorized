@@ -11,10 +11,11 @@
 
 namespace pcv {
 
-template<typename _Key_t, size_t _D>
+template<typename _Key_t,  typename _Value_t, size_t _D>
 class ListBasedClassifier {
 private:
-	using BTree = _BTree<_Key_t, _D>;
+	// used just to get types
+	using BTree = _BTree<_Key_t, _Value_t, _D>;
 public:
 	using key_t = _Key_t;
 	using rule_id_t = typename BTree::rule_id_t;

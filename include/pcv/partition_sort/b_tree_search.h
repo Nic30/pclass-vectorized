@@ -94,9 +94,9 @@ SearchResult search_avx2(const __m256i * keys, T val);
 
 }
 
-template<typename _Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
+template<typename _Key_t, typename _Value_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class BTreeSearch {
-	using BTree = _BTree<_Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTree = _BTree<_Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
 public:
 	using Node = typename BTree::Node;
 	using key_t = typename BTree::key_t;

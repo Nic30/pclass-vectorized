@@ -12,7 +12,7 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE (pcv_testsuite)
 
 BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
-	using BTree = BTreeImp<uint16_t, 4, 4>;
+	using BTree = BTreeImp<uint16_t, IntRuleValue, 4, 4>;
 	BTree t;
 
 	using rule_t = BTree::rule_spec_t;
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_and_search ) {
 }
 
 BOOST_AUTO_TEST_CASE( insert_search_maytimes_any_in_center ) {
-	using BTree = BTreeImp<uint16_t, 8, 4>;
+	using BTree = BTreeImp<uint16_t, IntRuleValue, 8, 4>;
 	BTree t;
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;

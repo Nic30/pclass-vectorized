@@ -23,6 +23,33 @@
 
 namespace pcv {
 
+struct IntRuleValue {
+	// the identifier of the rule store in tree
+	using rule_id_t = uint32_t;
+	using priority_t = uint32_t;
+	static constexpr rule_id_t INVALID_RULE = (1 << 24) - 1;
+
+	// invalid rule = rule with rule_id = INVALID_RULE and should have priority set to 0
+	priority_t priority :8;
+	rule_id_t rule_id :24;
+
+	IntRuleValue() :
+			priority(0), rule_id(INVALID_RULE) {
+	}
+	IntRuleValue(priority_t priority_, rule_id_t rule_id_) :
+			priority(priority_), rule_id(rule_id_) {
+	}
+	bool is_valid() const {
+		return rule_id != INVALID_RULE;
+	}
+	bool operator==(const IntRuleValue & other) const {
+		return priority == other.priority && rule_id == other.rule_id;
+	}
+	bool operator!=(const IntRuleValue & other) const {
+		return priority != other.priority || rule_id != other.rule_id;
+	}
+};
+
 /*
  * The B-Tree with multidimensional key
  *
@@ -36,12 +63,13 @@ namespace pcv {
  * @note that this is only implementation of the data structure. You can find the algorithms in b_tree_*.h files.
  *
  * @tparam Key_t the type of key which will be used by the nodes in the tree
+ * @tparam _Value_t the value stored in tree, take a look at IntRuleValue for a reference
  * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
  * @tparam _T parameter which specifies the number of items per node
  * @tparam _PATH_COMPRESSION is true the path compression is enabled
  * 		and some of the nodes may be compressed as described
  * */
-template<typename _Key_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION =
+template<typename _Key_t, typename _Value_t, size_t _D, size_t _T = 4, bool _PATH_COMPRESSION =
 		true>
 class alignas(64) _BTree {
 public:
@@ -56,32 +84,14 @@ public:
 	static constexpr index_t INVALID_INDEX =
 			std::numeric_limits<index_t>::max();
 
+	using rule_value_t = _Value_t;
+	using rule_id_t = typename rule_value_t::rule_id_t;
+	using priority_t = typename rule_value_t::priority_t;
+	static constexpr rule_id_t INVALID_RULE = _Value_t::INVALID_RULE;
+
+
 	static constexpr bool PATH_COMPRESSION = _PATH_COMPRESSION;
 
-	// the identifier of the rule store in tree
-	using rule_id_t = uint32_t;
-	using priority_t = uint32_t;
-	static constexpr rule_id_t INVALID_RULE = (1 << 24) - 1;
-	struct rule_value_t {
-		// invalid rule = rule with rule_id = INVALID_RULE and should have priority set to 0
-		priority_t priority :8;
-		rule_id_t rule_id :24;
-		rule_value_t() :
-				priority(0), rule_id(INVALID_RULE) {
-		}
-		rule_value_t(priority_t priority_, rule_id_t rule_id_) :
-				priority(priority_), rule_id(rule_id_) {
-		}
-		bool is_valid() const {
-			return rule_id != INVALID_RULE;
-		}
-		bool operator==(const rule_value_t & other) const {
-			return priority == other.priority && rule_id == other.rule_id;
-		}
-		bool operator!=(const rule_value_t & other) const {
-			return priority != other.priority || rule_id != other.rule_id;
-		}
-	};
 	// util type which keeps informations about the key and child/next layer pointers in for item in node
 	using KeyInfo = _KeyInfo<key_t, index_t, rule_value_t>;
 	// type of value vector which can be searched in this data structure
@@ -308,10 +318,14 @@ public:
 		/*
 		 * Check if the pointers in node are valid (recursively)
 		 * */
+#ifdef NDEBUG
 		inline void integrity_check(
-				const std::array<unsigned, D> & dimesion_order,
+						const std::array<level_t, D> &,
+						std::set<Node*> * = nullptr, size_t = 0) {}
+#else
+		void integrity_check(
+				const std::array<level_t, D> & dimension_order,
 				std::set<Node*> * seen = nullptr, size_t level = 0) {
-#ifndef NDEBUG
 			std::set<Node*> _seen;
 			if (seen == nullptr)
 				seen = &_seen;
@@ -322,7 +336,7 @@ public:
 				assert(is_leaf);
 				assert(key_cnt > 1);
 				for (size_t i = 0; i < key_cnt; i++) {
-					auto d = dimesion_order.at(level + i);
+					auto d = dimension_order.at(level + i);
 					auto actual_d = get_dim(i);
 					assert(d == actual_d);
 				}
@@ -333,7 +347,7 @@ public:
 					auto ch = child(i);
 					assert(ch);
 					assert(ch->parent == this);
-					ch->integrity_check(dimesion_order, seen, level);
+					ch->integrity_check(dimension_order, seen, level);
 				}
 			}
 			for (size_t i = 0; i < key_cnt; i++) {
@@ -344,11 +358,11 @@ public:
 					size_t l = level + 1;
 					if (is_compressed)
 						l += i;
-					nl->integrity_check(dimesion_order, seen, l);
+					nl->integrity_check(dimension_order, seen, l);
 				}
 			}
-#endif
 		}
+#endif
 
 		/*
 		 * @attention will delete the sub-tree recursively

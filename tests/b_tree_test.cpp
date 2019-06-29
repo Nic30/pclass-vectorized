@@ -12,7 +12,7 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
-class BTree: public BTreeImp<uint16_t, 2, 4, false> {
+class BTree: public BTreeImp<uint16_t, IntRuleValue, 2, 4, false> {
 public:
 	rule_value_t search(key_t _v) const {
 		key_vec_t v = { _v, _v };

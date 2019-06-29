@@ -58,17 +58,11 @@ classifier_replace(struct classifier *cls, const struct cls_rule *rule,
 	struct match m;
 	minimatch_expand(&rule->match, &m);
 	flow_to_array(&m.flow, &m.wc, tmp.first);
-	auto r = p->to_rule.find(p->next_rule_id);
-	while (r != p->to_rule.end()) {
-		p->next_rule_id++;
-		r = p->to_rule.find(p->next_rule_id);
-	}
-	tmp.second.rule_id = p->next_rule_id++;
+	tmp.second.rule_id = rule;
 	tmp.second.priority = rule->priority;
 	assert(n_conjs == 0);
 	p->cls.insert(tmp);
 	p->to_pcv_rule[rule] = tmp;
-	p->to_rule[tmp.second.rule_id] = rule;
 
 	return nullptr;
 }
@@ -118,10 +112,7 @@ classifier_lookup(const struct classifier *_cls,
 	auto p = ((classifier_priv*) _cls->priv);
 	auto tmp = reinterpret_cast<const uint8_t*>(flow);
 	auto res = p->cls.search<const uint8_t*>(tmp);
-	if (res.is_valid())
-		return p->to_rule[res.rule_id];
-	else
-		return nullptr;
+	return res.rule_id;
 }
 
 /* Checks if 'target' would overlap any other rule in 'cls' in 'version'.  Two

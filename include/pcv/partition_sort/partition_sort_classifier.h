@@ -318,7 +318,7 @@ public:
 	}
 	template<typename search_val_t>
 	inline rule_value_t search(search_val_t val) const {
-		rule_value_t actual_found = { 0, TREE_T::INVALID_RULE };
+		rule_value_t actual_found;
 
 		for (size_t i = 0; i < tree_cnt; i++) {
 			auto & t = *trees[i];
@@ -328,6 +328,7 @@ public:
 							|| actual_found.priority < res.priority)) {
 				actual_found = res;
 			}
+			// check if we can find rule with higher priority in some next tree
 			if (actual_found.is_valid() and i + 1 < tree_cnt
 					and trees[i + 1]->max_priority <= actual_found.priority) {
 				break;

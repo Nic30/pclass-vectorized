@@ -9,7 +9,7 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
-using Classifier = ListBasedClassifier<uint16_t, 7>;
+using Classifier = ListBasedClassifier<uint16_t, IntRuleValue, 7>;
 
 int main(int argc, const char * argv[]) {
 	assert(argc == 1 + 4);

@@ -4,9 +4,9 @@
 
 namespace pcv {
 
-template<typename Key_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
+template<typename Key_t, typename _Value_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
 class _BTreeToRules {
-	using BTree = _BTree<Key_t, _D, _T, _PATH_COMPRESSION>;
+	using BTree = _BTree<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
 
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using Node = typename BTree::Node;

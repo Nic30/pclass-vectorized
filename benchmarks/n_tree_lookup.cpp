@@ -18,7 +18,7 @@ int main(int argc, const char * argv[]) {
 
 	if (not dump_as_json)
 		cout << "[INFO] Executing benchmark " << argv[0] << endl;
-	using BTree = BTreeImp<uint16_t, 7, 8>;
+	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8>;
 	using Classifier = PartitionSortClassifer<BTree, 64, 10>;
 	Classifier t;
 

@@ -56,9 +56,7 @@ SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
 		const Range1d<T> & val) {
 	SearchResult r;
 	for (r.val_index = 0; r.val_index < key_cnt; r.val_index++) {
-		auto low = reinterpret_cast<const T*>(&keys[0])[r.val_index];
-		auto high = reinterpret_cast<const T*>(&keys[1])[r.val_index];
-		auto cur = Range1d<T>(low, high);
+		auto cur = reinterpret_cast<const Range1d<T>*>(&keys[0])[r.val_index];
 		if (val < cur.low) {
 			break;
 		} else if (cur == val) {
@@ -73,12 +71,10 @@ template<typename T>
 SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt, T val) {
 	SearchResult r;
 	for (r.val_index = 0; r.val_index < key_cnt; r.val_index++) {
-		auto low = reinterpret_cast<const T*>(&keys[0])[r.val_index];
-		if (val < low) {
+		auto cur = reinterpret_cast<const Range1d<T>*>(&keys[0])[r.val_index];
+		if (val < cur.low) {
 			break;
 		} else {
-			auto high = reinterpret_cast<const T*>(&keys[1])[r.val_index];
-			auto cur = Range1d<T>(low, high);
 			if (cur.in_range(val)) {
 				r.in_range = true;
 				break;
@@ -156,9 +152,7 @@ public:
 		r.val_index = 0;
 		// search only the first position as this function is called only for the roots
 		// if there is math the rest of node is checked on different place
-		auto low = reinterpret_cast<const T*>(&keys[0])[0];
-		auto high = reinterpret_cast<const T*>(&keys[1])[0];
-		auto k = Range1d<T>(low, high);
+		auto k = reinterpret_cast<const Range1d<T>*>(&keys[0])[0];
 		r.in_range = k == val;
 
 		return r;
@@ -173,9 +167,7 @@ public:
 		// search only the first position as this function is called only for the roots
 		// if there is math the rest of node is checked on different place
 
-		auto low = reinterpret_cast<const T*>(&keys[0])[0];
-		auto high = reinterpret_cast<const T*>(&keys[1])[0];
-		auto k = Range1d<T>(low, high);
+		auto k = reinterpret_cast<const Range1d<T>*>(&keys[0])[0];
 		r.in_range = k.in_range(val);
 		return r;
 	}

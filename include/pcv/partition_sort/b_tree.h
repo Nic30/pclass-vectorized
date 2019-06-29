@@ -166,10 +166,9 @@ public:
 		}
 		inline KeyInfo get_key(uint8_t index) const {
 			assert(index < MAX_DEGREE);
-			auto low = reinterpret_cast<const key_t*>(&keys[0])[index];
-			auto high = reinterpret_cast<const key_t*>(&keys[1])[index];
+			auto k = reinterpret_cast<const key_range_t*>(&keys[0])[index];
 			return {
-				Range1d<key_t>(low, high),
+				k,
 				value[index],
 				next_level[index]
 			};
@@ -177,9 +176,7 @@ public:
 
 		inline void set_key(uint8_t index, const KeyInfo & key_info) {
 			assert(index < MAX_DEGREE);
-			reinterpret_cast<key_t*>(&keys[0])[index] = key_info.key.low;
-			reinterpret_cast<key_t*>(&keys[1])[index] = key_info.key.high;
-
+			reinterpret_cast<key_range_t*>(&keys[0])[index] = key_info.key;
 			this->value[index] = key_info.value;
 			this->next_level[index] = key_info.next_level;
 		}

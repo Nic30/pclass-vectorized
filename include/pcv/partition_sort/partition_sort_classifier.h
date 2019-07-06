@@ -54,6 +54,7 @@ template<typename TREE_T, const size_t MAX_TREE_CNT,
 		size_t TREE_FIXATION_THRESHOLD = 10>
 class PartitionSortClassifer {
 public:
+	using Tree = TREE_T;
 	using key_t = typename TREE_T::key_t;
 	using Node = typename TREE_T::Node;
 	using rule_spec_t = typename TREE_T::rule_spec_t;

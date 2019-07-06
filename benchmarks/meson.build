@@ -19,6 +19,7 @@ benchmarks = [
 	  ['b_tree', '32', '32768', '1000000'],
   ]],
   ['exact_match_rule_gen', ['exact_match_rule_gen.cpp'], [['0', '1024'], ]],
+  ['pcv_mem_efficiency_report', ['pcv_mem_efficiency_report.cpp'],  [_DEF_BENCHMARK_ARGS, ]],
 ]
 
 # add very short benchmark also to tests to verify that the benchmark is working

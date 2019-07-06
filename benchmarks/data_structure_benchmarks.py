@@ -63,7 +63,7 @@ def graph_defaults(ax):
     plt.grid()
 
 
-def build_graph_basic_troughput_X_rules(args, results):
+def build_graph_basic_throughput_X_rules(args, results):
     # args: tuples(cls, rules,  traces,  lookup)
     # each cls is series
     # lookup X rules
@@ -84,7 +84,7 @@ def build_graph_basic_troughput_X_rules(args, results):
     ax.set_ylabel('Throughput [MPkt/s]')
     ax.set_xlabel('Rule cnt')
     graph_defaults(ax)
-    plt.savefig('fig/basic_troughput_X_rules.png')
+    plt.savefig('fig/basic_throughput_X_rules.png')
 
 
 def build_graph_basic_update_X_rules(args, results):
@@ -108,7 +108,7 @@ def build_graph_basic_update_X_rules(args, results):
     plt.savefig('fig/basic_update_X_rules.png')
 
 
-def build_graph_basic_troughput_X_prefix_cnt(args, results):
+def build_graph_basic_throughput_X_prefix_cnt(args, results):
     fig, ax = plt.subplots()
     clsXlookup = {}
     # cls, prefix, traces, lookup
@@ -127,10 +127,10 @@ def build_graph_basic_troughput_X_prefix_cnt(args, results):
     ax.set_ylabel('Throughput [MPkt/s]')
     ax.set_xlabel('Prefix groups')
     graph_defaults(ax)
-    plt.savefig('fig/basic_troughput_X_prefix_cnt.png')
+    plt.savefig('fig/basic_throughput_X_prefix_cnt.png')
 
 
-def build_graph_basic_troughput_X_update_time(args, results):
+def build_graph_basic_throughput_X_update_time(args, results):
     fig, ax = plt.subplots()
     clsXupdate = {}
     # cls, prefix, traces, lookup
@@ -162,7 +162,7 @@ def run_basic_benchmarks():
         results.append(res)
         print((args, res))
 
-    build_graph_basic_troughput_X_rules(TEST_ARGS, results)
+    build_graph_basic_throughput_X_rules(TEST_ARGS, results)
     build_graph_basic_update_X_rules(TEST_ARGS, results)
 
 
@@ -177,8 +177,8 @@ def run_prefix_benchmarks():
         results.append(res)
         print((args, res))
 
-    build_graph_basic_troughput_X_prefix_cnt(TEST_ARGS, results)
-    build_graph_basic_troughput_X_update_time(TEST_ARGS, results)
+    build_graph_basic_throughput_X_prefix_cnt(TEST_ARGS, results)
+    build_graph_basic_throughput_X_update_time(TEST_ARGS, results)
 
 
 def main():

@@ -9,20 +9,21 @@ class TSS_like {
 public:
 	using rule_id_t = uint32_t;
 	using priority_t = uint32_t;
+	using key_vec_t = std::array<uint16_t, 2>;
 
-	struct rule_val_t {
+	struct rule_value_t {
 		priority_t priority: 8;
 		rule_id_t rule_id: 24;
 	};
 
 	struct rule_spec_t {
 		std::array<pcv::Range1d<uint16_t>, 2> filter;
-		rule_val_t value;
+		rule_value_t value;
 	};
-	// value : rule_id
-	std::array<std::unordered_map<uint32_t, size_t>, 33> tables;
+	// value : rule_value_t
+	std::array<std::unordered_map<uint32_t, rule_value_t>, 33> tables;
 	// vector<table, mask>
-	std::vector<std::pair<std::unordered_map<uint32_t, size_t>*, uint32_t>> used_tables;
+	std::vector<std::pair<std::unordered_map<uint32_t, rule_value_t>*, uint32_t>> used_tables;
 
 	void insert(const rule_spec_t & r) {
 		auto & f = r.filter;
@@ -31,7 +32,7 @@ public:
 		auto pl = v.prefix_len_le();
 		assert(pl <= 32);
 		auto & t = tables.at(pl);
-		t[v.low] = r.value.rule_id;
+		t[v.low] = r.value;
 
 		if (t.size() == 1) {
 			// was newly added regenerate used_tables vector
@@ -53,7 +54,7 @@ public:
 		}
 	}
 
-	int search(std::array<uint16_t, 2> val) {
+	rule_value_t search(std::array<uint16_t, 2> val) {
 		uint32_t v = val[1];
 		v <<= 16;
 		v |= val[0];
@@ -64,6 +65,6 @@ public:
 				return res->second;
 			}
 		}
-		return -1;
+		return rule_value_t();
 	}
 };

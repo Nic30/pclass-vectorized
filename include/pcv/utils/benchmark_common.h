@@ -8,18 +8,25 @@ namespace pcv {
 class BenchmarkStats {
 public:
 	size_t LOOKUP_CNT;
-	bool dump_as_json;
 	std::ostream & out;
 	DebugTimer * construction_timer;
 	DebugTimer * lookup_timer;
 	size_t real_rule_cnt;
 	int number_of_tries_or_tables;
 
-	BenchmarkStats(size_t LOOKUP_CNT, bool dump_as_json, size_t real_rule_cnt, std::ostream & out =
-			std::cout);
+	std::chrono::high_resolution_clock::time_point actual_packet_start;
+	std::vector<std::chrono::high_resolution_clock::time_point> time_per_packet;
+
+	BenchmarkStats(size_t LOOKUP_CNT, size_t real_rule_cnt, size_t trace_cnt,
+			std::ostream & out = std::cout);
 	void construction_start();
 	void construction_stop();
 
+	// for a single packet
+	void lookup_packet_start();
+	void lookup_packet_stop(size_t p_id);
+
+	// the lookup as a whole
 	void lookup_start();
 	void lookup_stop();
 

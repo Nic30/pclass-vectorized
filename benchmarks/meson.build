@@ -1,5 +1,5 @@
 
-_DEF_BENCHMARK_ARGS = ['tests/data/acl1_100', '4096', '1000000', '0']
+_DEF_BENCHMARK_ARGS = ['tests/data/acl1_100', '4096', '1000000']
 
 benchmarks = [
   ['1_tree_lookup', ['1_tree_lookup.cpp'],  [_DEF_BENCHMARK_ARGS, ]],

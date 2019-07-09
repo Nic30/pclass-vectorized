@@ -1,14 +1,15 @@
 #include <vector>
+#include <unordered_map>
+#include <map>
+#include <stdint.h>
+
 #include <pcv/partition_sort/b_tree_impl.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
 #include "run_benchmark.h"
 #include "hash_table_cls.h"
 #include "tss_like_cls.h"
-
-#include <unordered_map>
-#include <map>
-#include <stdint.h>
+#include "run_benchmark.h"
 
 using namespace std;
 using namespace pcv;
@@ -51,13 +52,13 @@ int main(int argc, const char * argv[]) {
 
 	if (CLS_NAME == "tss") {
 		TSS_like cls;
-		run_benchmark(cls, rules, packets, LOOKUP_CNT);
-	//} else if (CLS_NAME == "hash") {
-	//	HashTableBasedCls cls;
-	//	run_benchmark(cls, rules, packets, LOOKUP_CNT);
+		run_benchmark_struct(cls, rules, packets, LOOKUP_CNT);
+		//} else if (CLS_NAME == "hash") {
+		//	HashTableBasedCls cls;
+		//	run_benchmark(cls, rules, packets, LOOKUP_CNT);
 	} else if (CLS_NAME == "b_tree") {
 		BTree cls;
-		run_benchmark(cls, rules, packets, LOOKUP_CNT);
+		run_benchmark_struct(cls, rules, packets, LOOKUP_CNT);
 	} else {
 		throw runtime_error("Unsupported classifier");
 	}

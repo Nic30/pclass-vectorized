@@ -117,7 +117,7 @@ DpdkAclContainer::setup_acl(const std::vector<acl4_rule> & rules_acl,
 	return context;
 }
 
-uint16_t DpdkAclContainer::search(std::array<uint16_t, 7> & val_big_endian) {
+DpdkAclContainer::rule_id_t DpdkAclContainer::search(std::array<uint16_t, 7> & val_big_endian) {
 	std::array<uint32_t, NUM_CATEGORIES> res_cls;
 	const uint8_t * data[1] = { (uint8_t *) &val_big_endian[0] };
 	auto res = rte_acl_classify(acl_ctx, data, &res_cls[0], 1, NUM_CATEGORIES);

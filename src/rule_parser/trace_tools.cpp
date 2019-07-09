@@ -14,9 +14,7 @@
 #include <byteswap.h>
 #include <utility>
 
-
 namespace pcv {
-
 
 void ramdom_corner_push_value(packet_t & packet, size_t & byte_offset,
 		const Range1d<uint32_t> & val, bool use_low, bool big_endian) {
@@ -68,21 +66,21 @@ void random_corner(const Rule_Ipv4_ACL & rule, packet_t & new_hdr, int d,
 			big_endian);
 }
 
-int pareto_distrib(float a, float b, std::mt19937 & rand) {
+size_t pareto_distrib(float a, float b, std::mt19937 & rand) {
 	if (b == 0)
 		return 1;
+
 	std::uniform_int_distribution<> rand_bit(0, 1);
 	// Select random number
 	double p = rand_bit(rand);
 
 	double x = (double) b / pow((double) (1 - p), (double) (1 / (double) a));
-	return (int) ceil(x);
+	return ceil(x);
 }
 
 // Generate headers
 // a,b in ClassBench are 1 0.1
 // generate at least 'threshold' number of packets
-// To ensure the generated dataset is deterministic, call this first!!
 std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
 		float a, float b, int threshold, std::mt19937 & rand, bool big_endian) {
 	constexpr size_t d = 7;
@@ -102,14 +100,14 @@ std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
 
 		// Select number of copies to add to header list
 		// from Pareto distribution
-		int Copies = pareto_distrib(a, b, rand);
+		size_t copies_n = pareto_distrib(a, b, rand);
 
 		// Add to header list
-		for (int i = 0; i < Copies; i++) {
+		for (size_t i = 0; i < copies_n; i++) {
 			temp_packets.push_back(new_hdr);
 		}
 		// Increment number of headers
-		num_headers += Copies;
+		num_headers += copies_n;
 	}
 
 	return std::vector<packet_t>(begin(temp_packets),
@@ -117,8 +115,8 @@ std::vector<packet_t> header_gen(std::vector<const Rule_Ipv4_ACL *>& filters,
 }
 
 std::vector<packet_t> generate_packets_from_ruleset(
-		std::vector<const Rule_Ipv4_ACL *>& filters, int num_packets, int seed,
-		bool big_endian) {
+		std::vector<const Rule_Ipv4_ACL *>& filters, size_t num_packets,
+		size_t seed, bool big_endian) {
 	if (filters.empty())
 		throw std::runtime_error(
 				"can not generate packets from empty rule set");

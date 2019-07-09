@@ -3,28 +3,26 @@
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
 #include <pcv/utils/benchmark_common.h>
+#include "run_benchmark.h"
 
 using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
 int main(int argc, const char * argv[]) {
-	assert(argc == 1 + 4);
+	assert(argc == 1 + 3);
 	const char * rule_file = argv[1];
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);
-	bool dump_as_json = atoll(argv[4]);
 
-	if (not dump_as_json)
-		cout << "[INFO] Executing benchmark " << argv[0] << endl;
 	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8>;
 
-	BTree t;
+	BTree cls;
 
 	// load rules from the file
 	vector<iParsedRule*> _rules;
 	auto rules = parse_ruleset_file(rule_file);
-	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, 0);
+	BenchmarkStats stats(LOOKUP_CNT, 0, UNIQUE_TRACE_CNT);
 	stats.construction_start();
 	{
 		// load rules in to a classifier tree
@@ -33,14 +31,11 @@ int main(int argc, const char * argv[]) {
 			BTree::rule_spec_t r = { rule_to_array_16b(*__r), {
 					(BTree::priority_t) __r->cummulative_prefix_len(),
 					(BTree::rule_id_t) _r.second } };
-			if (not t.does_rule_colide(r)) {
-				t.insert(r);
+			if (not cls.does_rule_colide(r)) {
+				cls.insert(r);
 				_rules.push_back(__r);
 			}
 		}
-		if (not dump_as_json)
-			cout << "[INFO] Loaded non-colliding rules cnt:" << _rules.size()
-					<< endl;
 	}
 	stats.construction_stop();
 	stats.real_rule_cnt = _rules.size();
@@ -51,12 +46,8 @@ int main(int argc, const char * argv[]) {
 			UNIQUE_TRACE_CNT);
 
 	stats.set_number_of_tries_or_tables(1);
-	stats.lookup_start();
-	for (size_t i = 0; i < LOOKUP_CNT; i++) {
-		auto & p = packets[i % packets.size()];
-		t.search(p);
-	}
-	stats.lookup_stop();
+
+	run_benchmark_lookup_struct(cls, stats, packets, LOOKUP_CNT);
 
 	stats.dump();
 

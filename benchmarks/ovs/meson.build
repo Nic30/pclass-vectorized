@@ -46,7 +46,7 @@ benchmark_ovs_tss_exe = executable('ovs_tss_lookup',
     include_directories : ['./ovs/', './ovs/include'],
 )
 test('ovs_tss_lookup', benchmark_ovs_tss_exe, workdir : meson.source_root(),
-	args : ['tests/data/acl1_100', '4096', '1000000', '0'])
+	args : ['tests/data/acl1_100', '4096', '1000000'])
 
 subdir('ovs_pcv')
 benchmark_ovs_pcv_exe = executable('ovs_pcv_lookup',
@@ -57,4 +57,4 @@ benchmark_ovs_pcv_exe = executable('ovs_pcv_lookup',
     include_directories : ['./ovs_pcv/', './ovs_pcv/include'],
 )
 test('ovs_pcv_lookup', benchmark_ovs_pcv_exe, workdir : meson.source_root(),
-	args : ['tests/data/acl1_100', '4096', '1000000', '0'])
+	args : ['tests/data/acl1_100', '4096', '1000000'])

@@ -12,6 +12,8 @@
  * */
 class DpdkAclContainer {
 public:
+	using key_vec_t = std::array<uint16_t, 7>;
+	using rule_id_t = uint16_t;
 	struct rte_acl_ctx *acl_ctx;
 	/*
 	 * @param rules the initial ruleset for this classifier
@@ -19,7 +21,7 @@ public:
 	DpdkAclContainer(const std::vector<pcv::iParsedRule*> & rules);
 	~DpdkAclContainer();
 
-	uint16_t search(std::array<uint16_t, 7> & val);
+	rule_id_t search(key_vec_t & val);
 	void dump();
 	int get_number_of_tries();
 

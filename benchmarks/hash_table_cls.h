@@ -10,15 +10,17 @@ class HashTableBasedCls {
 public:
 	using rule_id_t = uint32_t;
 	using priority_t = uint32_t;
+	using key_vec_t = std::array<uint16_t, 2>;
+
 	struct rule_value_t {
 		priority_t priority;
-		rule_id_t id;
+		rule_id_t rule_id;
 
 		rule_value_t() :
-				priority(0), id(-1) {
+				priority(0), rule_id(-1) {
 		}
 		rule_value_t(priority_t _priority, size_t _id) :
-				priority(_priority), id(_id) {
+				priority(_priority), rule_id(_id) {
 		}
 	};
 	struct rule_spec_t {
@@ -62,17 +64,17 @@ public:
 		}
 	}
 
-	int search(std::array<uint16_t, 2> val) {
+	rule_value_t search(const key_vec_t & val) {
 		auto k0 = data[0].find(val[0]);
 		if (k0 == data[0].end())
-			return -1;
+			return rule_value_t();
 		auto k1 = data[1].find(val[1]);
 		if (k1 == data[1].end())
-			return -1;
+			return rule_value_t();
 		auto res = cross_product.find( { k0->second, k1->second });
 		if (res == cross_product.end())
-			return -1;
-		return res->second.id;
+			return rule_value_t();
+		return res->second;
 	}
 
 };

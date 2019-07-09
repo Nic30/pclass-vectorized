@@ -2,7 +2,6 @@
 #include <pcv/common/range.h>
 #include <byteswap.h>
 
-
 namespace pcv {
 namespace ovs {
 
@@ -25,15 +24,15 @@ struct flow OvsWrap::flow_from_packet(const packet_t & p) {
 }
 Rule_Ipv4_ACL OvsWrap::flow_to_Rule_Ipv4_ACL(const struct flow & f) {
 	Rule_Ipv4_ACL r;
-	r.sip.high = r.sip.low  = __swab32p(&f.nw_src);
-	r.dip.high = r.dip.low  = __swab32p(&f.nw_dst);
+	r.sip.high = r.sip.low = __swab32p(&f.nw_src);
+	r.dip.high = r.dip.low = __swab32p(&f.nw_dst);
 	r.sport.high = r.sport.low = __swab16p(&f.tp_src);
 	r.dport.high = r.dport.low = __swab16p(&f.tp_dst);
 	r.proto.high = r.proto.low = f.nw_proto;
 	return r;
 }
-const struct cls_rule * OvsWrap::search(struct flow & f) {
-	return classifier_lookup(&cls, version, &f, nullptr);
+OvsWrap::rule_id_t OvsWrap::search(const key_vec_t & f) {
+	return classifier_lookup(&cls, version, const_cast<key_vec_t*>(&f), nullptr);
 }
 
 void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t prio) {

@@ -12,6 +12,7 @@
 #include <pcv/rule_parser/trace_tools.h>
 #include <pcv/partition_sort/partition_sort_classifier.h>
 #include <pcv/utils/benchmark_common.h>
+#include "../run_benchmark.h"
 
 using namespace std;
 using namespace pcv;
@@ -19,19 +20,15 @@ using namespace pcv::rule_conv_fn;
 using namespace pcv::ovs;
 
 int main(int argc, const char * argv[]) {
-	assert(argc == 1 + 4);
+	assert(argc == 1 + 3);
 	const char * rule_file = argv[1];
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);
-	bool dump_as_json = atoll(argv[4]);
-
-	if (not dump_as_json)
-		cout << "[INFO] Executing benchmark " << argv[0] << endl;
 
 	OvsWrap cls;
 	auto rules = parse_ruleset_file(rule_file);
 	vector<iParsedRule*> _rules;
-	BenchmarkStats stats(LOOKUP_CNT, dump_as_json, rules.size());
+	BenchmarkStats stats(LOOKUP_CNT, rules.size(), UNIQUE_TRACE_CNT);
 	stats.construction_start();
 	for (auto _r : rules) {
 		auto r = reinterpret_cast<Rule_Ipv4_ACL*>(_r.first);
@@ -50,19 +47,8 @@ int main(int argc, const char * argv[]) {
 		packets.push_back(OvsWrap::flow_from_packet(_p));
 	}
 
-	stats.lookup_start();
-	for (size_t i = 0; i < LOOKUP_CNT; i++) {
-		auto & p = packets[i % packets.size()];
-		// cout << "search:" << OvsWrap::flow_to_Rule_Ipv4_ACL(p) << endl;
-		// cout << "search:" << exact_array_to_rule_le(p) << endl;
-		auto v = cls.search(p);
-		assert(v);
-		// if (v) {
-		// 	cout << "found : " << *cls.cls_rule_get_pcv_rule(v) << " priority: "
-		// 			<< v->priority << endl;
-		// }
-	}
-	stats.lookup_stop();
+	run_benchmark_lookup_ptr(cls, stats, packets, LOOKUP_CNT);
+
 #ifdef OVS_PCV
 	auto pcv_cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
 	stats.set_number_of_tries_or_tables(pcv_cls->cls.tree_cnt);

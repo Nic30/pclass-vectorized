@@ -20,7 +20,7 @@ void random_corner(const Rule_Ipv4_ACL & rule, packet_t & new_hdr, int d,
 		std::mt19937 & rand, bool big_endian);
 
 std::vector<packet_t> generate_packets_from_ruleset(
-		std::vector<const Rule_Ipv4_ACL*>& filters, int num_packets, int seed =
-				0, bool big_endian = false);
+		std::vector<const Rule_Ipv4_ACL*>& filters, size_t num_packets,
+		size_t seed = 0, bool big_endian = false);
 
 }

@@ -22,10 +22,14 @@ def find_all_files(p):
 if __name__ == "__main__":
     conn = sqlite3.connect(DB_NAME)
     conn.execute('''CREATE TABLE IF NOT EXISTS test_result
-                 (timestamp int, app_name text, ruleset_name text, flow_cnt int, packet_cnt int, real_rule_cnt int,
-                 construction_time real, number_of_tries_or_tables int, lookup_speed real)''')
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  timestamp INT,                   app_name TEXT,                  ruleset_name TEXT,
+                  flow_cnt INT,                    packet_cnt INT,                 real_rule_cnt INT,
+                  construction_time REAL,          number_of_tries_or_tables INT,  lookup_speed REAL,
+                  minimal_benchmark_overhead REAL, packet_lookup_times BLOB
+                 )''')
     conn.execute('''CREATE TABLE IF NOT EXISTS benchmark_execs
-                 (timestamp int, revision text, machine_name text)''')
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp INT, revision TEXT, machine_name TEXT)''')
     conn.commit()
 
     # PARALLEL = True
@@ -47,9 +51,9 @@ if __name__ == "__main__":
         # 1,
         #16, 128,
         1024,
-        4096,
-        8192,
-        65536
+        #4096,
+        #8192,
+        #65536
     ]
     PACKET_CNTS = [
         # 10000,
@@ -62,7 +66,7 @@ if __name__ == "__main__":
     # ]
     # pprint(find_all_files(CLASSBENCH_ROOT))
     # sys.exit(1)
-    def benchmark_cominal_size(file_name):
+    def benchmark_nominal_size(file_name):
         tn = basename(file_name)
         tn = tn.split("_")[1]
         mul = tn[-1].lower()
@@ -83,7 +87,7 @@ if __name__ == "__main__":
            and not f.endswith("exact0_32k")
            and not f.endswith("ipc1_5000")
            and not f.endswith("wildcard")
-           and benchmark_cominal_size(f) >= 5000
+           and benchmark_nominal_size(f) >= 5000
     ]
 
     # (number of flows, number of packets)

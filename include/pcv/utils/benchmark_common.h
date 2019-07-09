@@ -15,7 +15,7 @@ public:
 	int number_of_tries_or_tables;
 
 	std::chrono::high_resolution_clock::time_point actual_packet_start;
-	std::vector<std::chrono::high_resolution_clock::time_point> time_per_packet;
+	std::vector<uint64_t> ns_per_packet;
 
 	BenchmarkStats(size_t LOOKUP_CNT, size_t real_rule_cnt, size_t trace_cnt,
 			std::ostream & out = std::cout);

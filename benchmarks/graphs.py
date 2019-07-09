@@ -8,14 +8,14 @@ def get_last_exec_time(db_conn):
     return res.fetchone()[0]
 
 
-def generate_graph_troughput_with_increasing_number_of_flows(db_file_name):
+def generate_graph_throughput_with_increasing_number_of_flows(db_file_name):
     c = sqlite3.connect(db_file_name)
     #last_exec = 0
     last_exec = get_last_exec_time(c)
 
     query = "SELECT * from test_result WHERE timestamp >= ? ORDER BY flow_cnt"
     flow_cnt_values = []  # x
-    app_namesXruleset_troughput = {}  # name of series :  lists of troughtputs for different rulesetns (y)
+    app_namesXruleset_throughput = {}  # name of series :  lists of troughtputs for different rulesetns (y)
     last_packet_cnt = None
     for (_, app_name, rule_file, flow_cnt, packet_cnt, real_rule_cnt,
             construction_time, number_of_tries_or_tables, lookup_speed) in c.execute(query, (last_exec,)):
@@ -23,19 +23,19 @@ def generate_graph_troughput_with_increasing_number_of_flows(db_file_name):
         last_packet_cnt = packet_cnt
 
         app_namesXruleset = "%s_%s" % (basename(app_name), basename(rule_file))
-        troughput = app_namesXruleset_troughput.get(app_namesXruleset, [])
-        app_namesXruleset_troughput[app_namesXruleset] = troughput
+        throughput = app_namesXruleset_throughput.get(app_namesXruleset, [])
+        app_namesXruleset_throughput[app_namesXruleset] = throughput
 
-        troughput.append(lookup_speed)
+        throughput.append(lookup_speed)
 
         if not flow_cnt_values or flow_cnt_values[-1] != flow_cnt:
             flow_cnt_values.append(flow_cnt)
 
     fig, ax = plt.subplots(figsize=(20, 8))
 
-    for name, troughputs in app_namesXruleset_troughput.items():
+    for name, throughputs in app_namesXruleset_throughput.items():
         x = flow_cnt_values
-        y = troughputs
+        y = throughputs
         line1, = ax.plot(x, y, label=name)
 
     ax.set_ylabel('Throughput [MPkt/s]')
@@ -52,7 +52,7 @@ def generate_graph_troughput_with_increasing_number_of_flows(db_file_name):
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     plt.grid()
-    plt.savefig('fig/troughput_with_increasing_number_of_flows.png')
+    plt.savefig('fig/throughput_with_increasing_number_of_flows.png')
 
 
 
@@ -76,9 +76,9 @@ def generate_ruleset_size_graph(order, data, x):
     plt.grid()
     plt.savefig('fig/size_of_ruleset.png')
 
-def generate_graph_troughput_for_ruleset(ruleset_order, app_data, x, file_name):
+def generate_graph_throughput_for_ruleset(ruleset_order, app_data, x, file_name):
     """
-    [troughput]  |
+    [throughput]  |
                  |-----
                      [rulesets ordered by decreasing lookup speed]
     """
@@ -217,7 +217,7 @@ def generate_graphs_depending_on_ruleset_size(db_file_name, number_of_flows, pkt
 
     # used to sort the rulesets
     #(rule_file, _, _, _, lookup_speed)
-    cumul_troughput_for_ruleset, x = rulesets_ordered_by_cummulative_key(app_data, 4, True)
+    cumul_throughput_for_ruleset, x = rulesets_ordered_by_cummulative_key(app_data, 4, True)
 
     data2_values = list(app_data.values())[0]
     data2 = [
@@ -232,13 +232,13 @@ def generate_graphs_depending_on_ruleset_size(db_file_name, number_of_flows, pkt
     }
     x_ordered_by_size = [d[0] for d in data2]
 
-    generate_graph_troughput_for_ruleset(
-        cumul_troughput_for_ruleset, app_data, x,
-        'fig/troughput_for_increasing_ruleset_complexity.png')
-    generate_graph_troughput_for_ruleset(
+    generate_graph_throughput_for_ruleset(
+        cumul_throughput_for_ruleset, app_data, x,
+        'fig/throughput_for_increasing_ruleset_complexity.png')
+    generate_graph_throughput_for_ruleset(
         ruleset_order_by_size, app_data, x_ordered_by_size,
-        'fig/troughput_for_increasing_ruleset_size.png')
-    generate_ruleset_size_graph(cumul_troughput_for_ruleset, data, x)
+        'fig/throughput_for_increasing_ruleset_size.png')
+    generate_ruleset_size_graph(cumul_throughput_for_ruleset, data, x)
 
     generate_tree_cnt_for_ruleset(ruleset_order_by_size, app_data, x_ordered_by_size,
         'fig/number_of_trees_for_increasing_ruleset_size.png')

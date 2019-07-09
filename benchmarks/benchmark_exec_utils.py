@@ -14,7 +14,7 @@ def build_test_name(app_name, rule_file, flow_cnt, packet_cnt):
 
 
 def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt):
-    print((app_name, rule_file, flow_cnt, packet_cnt))
+    #print((app_name, rule_file, flow_cnt, packet_cnt))
 
     is_dpkd = "dpdk" in app_name
     if is_dpkd:
@@ -47,10 +47,11 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
                construction_time, number_of_tries_or_tables, lookup_speed))
     conn.commit()
 
+    return (app_name, rule_file, flow_cnt, packet_cnt)
 
 def _exec_benchmark(args):
     db_name, (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt = args
-    exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
+    return exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
 
 
 def run_benchmarks(db_file, tasks, parallel):
@@ -70,12 +71,17 @@ def run_benchmarks(db_file, tasks, parallel):
     conn.execute("INSERT INTO benchmark_execs VALUES (?,?,?)",
                (time.time(), get_repo_rev(), socket.gethostname()))
     conn.commit()
+    num_tasks = len(tasks)
     if parallel:
         with Pool(multiprocessing.cpu_count() // 2) as pool:
-            pool.map(_exec_benchmark, [(db_file, *t) for t in tasks])
+            # pool.map(_exec_benchmark, [(db_file, *t) for t in tasks])
+            for i, cmd in enumerate(pool.imap_unordered(_exec_benchmark, [(db_file, *t) for t in tasks]), 1):
+                print('\n {0:%} {1}'.format(i / num_tasks, cmd))
+
     else:
-        for (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt in tasks:
-            exec_benchmark(db_file, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
+        for i, (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt in enumerate(tasks):
+            cmd = exec_benchmark(db_file, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt)
+            print('\n {0:%} {1}'.format(i / num_tasks, cmd))
 
 
 def get_repo_rev():

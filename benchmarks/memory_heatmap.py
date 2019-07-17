@@ -136,11 +136,10 @@ class HeatMapGen():
         return imgs
 
 
-def add_colorbar(fig, ax, last_img):
+def add_colorbar(fig, ax, last_img, cmap):
     # https://stackoverflow.com/questions/13784201/matplotlib-2-subplots-1-colorbar
     # # normalize colors to minimum and maximum values of dataset
     norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
-    cmap = 'plasma'
     ncontours = 10
     cmap = cm.get_cmap(cmap, ncontours)  # number of colors on colorbar
     m = cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -158,8 +157,8 @@ def main(data):
     imgs = gen.generate_heatmap()
     # pprint(gen.trees)
     # print(img)
-    plots = len(gen.trees)
-    # plots = 2
+    #plots = len(gen.trees)
+    plots = 3
     # x_max = max(len(img[0]) for img in imgs)
     y_max = max(len(img) for img in imgs)
 
@@ -191,6 +190,7 @@ def main(data):
     #
     # cbar = fig.colorbar(im, ax=ax, **cbar_kw)
     # cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+    cmap = "plasma"
     for ax, img in zip(axs, imgs):
         # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_ylim((0, y_max))
@@ -198,15 +198,18 @@ def main(data):
         # ax.xaxis.set_ticks([])
         # ax.set_xscale("log")
         im = ax.imshow(img,
+                        cmap=cmap,
                        # cmap="YlGn",
                         origin='lower', aspect="auto", vmin=0, vmax=1,
                         )
 
-    add_colorbar(fig, axs[-1], imgs[-1])
+    add_colorbar(fig, axs[-1], imgs[-1], cmap)
     # fig.set_title("Memory usage efficiency")
     fig.tight_layout()
     plt.legend()
-    plt.show()
+    # plt.show()
+    plt.savefig('../fig/mem_efficiency_heatmap.png')
+
 
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")

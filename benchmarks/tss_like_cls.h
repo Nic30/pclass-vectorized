@@ -12,6 +12,7 @@ public:
 	using key_vec_t = std::array<uint16_t, 2>;
 
 	struct rule_value_t {
+		// @note priority functionality is not implemented
 		priority_t priority: 8;
 		rule_id_t rule_id: 24;
 	};
@@ -41,9 +42,9 @@ public:
 			for (auto t_it = tables.rbegin(); t_it != tables.rend(); ++t_it) {
 				if (t_it->size()) {
 					uint32_t mask;
-					if (i == 32)
+					if (i == 32) {
 						mask = -1;
-					else {
+					} else {
 						mask = (1 << i) - 1;
 						mask = ~mask;
 					}
@@ -59,9 +60,9 @@ public:
 		v <<= 16;
 		v |= val[0];
 
-		for (auto t = used_tables.rbegin(); t != used_tables.rend(); ++t) {
-			auto res = t->first->find(v & t->second);
-			if (res != t->first->end()) {
+		for (auto & t: used_tables) {
+			auto res = t.first->find(v & t.second);
+			if (res != t.first->end()) {
 				return res->second;
 			}
 		}

@@ -59,9 +59,9 @@ public:
 		v <<= 16;
 		v |= val[0];
 
-		for (auto & t : used_tables) {
-			auto res = t.first->find(v & t.second);
-			if (res != t.first->end()) {
+		for (auto t = used_tables.rbegin(); t != used_tables.rend(); ++t) {
+			auto res = t->first->find(v & t->second);
+			if (res != t->first->end()) {
 				return res->second;
 			}
 		}

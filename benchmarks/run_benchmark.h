@@ -73,7 +73,7 @@ template<class CLS_T>
 void run_classfier_init(CLS_T & cls, pcv::BenchmarkStats & stats,
 		const std::vector<std::array<pcv::Range1d<uint16_t>, 2>> & rules) {
 	stats.construction_start();
-	typename CLS_T::rule_id_t i = 0;
+	typename CLS_T::rule_id_t i = 1;
 	for (auto & r : rules) {
 		typename CLS_T::rule_value_t k;
 		k.priority = 0;

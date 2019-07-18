@@ -75,7 +75,10 @@ void run_classfier_init(CLS_T & cls, pcv::BenchmarkStats & stats,
 	stats.construction_start();
 	typename CLS_T::rule_id_t i = 0;
 	for (auto & r : rules) {
-		cls.insert( { r, { 0, i } });
+		typename CLS_T::rule_value_t k;
+		k.priority = 0;
+		k.rule_id = i;
+		cls.insert( { r, k });
 		i++;
 	}
 	stats.construction_stop();

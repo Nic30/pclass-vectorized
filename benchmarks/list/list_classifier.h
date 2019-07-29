@@ -11,15 +11,15 @@
 
 namespace pcv {
 
-template<typename _Key_t,  typename _Value_t, size_t _D>
+template<typename cfg>
 class ListBasedClassifier {
 private:
 	// used just to get types
-	using BTree = _BTree<_Key_t, _Value_t, _D>;
+	using BTree = _BTree<cfg>;
 public:
-	using key_t = _Key_t;
+	using key_t = typename cfg::Key_t;
 	using rule_id_t = typename BTree::rule_id_t;
-	static constexpr size_t D = _D;
+	static constexpr size_t D = cfg::D;
 	using key_range_t = typename BTree::key_range_t;
 	using key_vec_t = typename BTree::key_vec_t;
 	// print functions and key names for the debug

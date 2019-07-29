@@ -8,10 +8,16 @@
 
 namespace pcv {
 
-template<typename Key_t, typename _Value_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
+/*
+ * Implementation of B-tree insertion algorithm with path compression support
+ *
+ * @tparam cfg the class derived from pcv::_BTreeCfg which has parameters
+ *             for specification of maximum sizes and other alg. configs
+ **/
+template<typename cfg>
 class BTreeInsert {
-	using BTree = _BTree<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
-	using BTreeSearch_t = BTreeSearch<Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using BTree = _BTree<cfg>;
+	using BTreeSearch_t = BTreeSearch<cfg>;
 public:
 	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;

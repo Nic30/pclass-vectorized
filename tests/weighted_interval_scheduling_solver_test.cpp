@@ -5,6 +5,8 @@
 #include "test_common.h"
 #include <vector>
 
+
+#include <pcv/common/range.h>
 #include <pcv/partition_sort/weighted_interval_scheduling_solver.h>
 
 using namespace pcv;

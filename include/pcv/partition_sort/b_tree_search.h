@@ -90,9 +90,9 @@ SearchResult search_avx2(const __m256i * keys, T val);
 
 }
 
-template<typename _Key_t, typename _Value_t, size_t _D, size_t _T, bool _PATH_COMPRESSION>
+template<typename cfg>
 class BTreeSearch {
-	using BTree = _BTree<_Key_t, _Value_t, _D, _T, _PATH_COMPRESSION>;
+	using BTree = _BTree<cfg>;
 public:
 	using Node = typename BTree::Node;
 	using key_t = typename BTree::key_t;
@@ -119,7 +119,7 @@ public:
 	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
 
 	const BTree & t;
-	using packet_spec_t = std::array<in_packet_position_t, _D>;
+	using packet_spec_t = std::array<in_packet_position_t, cfg::D>;
 	const packet_spec_t & in_packet_position;
 	packet_spec_t default_in_packet_position;
 
@@ -135,7 +135,7 @@ public:
 	 * */
 	BTreeSearch(const BTree & _t) :
 			BTreeSearch(_t, default_in_packet_position) {
-		for (uint16_t i = 0; i < _D; i++) {
+		for (uint16_t i = 0; i < cfg::D; i++) {
 			default_in_packet_position[i] = {
 				static_cast<uint16_t>(i*2),
 				2,

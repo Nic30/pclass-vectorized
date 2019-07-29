@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "list_classifier.h"
+#include <pcv/partition_sort/b_tree_cfg.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
 #include <pcv/utils/benchmark_common.h>
@@ -10,7 +11,7 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
-using Classifier = ListBasedClassifier<uint16_t, IntRuleValue, 7>;
+using Classifier = ListBasedClassifier<_BTreeCfg<uint16_t, IntRuleValue, 7>>;
 
 int main(int argc, const char * argv[]) {
 	assert(argc == 1 + 3);

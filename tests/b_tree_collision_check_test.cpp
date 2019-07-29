@@ -11,7 +11,7 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
-using BTree = BTreeImp<uint16_t, IntRuleValue, 2>;
+using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2>>;
 
 void simple_collision_check(size_t N) {
 	size_t STEP = 10;

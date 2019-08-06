@@ -11,7 +11,7 @@ using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
-using BTree = BTreeImp<uint16_t, IntRuleValue, 2>;
+using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2>>;
 
 using rule_t = BTree::rule_spec_t;
 using R1d = Range1d<BTree::key_t>;

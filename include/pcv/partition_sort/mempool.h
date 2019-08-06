@@ -21,17 +21,17 @@ class alignas(64) StaticMempool final {
 	// Singly Linked List node
 	struct Info;
 	struct Info {
-		Info * next_free;
+		Info *next_free;
 	};
 	// Singly Linked List
 	static std::array<mem_of_obj_t, _ITEM_CNT> mempool __attribute__((aligned(64)));
 	static std::array<Info, _ITEM_CNT> mempool_info;
 
 	// pointer of the first item in the list of the free items
-	static Info * m_first_free;
+	static Info *m_first_free;
 
 	// spinlock for allocation and deallocation
-	static __attribute__((aligned(64))) std::atomic_flag lock;
+	static __attribute__((aligned(64)))  std::atomic_flag lock;
 
 	// staic constructor of this mempool which initializes the pointers
 	// in the singly linked list
@@ -64,7 +64,7 @@ public:
 		size_t unused = 0;
 		//std::cout << "end " << mempool_info.end() << std::endl;
 		acquire_lock();
-		Info * i = m_first_free;
+		Info *i = m_first_free;
 		if (m_first_free == nullptr) {
 			// this mempool was not even initialized yet
 			return 0;
@@ -91,7 +91,7 @@ public:
 
 		size_t indx = m_first_free - &mempool_info[0];
 		assert(indx < ITEM_CNT);
-		auto* obj = reinterpret_cast<void*>(&mempool[indx][0]);
+		auto *obj = reinterpret_cast<void*>(&mempool[indx][0]);
 		//std::cout << "allocate " << obj << " index" << indx << std::endl;
 		auto tmp = m_first_free->next_free;
 		assert(tmp != nullptr);
@@ -109,13 +109,13 @@ public:
 	/*
 	 * Prepend to list of free items
 	 * */
-	static void release(T* addr) {
+	static void release(T *addr) {
 		acquire_lock();
 		size_t indx = addr - reinterpret_cast<T*>(&mempool[0][0]);
 		//std::cout << "release " << addr << " index" << indx << std::endl;
 		assert(indx < ITEM_CNT);
 
-		Info * item = &mempool_info[indx];
+		Info *item = &mempool_info[indx];
 		if (item->next_free != nullptr)
 			throw std::runtime_error(
 					std::string("Double free ") + std::to_string(indx));
@@ -136,7 +136,7 @@ public:
 		// count free items
 		// and check if all items were removed before deleting of this mempool
 		if (m_first_free != mempool_info.end()) {
-			auto * item = m_first_free;
+			auto *item = m_first_free;
 			size_t cnt = 0;
 			while (item != mempool_info.end()) {
 				cnt++;
@@ -147,24 +147,28 @@ public:
 		assert(0 && "There are still items in the mempool");
 	}
 
-	static constexpr T * getById(size_t id) {
+	static constexpr T* getById(size_t id) {
+#ifndef NDEBUG
 		assert(id < ITEM_CNT);
 		if (mempool_info[id].next_free != nullptr) {
 			throw std::runtime_error(
 					std::string("Item ") + std::to_string(id)
 							+ " is deallocated");
 		}
+#endif
 		return reinterpret_cast<T*>(&(mempool[id][0]));
 	}
 
-	static constexpr size_t getId(const T * addr) {
+	static constexpr size_t getId(const T *addr) {
 		size_t id = (addr - reinterpret_cast<const T*>(&mempool[0][0]));
+#ifndef NDEBUG
 		if (mempool_info[id].next_free != nullptr) {
 			throw std::runtime_error(
 					std::string("Item ") + std::to_string(id)
 							+ " is deallocated");
 		}
 		assert(id < ITEM_CNT);
+#endif
 		return id;
 	}
 };
@@ -179,7 +183,7 @@ std::array<typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Info, ITEM_CNT> Sta
 		T, ITEM_CNT, THREAD_SAFE>::mempool_info;
 
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
-typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Info * StaticMempool<T,
+typename StaticMempool<T, ITEM_CNT, THREAD_SAFE>::Info *StaticMempool<T,
 		ITEM_CNT, THREAD_SAFE>::m_first_free(nullptr);
 
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
@@ -194,16 +198,15 @@ class ObjectWithStaticMempool {
 public:
 	using _Mempool_t = StaticMempool<T, object_cnt, THREAD_SAFE>;
 
-	static void* operator new(__attribute__((unused))   std::size_t sz) {
+	static void* operator new(__attribute__((unused))  std::size_t sz) {
 		return StaticMempool<T, object_cnt, THREAD_SAFE>::get();
 	}
 
-	static void operator delete(void* ptr) {
+	static void operator delete(void *ptr) {
 		StaticMempool<T, object_cnt, THREAD_SAFE>::release(
 				reinterpret_cast<T*>(ptr));
 	}
 	static void* operator new[](std::size_t count) = delete;
 };
-
 
 }

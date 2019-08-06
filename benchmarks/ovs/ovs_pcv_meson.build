@@ -21,6 +21,7 @@ src = [
 	'lib/crc32c.c',
 	'lib/csum.c',
 	'lib/ct-dpif.c',
+	'lib/dhparams.c',
 	'lib/dirs.c',
 	'lib/dns-resolve.c',
 	'lib/dp-packet.c',
@@ -120,6 +121,7 @@ src = [
 	'lib/sort.c',
 	'lib/sset.c',
 	'lib/stream-fd.c',
+	'lib/stream-ssl.c',
 	'lib/stream-tcp.c',
 	'lib/stream-unix.c',
 	'lib/stream.c',
@@ -147,13 +149,14 @@ librt = cc.find_library('rt')
 libm = cc.find_library('m')
 libunbound = cc.find_library('unbound')
 thread_dep = dependency('threads')
+libopenssl = dependency('openssl')
 
 _OVS_CONFIG = [ '-include', meson.current_source_dir() + '/config.h',]
 _ovs_pcv_inc = include_directories('.', './include', './lib/')
 _ovs_pcv_lib = library(
 	'ovs',
     src,
-    dependencies: [thread_dep, librt, libm, pcv_dep, libunbound],
+    dependencies: [thread_dep, librt, libm, pcv_dep, libunbound, libopenssl],
     include_directories : [_ovs_pcv_inc, ],
     install : true,
     cpp_args: OVS_CXX_ARGS + _OVS_CONFIG,

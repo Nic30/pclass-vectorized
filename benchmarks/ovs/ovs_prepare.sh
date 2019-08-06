@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 # sudo apt install libunbound-dev

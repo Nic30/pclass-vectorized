@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE( pcv__testsuite )
 
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 2>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2>>;
 	BTree t;
 	using K = BTree::KeyInfo;
 
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 }
 
 BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 4>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 4>>;
 	BTree t;
 
 	using V = typename BTree::key_vec_t;
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 }
 
 BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 4>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 4>>;
 	BTree t;
 
 	using V = typename BTree::key_vec_t;
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 
 BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	constexpr size_t D = 7;
-	using BTree = BTreeImp<uint16_t, IntRuleValue, D, 8, true>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, D, 8, true>>;
 	using InsertCookie = typename BTree::Insert_t::InsertCookie;
 	BTree t;
 	using V = typename BTree::key_vec_t;
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 }
 
 BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 4>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 4>>;
 	BTree t;
 
 	using V = typename BTree::key_vec_t;

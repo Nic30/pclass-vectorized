@@ -9,13 +9,13 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
-int main(int argc, const char * argv[]) {
+int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 3);
-	const char * rule_file = argv[1];
+	const char *rule_file = argv[1];
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);
 
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, (1<<16) - 1, 8>>;
 
 	BTree cls;
 

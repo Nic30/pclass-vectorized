@@ -27,10 +27,10 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
-using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8>;
+using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, 5000, 8>>;
 using Classifier0 = PartitionSortClassifer<BTree, 64, 10>;
 using rule_spec_t = typename Classifier0::rule_spec_t;
-using Classifier1 = ListBasedClassifier<uint16_t, IntRuleValue, 7>;
+using Classifier1 = ListBasedClassifier<_BTreeCfg<uint16_t, IntRuleValue, 7>>;
 
 template<class CLS_T>
 void formater(std::ostream & str, const typename CLS_T::rule_spec_t & rule) {

@@ -12,13 +12,13 @@ template<typename CLASSIFIER_T>
 class PartitionSortClassifer_toJson {
 public:
 	using Node = typename CLASSIFIER_T::Node;
-	std::ostream & out;
+	std::ostream &out;
 
-	PartitionSortClassifer_toJson(std::ostream & _out) :
+	PartitionSortClassifer_toJson(std::ostream &_out) :
 			out(_out) {
 	}
 
-	void classifier_to_json(const CLASSIFIER_T & cls) {
+	void classifier_to_json(const CLASSIFIER_T &cls) {
 		out << "[" << std::endl;
 		bool first = true;
 		for (auto ti : cls.trees) {
@@ -34,14 +34,14 @@ public:
 		out << "]" << std::endl;
 	}
 
-	void tree_to_json(const typename CLASSIFIER_T::Tree & t) {
+	void tree_to_json(const typename CLASSIFIER_T::Tree &t) {
 		auto id = Node::_Mempool_t::getId(t.root);
 		out << "{" << "    \"root\": \"" << id << "\"," << std::endl;
 		out << "    \"nodes\": {";
 		nodes_to_json(*t.root, true);
 		out << "}}";
 	}
-	void nodes_to_json(const Node & n, bool is_first) {
+	void nodes_to_json(const Node &n, bool is_first) {
 		if (!is_first)
 			out << "," << std::endl;
 		auto id = Node::_Mempool_t::getId(&n);
@@ -74,7 +74,7 @@ public:
 					first = false;
 				}
 				auto c_id = Node::_Mempool_t::getId(c);
-				out << "\""<< c_id << "\"";
+				out << "\"" << c_id << "\"";
 			}
 		}
 		out << "     ]" << std::endl << "}";
@@ -93,11 +93,11 @@ public:
 	}
 };
 
-int main(int argc, const char * argv[]) {
+int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 1);
-	const char * rule_file = argv[1];
+	const char *rule_file = argv[1];
 
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, (1 << 16) - 1, 8>>;
 	using Classifier = PartitionSortClassifer<BTree, 64, 10>;
 	Classifier t;
 

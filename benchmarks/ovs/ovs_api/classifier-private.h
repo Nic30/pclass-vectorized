@@ -39,7 +39,7 @@ struct RuleValue {
 };
 
 constexpr size_t struct_flow_D = 329;
-using BTree = pcv::BTreeImp<uint16_t, RuleValue, struct_flow_D, 8, true>;
+using BTree = pcv::BTreeImp<pcv::_BTreeCfg<uint16_t, RuleValue, struct_flow_D, (1<<20) - 1, 8, true>>;
 using Classifier = pcv::PartitionSortClassifer<BTree, struct_flow_D, 10>;
 
 /*

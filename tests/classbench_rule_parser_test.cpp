@@ -96,26 +96,24 @@ void test_b_tree(const std::string & file_name) {
 	//o.close();
 }
 
+using NormalBTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, 65000, 8, false>>;
+using CompressedBTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, 65000, 8, true>>;
 BOOST_AUTO_TEST_CASE( classifier_from_classbench_acl1_100 ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8, false>;
 	auto file_name = "tests/data/acl1_100";
-	test_b_tree<BTree>(file_name);
+	test_b_tree<NormalBTree>(file_name);
 }
 BOOST_AUTO_TEST_CASE( classifier_from_classbench_acl1_500 ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8, false>;
 	auto file_name = "tests/data/acl1_500";
-	test_b_tree<BTree>(file_name);
+	test_b_tree<NormalBTree>(file_name);
 }
 
 BOOST_AUTO_TEST_CASE( classifier_from_classbench_comp_en_acl1_100 ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8, true>;
 	auto file_name = "tests/data/acl1_100";
-	test_b_tree<BTree>(file_name);
+	test_b_tree<CompressedBTree>(file_name);
 }
 BOOST_AUTO_TEST_CASE( classifier_from_classbench_comp_en_acl1_500 ) {
-	using BTree = BTreeImp<uint16_t, IntRuleValue, 7, 8, true>;
 	auto file_name = "tests/data/acl1_500";
-	test_b_tree<BTree>(file_name);
+	test_b_tree<CompressedBTree>(file_name);
 }
 //____________________________________________________________________________//
 

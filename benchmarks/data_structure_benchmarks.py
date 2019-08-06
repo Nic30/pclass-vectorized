@@ -142,8 +142,8 @@ def build_graph_basic_throughput_X_update_time(args, results):
         v.append(res)
 
     for name, res in clsXupdate.items():
-        x = [ int(v) for v in PREFIXES]
-        y = [ r["construction_time"] / (float(pc) + 1) for r, pc in zip(res, PREFIXES) ]
+        x = [ int(v) for v in PREFIXES][1:]
+        y = [ r["construction_time"] / (float(pc) + 1) for r, pc in zip(res, PREFIXES) ][1:]
         line1, = ax.plot(x, y, label=name)
 
     ax.set_ylabel('Update time [us]')

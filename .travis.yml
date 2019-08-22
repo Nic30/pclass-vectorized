@@ -11,7 +11,7 @@ python:
 
 matrix:
   include:
-    - env: COMPILER=g++-8 BUILD=Debug
+    - env: COMPILER_CXX=g++-8 COMPILER_CC=gcc-8 BUILD=Debug
       compiler: gcc
       addons:
         apt:
@@ -21,6 +21,7 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-8
+            - gcc-8
             - boost1.67
             - ninja-build
             - python3-pip
@@ -29,7 +30,7 @@ matrix:
             - openssl
 
 before_script:
-  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
+  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER_CXX}; export CC=${COMPILER_CC}; fi
   - sudo pip3 install meson
   - pushd benchmarks/ovs/
   - bash ovs_prepare.sh

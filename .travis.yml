@@ -31,9 +31,13 @@ matrix:
 before_script:
   - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
   - sudo pip3 install meson
+  - pushd benchmarks/ovs/
+  - bash ovs_prepare.sh
+  - popd
   - mkdir build
   - meson build
   - cd build
+  - meson configure -Dovs_test_app=true
 
 script: ninja && ninja test
 

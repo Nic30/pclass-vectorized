@@ -23,7 +23,9 @@ function prepare_ovs() {
 		# make to actually generate files
 		make -j $CORES
 
-		git apply ../0001_define_typeof.patch
+		git apply ../0001-c-17-compatibility.patch
+		git apply ../0002-MINIFLOW_GET_TYPE-ignore-asserts-c-compatibility.patch
+		git apply ../0003-export-internals-of-ovs-dpcls.patch
 	popd
 }
 

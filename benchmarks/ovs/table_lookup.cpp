@@ -3,9 +3,16 @@
 #include <assert.h>
 #include <chrono>
 
+#ifdef OVS_DPCLS
+#include "ovs_dpcls_wrap.h"
+using OvsWrap = pcv::ovs::OvsDpclsWrap;
+#else
+
 #include "ovs_wrap.h"
 #ifdef OVS_PCV
 #include <classifier-private.h>
+#endif
+
 #endif
 
 #include <pcv/rule_parser/classbench_rule_parser.h>
@@ -42,7 +49,7 @@ int main(int argc, const char * argv[]) {
 			*reinterpret_cast<vector<const Rule_Ipv4_ACL*>*>(&_rules),
 			UNIQUE_TRACE_CNT, 0, true);
 	// to rm flow generating overhead from look up
-	vector<struct flow> packets;
+	vector<OvsWrap::key_vec_t> packets;
 	for (auto & _p : _packets) {
 		packets.push_back(OvsWrap::flow_from_packet(_p));
 	}

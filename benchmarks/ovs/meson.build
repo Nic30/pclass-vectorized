@@ -58,3 +58,15 @@ benchmark_ovs_pcv_exe = executable('ovs_pcv_lookup',
 )
 test('ovs_pcv_lookup', benchmark_ovs_pcv_exe, workdir : meson.source_root(),
 	args : ['tests/data/acl1_100', '4096', '1000000'])
+	
+benchmark_ovs_dpcls_exe = executable('ovs_dpcls_lookup',
+    ['ovs_dpcls_wrap.cpp', 'table_lookup.cpp',],
+    dependencies: [pcv_dep, ovs_tss_dep],
+    cpp_args: OVS_CXX_ARGS + ['-DOVS_DPCLS'],
+    c_args: OVS_C_ARGS + ['-DOVS_DPCLS'],
+    include_directories : [include_directories('./ovs/', './ovs/include'), ],
+)
+test('ovs_dpcls_lookup', benchmark_ovs_dpcls_exe, workdir : meson.source_root(),
+	args : ['tests/data/acl1_100', '4096', '1000000'])
+	
+	

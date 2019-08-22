@@ -233,11 +233,7 @@ public:
 	/*
 	 * Check if the pointers in node are valid (recursively)
 	 * */
-#ifdef NDEBUG
-		inline void integrity_check(
-						const std::array<level_t, D> &,
-						std::set<Node*> * = nullptr, size_t = 0) {}
-#else
+#ifndef NDEBUG
 	void integrity_check(const std::array<level_t, cfg::D> &dimension_order,
 			std::set<_BTreeNode*> *seen = nullptr, size_t level = 0) {
 		std::set<_BTreeNode*> _seen;

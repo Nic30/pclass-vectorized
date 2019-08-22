@@ -1,4 +1,7 @@
 #include "ovs_wrap.h"
+
+#include "rule_ipv4_acl_to_ovs_match.h"
+
 #include <pcv/common/range.h>
 #include <byteswap.h>
 
@@ -36,28 +39,7 @@ OvsWrap::rule_id_t OvsWrap::search(const key_vec_t & f) {
 }
 
 void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t prio) {
-	struct match match;
-	match_init_catchall(&match);
-
-	auto sip = r.sip.to_be();
-	match.flow.nw_src = sip.low;
-	match.wc.masks.nw_src = sip.get_mask_be();
-
-	auto dip = r.dip.to_be();
-	match.flow.nw_dst = dip.low;
-	match.wc.masks.nw_dst = dip.get_mask_be();
-
-	auto sport = r.sport.to_be();
-	match.flow.tp_src = sport.low;
-	match.wc.masks.tp_src = sport.get_mask_be();
-
-	auto dport = r.dport.to_be();
-	match.flow.tp_dst = dport.low;
-	match.wc.masks.tp_dst = sport.get_mask_be();
-
-	match.flow.nw_proto = r.proto.low;
-	match.wc.masks.nw_proto = r.proto.get_mask_le();
-
+	struct match match = rule_ipv4_acl_to_ovs_match(r);
 	struct cls_rule * rule = (struct cls_rule *) xzalloc(sizeof *rule);
 	int priority = prio;
 	cls_rule_init(rule, &match, priority);

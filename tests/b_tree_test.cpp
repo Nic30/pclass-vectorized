@@ -66,7 +66,9 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 		rule_t r = { { R1d(i * STEP, i * STEP + RANGE_SIZE - 1), any, },
 				{ 0, i } };
 		t.insert(r);
+#ifndef NDEBUG
 		t.root->integrity_check(t.dimension_order);
+#endif
 	}
 
 	//stringstream ss;
@@ -188,8 +190,9 @@ BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {
 		//	o << t;
 		//	o.close();
 		//}
-
+#ifndef NDEBUG
 		t.root->integrity_check(t.dimension_order);
+#endif
 		i++;
 	}
 }
@@ -203,7 +206,9 @@ BOOST_AUTO_TEST_CASE( simple_insert_same ) {
 		rule_t r = { { R1d(0, 0), any, }, { 0, i } };
 		t.insert(r);
 	}
+#ifndef NDEBUG
 	t.root->integrity_check(t.dimension_order);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert_same_into_something ) {
@@ -219,7 +224,9 @@ BOOST_AUTO_TEST_CASE( simple_insert_same_into_something ) {
 		rule_t r = { { R1d(512, 512), any, }, { 0, i } };
 		t.insert(r);
 	}
+#ifndef NDEBUG
 	t.root->integrity_check(t.dimension_order);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE( search_in_one_full_node) {

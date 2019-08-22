@@ -140,6 +140,7 @@ src = [
 	'lib/uuid.c',
 	'lib/vlog.c',
 	'lib/vswitch-idl.c',
+	'lib/dpif-netdev.c',
 ]
 cc = meson.get_compiler('c')
 librt = cc.find_library('rt')

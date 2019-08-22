@@ -72,7 +72,9 @@ public:
 	inline static void insert(BTree & tree, const rule_spec_t & rule) {
 		InsertCookie cookie(tree, rule);
 		tree.root = insert(tree.root, cookie);
+#ifndef NDEBUG
 		tree.root->integrity_check(cookie.dimension_order);
+#endif
 	}
 
 	/*
@@ -301,7 +303,9 @@ public:
 			return;
 		} else {
 			auto n = decompress_node(root, keep_keys_cnt);
+#ifndef NDEBUG
 			n->integrity_check(cookie.dimension_order, nullptr, cookie.level);
+#endif
 			insert(n, cookie);
 		}
 	}

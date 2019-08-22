@@ -1,5 +1,5 @@
 import os
-from benchmarks.run_benchmarks import cartesian
+from benchmark_utils.run_benchmarks import cartesian
 import subprocess
 import json
 import matplotlib.pyplot as plt

@@ -3,8 +3,8 @@ import itertools
 import os
 import sqlite3
 
-from benchmarks.benchmark_exec_utils import run_benchmarks
-from benchmarks.graphs import generate_graph_throughput_with_increasing_number_of_flows, \
+from benchmark_utils.benchmark_exec_utils import run_benchmarks
+from benchmark_utils.graphs import generate_graph_throughput_with_increasing_number_of_flows, \
     generate_graphs_depending_on_ruleset_size
 
 DB_NAME = 'test_results.db'

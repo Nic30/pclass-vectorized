@@ -1,16 +1,18 @@
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-from typing import Tuple
-import json
-from matplotlib.ticker import MaxNLocator
-from matplotlib import cm
-from subprocess import check_output
-import os
 from cmath import isnan, nan
-from builtins import staticmethod
+import json
 from math import log, ceil, floor
+from matplotlib import cm
+import matplotlib
+import os
 from pprint import pprint
+from subprocess import check_output
+from typing import Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+ROOT = os.path.join(os.path.dirname(__file__), "..")
+APP = os.path.join(ROOT, "build/meson.debug.linux.x86_64/benchmarks/pcv_mem_efficiency_report")
 
 
 class HeatMapGen():
@@ -128,7 +130,7 @@ class HeatMapGen():
             width = self.to_log_width(nodes, root_id, log_base=2)
             # pprint(nodes)
 
-            #print(width)
+            # print(width)
             # start of the tree on X axis (left corner)
             img = self.print_nodes(nodes, root_id, width + 1, depth + 1)
             imgs.append(img)
@@ -144,10 +146,10 @@ def add_colorbar(fig, ax, last_img, cmap):
     cmap = cm.get_cmap(cmap, ncontours)  # number of colors on colorbar
     m = cm.ScalarMappable(cmap=cmap, norm=norm)
     m.set_array([])
-    #im_ratio = last_img.shape[0] / last_img.shape[1]
-    cbar_top = fig.colorbar(m, #ax=ax,
+    # im_ratio = last_img.shape[0] / last_img.shape[1]
+    cbar_top = fig.colorbar(m,  # ax=ax,
                             orientation='vertical',
-                            #fraction=5 * im_ratio,
+                            # fraction=5 * im_ratio,
                             shrink=0.75, pad=0.2)  # , cax=cax_top)
     cbar_top.set_ticks(np.linspace(0, 1, ncontours))
 
@@ -157,7 +159,7 @@ def main(data):
     imgs = gen.generate_heatmap()
     # pprint(gen.trees)
     # print(img)
-    #plots = len(gen.trees)
+    # plots = len(gen.trees)
     plots = 3
     # x_max = max(len(img[0]) for img in imgs)
     y_max = max(len(img) for img in imgs)
@@ -198,22 +200,17 @@ def main(data):
         # ax.xaxis.set_ticks([])
         # ax.set_xscale("log")
         im = ax.imshow(img,
-                        cmap=cmap,
+                       cmap=cmap,
                        # cmap="YlGn",
-                        origin='lower', aspect="auto", vmin=0, vmax=1,
-                        )
+                       origin='lower', aspect="auto", vmin=0, vmax=1,
+                       )
 
     add_colorbar(fig, axs[-1], imgs[-1], cmap)
     # fig.set_title("Memory usage efficiency")
     fig.tight_layout()
     plt.legend()
     # plt.show()
-    plt.savefig('../fig/mem_efficiency_heatmap.png')
-
-
-
-ROOT = os.path.join(os.path.dirname(__file__), "..")
-APP = os.path.join(ROOT, "build/meson.debug.linux.x86_64/benchmarks/pcv_mem_efficiency_report")
+    plt.savefig(os.path.join(ROOT, '../fig/mem_efficiency_heatmap.png'))
 
 
 def run_analysis(file):
@@ -222,7 +219,7 @@ def run_analysis(file):
 
 
 if __name__ == "__main__":
-    #trees_example = [
+    # trees_example = [
     #    {
     #        "root": 0,
     #        "nodes": {
@@ -243,15 +240,15 @@ if __name__ == "__main__":
     #            }
     #        }
     #    }
-    #]
+    # ]
     # fname = "../fw2_500.json"
     fname = os.path.join(ROOT, "../classbench-ng/generated",
-                         #"acl1_100"
-                         #"acl2_100"
+                         # "acl1_100"
+                         # "acl2_100"
                          "acl1_5000"
                          # "fw2_5000"
-                         #"exact0_1024"
-                         #"exact0_8192"
+                         # "exact0_1024"
+                         # "exact0_8192"
                          )
     trees = run_analysis(fname)
     # trees = trees_example

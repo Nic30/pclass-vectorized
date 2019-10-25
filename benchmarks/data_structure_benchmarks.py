@@ -1,10 +1,11 @@
 import os
-from benchmark_utils.run_benchmarks import cartesian
 import subprocess
 import json
 import matplotlib.pyplot as plt
+from run_benchmarks import cartesian
 
-ROOT = "build/meson.debug.linux.x86_64/benchmarks/"
+# meson.debug.linux.x86_64
+ROOT = "build/default/benchmarks/"
 APP_BASIC = "hash_vs_rb_tree_vs_b_tree"
 APP_PREFIX = "prefix_combinations"
 RULE_CNTS = [
@@ -77,8 +78,8 @@ def build_graph_basic_throughput_X_rules(args, results):
         v.append(res)
 
     for name, res in clsXlookup.items():
-        x = [ int(v) for v in RULE_CNTS]
-        y = [ r["lookup_speed"] for r in res ]
+        x = [int(v) for v in RULE_CNTS]
+        y = [r["lookup_speed"] for r in res ]
         line1, = ax.plot(x, y, label=name)
 
     ax.set_ylabel('Throughput [MPkt/s]')
@@ -98,8 +99,8 @@ def build_graph_basic_update_X_rules(args, results):
         v.append(res)
 
     for name, res in clsXupdate.items():
-        x = [ int(v) for v in RULE_CNTS]
-        y = [ r["construction_time"] / float(rc) for r, rc in zip(res, RULE_CNTS) ]
+        x = [int(v) for v in RULE_CNTS]
+        y = [r["construction_time"] / float(rc) for r, rc in zip(res, RULE_CNTS) ]
         line1, = ax.plot(x, y, label=name)
 
     ax.set_ylabel('Update time [us]')
@@ -109,7 +110,7 @@ def build_graph_basic_update_X_rules(args, results):
 
 
 def build_graph_basic_throughput_X_prefix_cnt(args, results):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8, 4))
     clsXlookup = {}
     # cls, prefix, traces, lookup
     for (cls, prefix, _, _), res in zip(args, results):
@@ -120,12 +121,13 @@ def build_graph_basic_throughput_X_prefix_cnt(args, results):
         v.append(res)
 
     for name, res in clsXlookup.items():
-        x = [ int(v) for v in PREFIXES]
-        y = [ r["lookup_speed"] for r in res ]
+        x = [int(v) for v in PREFIXES]
+        y = [r["lookup_speed"] for r in res ]
         line1, = ax.plot(x, y, label=name)
 
-    ax.set_ylabel('Throughput [MPkt/s]')
-    ax.set_xlabel('Prefix groups')
+    ax.set_ylabel('Throughput  [MPkt/s]')
+    ax.set_xlabel('TSS tables')
+    ax.set_xlim([1, 32])
     graph_defaults(ax)
     plt.savefig('fig/basic_throughput_X_prefix_cnt.png')
 
@@ -142,8 +144,8 @@ def build_graph_basic_throughput_X_update_time(args, results):
         v.append(res)
 
     for name, res in clsXupdate.items():
-        x = [ int(v) for v in PREFIXES][1:]
-        y = [ r["construction_time"] / (float(pc) + 1) for r, pc in zip(res, PREFIXES) ][1:]
+        x = [int(v) for v in PREFIXES][1:]
+        y = [r["construction_time"] / (float(pc) + 1) for r, pc in zip(res, PREFIXES)][1:]
         line1, = ax.plot(x, y, label=name)
 
     ax.set_ylabel('Update time [us]')

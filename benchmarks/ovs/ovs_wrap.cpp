@@ -13,7 +13,7 @@ OvsWrap::OvsWrap() {
 	version = 0;
 }
 
-struct flow OvsWrap::flow_from_packet(const packet_t & p) {
+struct flow OvsWrap::flow_from_packet(const packet_t &p) {
 	struct flow f;
 	memset(&f, 0, sizeof f);
 	auto _p = rule_conv_fn::exact_array_to_rule_le(p);
@@ -25,7 +25,7 @@ struct flow OvsWrap::flow_from_packet(const packet_t & p) {
 	f.nw_proto = _p.proto.low;
 	return f;
 }
-Rule_Ipv4_ACL OvsWrap::flow_to_Rule_Ipv4_ACL(const struct flow & f) {
+Rule_Ipv4_ACL OvsWrap::flow_to_Rule_Ipv4_ACL(const struct flow &f) {
 	Rule_Ipv4_ACL r;
 	r.sip.high = r.sip.low = __swab32p(&f.nw_src);
 	r.dip.high = r.dip.low = __swab32p(&f.nw_dst);
@@ -34,35 +34,42 @@ Rule_Ipv4_ACL OvsWrap::flow_to_Rule_Ipv4_ACL(const struct flow & f) {
 	r.proto.high = r.proto.low = f.nw_proto;
 	return r;
 }
-OvsWrap::rule_id_t OvsWrap::search(const key_vec_t & f) {
+OvsWrap::rule_id_t OvsWrap::search(const key_vec_t &f) {
 	return classifier_lookup(&cls, version, const_cast<key_vec_t*>(&f), nullptr);
 }
 
-void OvsWrap::insert(Rule_Ipv4_ACL & r, size_t prio) {
-	struct match match = rule_ipv4_acl_to_ovs_match(r);
-	struct cls_rule * rule = (struct cls_rule *) xzalloc(sizeof *rule);
-	int priority = prio;
-	cls_rule_init(rule, &match, priority);
+bool OvsWrap::insert(struct cls_rule *rule) {
 	auto existing_rule = classifier_find_rule_exactly(&cls, rule, version);
 	if (existing_rule) {
-		free(rule);
-		std::cout << r << " already exists" << std::endl;
+		return false;
 	} else {
 		classifier_insert(&cls, rule, version, nullptr, 0);
 		ovs_rules.push_back(rule);
-		ovs_rule_to_pcv_rule[rule] = &r;
-		// std::cout << r << " inserted" << std::endl;
+		return true;
 	}
 }
-const Rule_Ipv4_ACL * OvsWrap::cls_rule_get_pcv_rule(
-		const struct cls_rule * r) {
+
+void OvsWrap::insert(Rule_Ipv4_ACL &r, size_t prio) {
+	struct match match = rule_ipv4_acl_to_ovs_match(r);
+	struct cls_rule *rule = (struct cls_rule*) xzalloc(sizeof *rule);
+	int priority = prio;
+	cls_rule_init(rule, &match, priority);
+	if (insert(rule)) {
+		// std::cout << r << " inserted" << std::endl;
+		ovs_rule_to_pcv_rule[rule] = &r;
+	} else {
+		free(rule);
+		std::cout << r << " already exists" << std::endl;
+	}
+}
+const Rule_Ipv4_ACL* OvsWrap::cls_rule_get_pcv_rule(const struct cls_rule *r) {
 	return ovs_rule_to_pcv_rule[r];
 }
 
 OvsWrap::~OvsWrap() {
-	//classifier_destroy(&cls);
-	//for (auto r : ovs_rules)
-	//	free(r);
+	classifier_destroy(&cls);
+	for (auto r : ovs_rules)
+		free(r);
 }
 
 }

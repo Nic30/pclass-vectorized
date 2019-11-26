@@ -48,6 +48,8 @@ benchmark_ovs_tss_exe = executable('ovs_tss_lookup',
 test('ovs_tss_lookup', benchmark_ovs_tss_exe, workdir : meson.source_root(),
 	args : ['tests/data/acl1_100', '4096', '1000000'])
 
+
+
 subdir('ovs_pcv')
 benchmark_ovs_pcv_exe = executable('ovs_pcv_lookup',
     srcs,
@@ -73,27 +75,27 @@ test('ovs_dpcls_lookup', benchmark_ovs_dpcls_exe, workdir : meson.source_root(),
 	
 srcs = [
 	'ovs_wrap.cpp',
-	'example_table_lookup.cpp',
+	'ovs_classifier_random_lookup.cpp',
 ]	
-benchmark_ovs_example_ovs_exe = executable('ovs_example_lookup',
+benchmark_ovs_tss_random_exe = executable('ovs_tss_random_lookup',
     srcs,
     dependencies: [pcv_dep, ovs_tss_dep],
     cpp_args: OVS_CXX_ARGS,
     c_args: OVS_C_ARGS,
     include_directories : [include_directories('./ovs/', './ovs/include'), ],
 )
-test('ovs_dpcls_lookup', benchmark_ovs_example_ovs_exe, workdir : meson.source_root(),
+test('ovs_dpcls_random_lookup', benchmark_ovs_tss_random_exe, workdir : meson.source_root(),
 	args : ['1024', '8192', '1000000'])
 	
 
-benchmark_ovs_example_pcv_exe = executable('ovs_example_pcv_exe',
+benchmark_ovs_pcv_random_exe = executable('ovs_pcv_random_lookup',
     srcs,
     dependencies: [pcv_dep, ovs_pcv_dep],
     cpp_args: OVS_CXX_ARGS + ['-DOVS_PCV'],
     c_args: OVS_C_ARGS + ['-DOVS_PCV'],
     include_directories : [include_directories('./ovs_pcv/', './ovs_pcv/include'), ],
 )
-test('ovs_example_pcv_exe', benchmark_ovs_example_ovs_exe, workdir : meson.source_root(),
+test('ovs_pcv_random_lookup', benchmark_ovs_pcv_random_exe, workdir : meson.source_root(),
 	args : ['1024', '8192', '1000000'])
 
 	

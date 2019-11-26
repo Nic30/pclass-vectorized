@@ -14,7 +14,7 @@ def build_test_name(app_name, rule_file, flow_cnt, packet_cnt):
 
 
 def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, flow_cnt, packet_cnt):
-    #print((app_name, rule_file, flow_cnt, packet_cnt))
+    # print((app_name, rule_file, flow_cnt, packet_cnt))
 
     is_dpkd = "dpdk" in app_name
     if is_dpkd:
@@ -47,14 +47,12 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
             packet_lookup_times = plt
         else:
             assert len(plt) == len(packet_lookup_times)
-            packet_lookup_times = [ a + b for a, b in zip(packet_lookup_times, plt)]
-
-
+            packet_lookup_times = [a + b for a, b in zip(packet_lookup_times, plt)]
 
     lookup_speed /= repetition_cnt
     construction_time /= repetition_cnt
     minimal_benchmark_overhead /= repetition_cnt
-    packet_lookup_times = [ a / repetition_cnt for a in packet_lookup_times]
+    packet_lookup_times = [a / repetition_cnt for a in packet_lookup_times]
     _packet_lookup_times = json.dumps(packet_lookup_times)
     conn = sqlite3.connect(db_name)
     conn.execute("INSERT INTO test_result VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -64,6 +62,7 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
     conn.commit()
 
     return (app_name, rule_file, flow_cnt, packet_cnt)
+
 
 def _exec_benchmark(args):
     db_name, (app_name, require_sudo, repetition_cnt), rule_file, flow_cnt, packet_cnt = args

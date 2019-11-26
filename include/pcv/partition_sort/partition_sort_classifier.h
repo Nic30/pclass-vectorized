@@ -2,6 +2,7 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include <assert.h>
 #include <pcv/partition_sort/dimension_order_resolver.h>
 #include <boost/functional/hash.hpp>
 
@@ -9,7 +10,7 @@ namespace pcv {
 
 template<typename rule_spec_t>
 struct rule_spec_t_eq {
-	std::size_t operator()(const rule_spec_t& a, const rule_spec_t& b) const {
+	std::size_t operator()(const rule_spec_t &a, const rule_spec_t &b) const {
 		if (a.second.rule_id != b.second.rule_id
 				|| a.second.priority != b.second.priority)
 			return false;
@@ -25,7 +26,7 @@ struct rule_spec_t_eq {
 
 template<typename rule_spec_t>
 struct rule_spec_t_hasher {
-	std::size_t operator()(const rule_spec_t& k) const {
+	std::size_t operator()(const rule_spec_t &k) const {
 		using boost::hash_value;
 		using boost::hash_combine;
 
@@ -84,12 +85,12 @@ public:
 		tree_info() :
 				tree(), max_priority(0), used_dim_cnt(0), update_pending(false) {
 		}
-		tree_info(const formaters_t & _formaters, const names_t & _names) :
+		tree_info(const formaters_t &_formaters, const names_t &_names) :
 				tree(_formaters, _names), max_priority(0), used_dim_cnt(0), update_pending(
 						false) {
 		}
-		tree_info(const packet_spec_t & in_packet_pos,
-				const formaters_t & _formaters, const names_t & _names) :
+		tree_info(const packet_spec_t &in_packet_pos,
+				const formaters_t &_formaters, const names_t &_names) :
 				tree(in_packet_pos, _formaters, _names), max_priority(0), used_dim_cnt(
 						0), update_pending(false) {
 		}
@@ -98,8 +99,8 @@ public:
 	size_t tree_cnt;
 
 	// used to keep track of where are the rules stored for removing;
-	std::unordered_map<rule_spec_t, tree_info *,
-			rule_spec_t_hasher<rule_spec_t>, rule_spec_t_eq<rule_spec_t>> rule_to_tree;
+	std::unordered_map<rule_spec_t, tree_info*, rule_spec_t_hasher<rule_spec_t>,
+			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
 
 	PartitionSortClassifer() :
 			tree_cnt(0) {
@@ -107,15 +108,14 @@ public:
 			trees[i] = new tree_info;
 		}
 	}
-	PartitionSortClassifer(const formaters_t & _formaters,
-			const names_t & _names) :
+	PartitionSortClassifer(const formaters_t &_formaters, const names_t &_names) :
 			tree_cnt(0) {
 		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
 			trees[i] = new tree_info(_formaters, _names);
 		}
 	}
-	PartitionSortClassifer(const packet_spec_t & in_packet_pos,
-			const formaters_t & _formaters, const names_t & _names) :
+	PartitionSortClassifer(const packet_spec_t &in_packet_pos,
+			const formaters_t &_formaters, const names_t &_names) :
 			tree_cnt(0) {
 		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
 			trees[i] = new tree_info(in_packet_pos, _formaters, _names);
@@ -123,12 +123,13 @@ public:
 	}
 
 	// @return true if the dimension order changed
-	void update_dimension_order(tree_info & ti, const rule_spec_t * rule_to_add_before = nullptr) {
-		TREE_T & tree = ti.tree;
+	void update_dimension_order(tree_info &ti,
+			const rule_spec_t *rule_to_add_before = nullptr) {
+		TREE_T &tree = ti.tree;
 		if (ti.update_pending) {
 			assert(not tree.does_rule_colide(*rule_to_add_before));
 			// @note it has to be checked before that the insertion is possible
-			if (rule_to_add_before){
+			if (rule_to_add_before) {
 				tree.insert(*rule_to_add_before);
 				ti.rules.push_back(*rule_to_add_before);
 			}
@@ -183,7 +184,7 @@ public:
 			return; // nothing to sort
 
 		// we can not use directly tree_info because the destructor of tmp variable would be called
-		tree_info * t_tmp = trees[original_i];
+		tree_info *t_tmp = trees[original_i];
 		assert(
 				t_tmp->rules.size() > 0
 						&& "in this case it is useless to call this function");
@@ -233,7 +234,7 @@ public:
 	 * Insert rule to tree most suitable for this rule
 	 * and sort the tress by the max priority rule in descending order
 	 * */
-	inline void insert(const rule_spec_t & rule) {
+	inline void insert(const rule_spec_t &rule) {
 #ifndef NDEBUG
 		for (auto r : rule.first) {
 			assert(r.low <= r.high);
@@ -243,7 +244,7 @@ public:
 		size_t i = 0;
 		for (; i < tree_cnt; i++) {
 			assert(i < MAX_TREE_CNT);
-			auto & t = *trees[i];
+			auto &t = *trees[i];
 			if (not t.tree.does_rule_colide(rule)) {
 				t.rules.push_back(rule);
 				rule_to_tree[rule] = &t;
@@ -279,7 +280,7 @@ public:
 		// else create new tree for this rule
 		if (i < MAX_TREE_CNT) {
 			// the rule does not fit to any tree, generate new tree for this rule
-			auto & t = *trees[i];
+			auto &t = *trees[i];
 			t.max_priority = rule.second.priority;
 			if (t.rules.size() == 0) {
 				// update default dimension order to fit current rule
@@ -309,7 +310,7 @@ public:
 	/*
 	 * Remove the rule if it is stored in classifier
 	 * */
-	inline void remove(const rule_spec_t & rule) {
+	inline void remove(const rule_spec_t &rule) {
 		auto ti = rule_to_tree.find(rule);
 		if (ti != rule_to_tree.end()) {
 			ti->second->tree.remove(rule);
@@ -322,7 +323,7 @@ public:
 		rule_value_t actual_found;
 
 		for (size_t i = 0; i < tree_cnt; i++) {
-			auto & t = *trees[i];
+			auto &t = *trees[i];
 			auto res = t.tree.search(val);
 			if (res.is_valid()
 					&& (!actual_found.is_valid()
@@ -330,8 +331,10 @@ public:
 				actual_found = res;
 			}
 			// check if we can find rule with higher priority in some next tree
-			if (actual_found.is_valid() and i + 1 < tree_cnt
-					and trees[i + 1]->max_priority <= actual_found.priority) {
+			if (actual_found.is_valid()
+					and (i + 1 >= tree_cnt
+							or trees[i + 1]->max_priority
+									<= actual_found.priority)) {
 				break;
 			}
 		}

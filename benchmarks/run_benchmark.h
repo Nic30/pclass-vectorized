@@ -37,8 +37,9 @@ void run_benchmark_lookup_ptr(CLS_T & cls, pcv::BenchmarkStats & stats,
 		auto p_id = i % packets.size();
 		auto & p = packets[p_id];
 		//stats.lookup_packet_start();
+		auto found = cls.search(p);
 		res = reinterpret_cast<typename CLS_T::rule_id_t>(uintptr_t(res)
-				+ uintptr_t(cls.search(p)));
+				+ uintptr_t(found));
 		//stats.lookup_packet_stop(p_id);
 	}
 	// this is there to assert the search is not optimised out

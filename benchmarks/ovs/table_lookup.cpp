@@ -59,7 +59,7 @@ int main(int argc, const char * argv[]) {
 #ifdef OVS_PCV
 	auto pcv_cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
 	stats.set_number_of_tries_or_tables(pcv_cls->cls.tree_cnt);
-	// size_t i = 0;
+	i = 0;
 	for (auto & t: pcv_cls->cls.trees) {
 		if (t->rules.size() == 0)
 			continue;

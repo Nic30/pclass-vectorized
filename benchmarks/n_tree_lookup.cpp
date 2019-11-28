@@ -42,7 +42,7 @@ int main(int argc, const char * argv[]) {
 	stats.construction_stop();
 
 	// generate packets
-	auto packets = generate_packets_from_ruleset(rules, UNIQUE_TRACE_CNT);
+	auto packets = generate_packets_from_ruleset(rules, UNIQUE_TRACE_CNT, 0, false);
 	stats.set_number_of_tries_or_tables(cls.tree_cnt);
 
 	run_benchmark_lookup_struct(cls, stats, packets, LOOKUP_CNT);

@@ -70,6 +70,17 @@ BOOST_AUTO_TEST_CASE( ruleset_acl1_100 ) {
 		auto res = cls.search(p);
 		BOOST_CHECK_NE(res.rule_id, BTree::INVALID_RULE);
 	}
+	// size_t i = 0;
+	// for (auto & t: cls.trees) {
+	// 	if (t->rules.size() == 0)
+	// 		continue;
+	// 	assert(t->used_dim_cnt <= 7);
+	// 	auto fname = string("pcv_") + to_string(i) + string(".dot");
+	// 	ofstream of(fname);
+	// 	of << t->tree;
+	// 	of.close();
+	// 	i++;
+	// }
 }
 
 //____________________________________________________________________________//

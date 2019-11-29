@@ -87,16 +87,26 @@ def generate_graph_throughput_for_ruleset(ruleset_order, app_data, x, file_name)
                      [rulesets ordered by decreasing lookup speed]
     """
     fig, ax = plt.subplots(figsize=(20, 8))
+    rename_names = {
+        "n_tree_lookup": "PCV (optimized B-trees)",
+        "ovs_pcv_lookup": "OVS + PCV",
+        "ovs_tss_lookup": "OVS native (TSS)",
+    }
 
     for name, data in app_data.items():
-        y = [ d[4] for d in sorted(data, key=lambda d: ruleset_order[d[0]], reverse=True)]
+        y = [d[4]
+             for d in sorted(data, key=lambda d: ruleset_order[d[0]], reverse=True)
+            ]
+        name = rename_names.get(name, name)
         line1, = ax.plot(x, y, label=name)
-        packet_lookup_times = data[-1]
-        packet_lookup_times = json.loads(packet_lookup_times.decode("utf-8"))
-        ax.boxplot(packet_lookup_times)
+        #packet_lookup_times = data[-1]
+        #packet_lookup_times = json.loads(packet_lookup_times.decode("utf-8"))
+        #ax.boxplot(packet_lookup_times)
+        #lookup_time = data[4]
+        #ax.plot(lookup_time)
 
 
-    ax.set_ylabel('Throughput [MPkt/s]')
+    ax.set_ylabel('Throughput [Mpps]')
     ax.set_xlabel('rule set')
     ax.set_xlim(left=0)
     # ax1.set_xticks(list(range(len(x))))

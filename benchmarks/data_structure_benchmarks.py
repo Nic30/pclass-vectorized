@@ -167,6 +167,8 @@ def build_graph_basic_throughput_X_prefix_cnt(args, results):
     ax.set_xlabel('TSS tables')
     #ax.set_xlim([1, 32])
     #graph_defaults(ax)
+    
+    plt.grid()
     plt.savefig('fig/basic_throughput_X_prefix_cnt.png')
 
 

@@ -60,6 +60,14 @@ BOOST_AUTO_TEST_CASE( masks ) {
 		BOOST_CHECK(b.overlaps(a));
 		BOOST_CHECK(b.overlaps(b));
 	}
+	{
+		uint32_t m20b = ((1 << 20) - 1) << (32 - 20);
+		auto a = Range1d<uint32_t>::from_mask(0xf256c842 & m20b, m20b);
+		BOOST_CHECK_EQUAL(a.get_mask_le(), m20b);
+		// std::cout << std::hex << m20b << std::endl;
+		// std::cout << std::hex << a.get_mask_le() << std::endl;
+		// std::cout << std::hex << a.get_mask_be() << std::endl;
+	}
 
 }
 

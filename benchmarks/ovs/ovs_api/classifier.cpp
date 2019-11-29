@@ -8,6 +8,7 @@
 
 #include "classifier-private.h"
 #include "struct_flow_conversions.h"
+#include <assert.h>
 
 classifier_priv::classifier_priv() :
 		cls(struct_flow_packet_spec, struct_flow_packet_formaters,
@@ -176,6 +177,7 @@ struct cls_cursor cls_cursor_start(const struct classifier * cls,
 	c.target = target;
 	return c;
 }
+
 void cls_cursor_advance(struct cls_cursor * cur) {
 	auto p = reinterpret_cast<classifier_priv*>(cur->cls->priv);
 	auto it = reinterpret_cast<cls_cursor_pos *>(cur->pos);

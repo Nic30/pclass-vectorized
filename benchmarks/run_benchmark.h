@@ -15,9 +15,9 @@ void run_benchmark_lookup_int(CLS_T & cls, pcv::BenchmarkStats & stats,
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto p_id = i % packets.size();
 		auto & p = packets[p_id];
-		stats.lookup_packet_start();
+		//stats.lookup_packet_start();
 		res |= cls.search(p);
-		stats.lookup_packet_stop(p_id);
+		//stats.lookup_packet_stop(p_id);
 	}
 	// this is there to assert the search is not optimised out
 	if (res == 0) {
@@ -36,10 +36,11 @@ void run_benchmark_lookup_ptr(CLS_T & cls, pcv::BenchmarkStats & stats,
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto p_id = i % packets.size();
 		auto & p = packets[p_id];
-		stats.lookup_packet_start();
+		//stats.lookup_packet_start();
+		auto found = cls.search(p);
 		res = reinterpret_cast<typename CLS_T::rule_id_t>(uintptr_t(res)
-				+ uintptr_t(cls.search(p)));
-		stats.lookup_packet_stop(p_id);
+				+ uintptr_t(found));
+		//stats.lookup_packet_stop(p_id);
 	}
 	// this is there to assert the search is not optimised out
 	if (res == nullptr) {
@@ -58,9 +59,9 @@ void run_benchmark_lookup_struct(CLS_T & cls, pcv::BenchmarkStats & stats,
 	for (size_t i = 0; i < LOOKUP_CNT; i++) {
 		auto p_id = i % packets.size();
 		auto & p = packets[p_id];
-		stats.lookup_packet_start();
+		//stats.lookup_packet_start();
 		res.rule_id |= cls.search(p).rule_id;
-		stats.lookup_packet_stop(p_id);
+		//stats.lookup_packet_stop(p_id);
 	}
 	// this is there to assert the search is not optimised out
 	if (res.rule_id == 0) {

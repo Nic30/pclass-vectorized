@@ -21,6 +21,9 @@
 namespace pcv {
 namespace ovs {
 
+/*
+ * Container for dpcls and it's functions
+ * */
 class OvsDpclsWrap {
 public:
 	struct dpcls cls;

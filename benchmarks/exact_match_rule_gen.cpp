@@ -6,6 +6,9 @@
 using namespace std;
 using namespace pcv;
 
+/*
+ * Program which generates random exact match rules in classbench-ng format
+ * */
 int main(int argc, const char * argv[]) {
 	assert(argc == 1 + 2);
 	size_t seed = atoll(argv[1]);

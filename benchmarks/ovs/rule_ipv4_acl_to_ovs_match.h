@@ -12,6 +12,9 @@
 
 namespace pcv {
 
+/*
+ * Convert Rule_Ipv4_ACL from this library to a OvS representation of the rule
+ * */
 inline struct match rule_ipv4_acl_to_ovs_match(Rule_Ipv4_ACL &r) {
 	struct match match;
 	match_init_catchall(&match);

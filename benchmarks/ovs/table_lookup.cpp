@@ -26,6 +26,10 @@ using namespace pcv;
 using namespace pcv::rule_conv_fn;
 using namespace pcv::ovs;
 
+/*
+ * Benchmark the classifier by the rules generated from classbench-ng
+ * (Classifier is selected from a meson build)
+ * */
 int main(int argc, const char * argv[]) {
 	assert(argc == 1 + 3);
 	const char * rule_file = argv[1];

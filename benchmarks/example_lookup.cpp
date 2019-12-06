@@ -13,6 +13,9 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
+/*
+ * Benchmark which uses random rules to test a PartitionSortClassifer
+ * */
 int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 3);
 	size_t RANGE_CNT = atoll(argv[1]);

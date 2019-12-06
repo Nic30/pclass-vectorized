@@ -17,6 +17,9 @@
 namespace pcv {
 namespace ovs {
 
+/*
+ * OOP container for OvS classifier and its methods
+ * */
 class OvsWrap {
 public:
 	classifier cls;

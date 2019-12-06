@@ -5,6 +5,9 @@
 
 #include <pcv/common/range.h>
 
+/*
+ * TSS like packet classifier
+ * */
 class TSS_like {
 public:
 	using rule_id_t = uint32_t;

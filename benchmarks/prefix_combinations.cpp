@@ -18,6 +18,9 @@ using namespace pcv::rule_conv_fn;
 using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2, 1024, 4, false>>;
 //using BTree_compressed = BTreeImp<uint16_t, IntRuleValue, 2, 4, true>;
 
+/*
+ * Benchmark which measures classifier properties for increasing number of prefix lengths
+ * */
 int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 4);
 	string CLS_NAME = argv[1];

@@ -76,8 +76,38 @@ In this library the multidimensional RB-tree is replaced with the Layered B-tree
 
 ![Layered B-trees](/doc/partition_srot_with_layered_b-tree.png)
 
+
 ### Debuging features
 
 * serialization of the classifier as a tree in dot format (`operator std::string()` on `BTreeImp`)
 * reverse conversion of the classifier back to rules `_BTreeToRules`
 
+
+### Packet classification algorithm design and problems addressed
+
+* Main datastructure of classifier: list of b-trees (`O(log n)` lookup/update time but weakness to rule replication, ideal field match order resolution problem in `NP`)
+
+* Rule replication workaround (the problem where an overlapping rule can exponentially increase memory consumption): 
+
+  * Multiple classifiers used to separate overlapping rules as much as possible in cost of potentionally additional lookup time [0].
+
+* High dimmensionality tree construction method: Initial field match order for each tree which is incrementally improved with each rule added unless the tree grows to specified size. After this threshold the field match order is resolved only for fields not used by this tree [1]. Tree shape resolving alg. based on dynamic-programming based interval sheduler.
+
+* Lookup speed improvements:
+
+  * memory access optimisations:
+     
+     * tree node optimised to fit in cache lines, AVX2
+
+     * memory pool and index of object instead of pointers to minimise the memory used on pointers in tree-nodes
+
+     * on demand read of match fields because of tree structure
+
+     * path compression
+
+  * interval (the key of tree-node) format optimised for cache locality and AVX2
+
+
+[0] Kirill Kogan, Sergey Nikolenko, Ori Rottenstreich, William Culhane, and Patrick Eugster. 2014. SAX-PAC (Scalable And eXpressive PAcket Classification). SIGCOMM Comput. Commun. Rev. 44, 4 (August 2014), 15-26. DOI: https://doi.org/10.1145/2740070.2626294 
+
+[1] S. Yingchareonthawornchai, J. Daly, A. X. Liu and E. Torng, "A sorted partitioning approach to high-speed and fast-update OpenFlow classification," 2016 IEEE 24th International Conference on Network Protocols (ICNP), Singapore, 2016, pp. 1-10. doi: 10.1109/ICNP.2016.7784429

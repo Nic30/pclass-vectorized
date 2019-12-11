@@ -18,9 +18,9 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
 
     is_dpkd = "dpdk" in app_name
     if is_dpkd:
-        cmd = [app_name, "--", rule_file, str(flow_cnt), str(packet_cnt), "1"]
+        cmd = [app_name, "--", rule_file, str(flow_cnt), str(packet_cnt)]
     else:
-        cmd = [app_name, rule_file, str(flow_cnt), str(packet_cnt), "1"]
+        cmd = [app_name, rule_file, str(flow_cnt), str(packet_cnt)]
 
     lookup_speed = 0.0
     construction_time = 0.0
@@ -42,7 +42,7 @@ def exec_benchmark(db_name, app_name, repetition_cnt, require_sudo, rule_file, f
             number_of_tries_or_tables = int(res['number_of_tries_or_tables'])
         minimal_benchmark_overhead += float(res['minimal_benchmark_overhead'])
 
-        plt = res["packet_lookup_times"]
+        plt = res.get("packet_lookup_times", [])
         if packet_lookup_times is None:
             packet_lookup_times = plt
         else:

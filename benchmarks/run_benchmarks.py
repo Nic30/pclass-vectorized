@@ -36,7 +36,7 @@ if __name__ == "__main__":
     PARALLEL = False
 
     CLASSBENCH_ROOT = "../classbench-ng/generated/"
-    MESON_BUILD_PATH = "build/meson.debug.linux.x86_64/benchmarks/"
+    MESON_BUILD_PATH = "build/default/benchmarks/"
     # (filename, requires sudo, repeat cnt)
     REPEATS = 1
     BENCHMARKS = [
@@ -50,14 +50,14 @@ if __name__ == "__main__":
     FLOW_CNTS = [
         # 1,
         #16, 128,
-        1024,
+        #1024,
         #4096,
-        #8192,
+        8192,
         #65536
     ]
     PACKET_CNTS = [
-        # 10000,
-        int(10e6),
+        10000,
+        # int(10e6),
         # 100000000,
     ]
 
@@ -84,10 +84,10 @@ if __name__ == "__main__":
         f for f in find_all_files(CLASSBENCH_ROOT)
         if not f.endswith(".py")
            # this rule sets are consuming more than available memory in default mempool
-           and not f.endswith("exact0_32k")
-           and not f.endswith("ipc1_5000")
+           #and not f.endswith("exact0_32k")
+           #and not f.endswith("ipc1_5000")
            and not f.endswith("wildcard")
-           and benchmark_nominal_size(f) >= 5000
+           and benchmark_nominal_size(f) >= 500
     ]
 
     # (number of flows, number of packets)

@@ -8,7 +8,7 @@ from itertools import zip_longest
 # meson.debug.linux.x86_64
 ROOT = "build/default/benchmarks/"
 APP_BASIC = "hash_vs_rb_tree_vs_b_tree"
-#APP_PREFIX = "prefix_combinations"
+# APP_PREFIX = "prefix_combinations"
 APP_PREFIX = "ovs/ovs_tss_prefix_exe"
 
 RULE_CNTS = [
@@ -29,17 +29,17 @@ TRAC_CNTS = [
     '32768',
 ]
 ALGS = ['hash',
-        #'b_tree', 
+        # 'b_tree', 
 ]
 ALGS_PREFIX = [
     'tss',
-    #'b_tree', 
+    # 'b_tree', 
 ]
 LOOKUP_CNTS = [
     # '10000'
     '1000000'
 ]
-PREFIXES = [str(i+1) for i in range(63)]
+PREFIXES = [str(i + 1) for i in range(63)]
 
 
 def run_test(test, args):
@@ -91,7 +91,7 @@ def build_graph_basic_throughput_X_rules(args, results):
         y = [r["lookup_speed"] for r in res]
         line1, = ax.plot(x, y, label=name)
 
-    ax.set_ylabel('Throughput [MPkt/s]')
+    ax.set_ylabel('Throughput [Mpps]')
     ax.set_xlabel('Rule cnt')
     graph_defaults(ax)
     plt.savefig('fig/basic_throughput_X_rules.png')
@@ -141,33 +141,33 @@ def build_graph_basic_throughput_X_prefix_cnt(args, results):
 
     for name, res in clsXlookup.items():
         _x = [int(v) for v in PREFIXES]
-        #y = [r["lookup_speed"] for r in res ]
+        # y = [r["lookup_speed"] for r in res ]
         # y = [r['lookup_speed'] for r in res]
         for g in grouper(5, _x, padvalue=PREFIXES[-1]):
             y = []
             for r in res:
                 prefix_cnt = r['real_rule_cnt']
                 if prefix_cnt in g:
-                   y.append(r['lookup_speed'])   
+                    y.append(r['lookup_speed'])
             # convert ns/pkt to Mpkt/s
-            #y = []
-            #for _, y_seq in g:
+            # y = []
+            # for _, y_seq in g:
             #    y.extend([(1/_y) * 1e5 for _y in y_seq[:100]])
             data.append(y)
             start = g[0]
             end = g[-1]
             labels.append(f"{start}-{end}")
 
-            #ax.boxplot(y)
+            # ax.boxplot(y)
         # line1, = ax.plot(x, y, label=name)
     ax.boxplot(data, labels=labels)
     # ax.boxplot(data)
-    
-    ax.set_ylabel('Throughput  [MPkt/s]')
+
+    ax.set_ylabel('Throughput  [Mpps]')
     ax.set_xlabel('TSS tables')
-    #ax.set_xlim([1, 32])
-    #graph_defaults(ax)
-    
+    # ax.set_xlim([1, 32])
+    # graph_defaults(ax)
+
     plt.grid()
     plt.savefig('fig/basic_throughput_X_prefix_cnt.png')
 
@@ -220,7 +220,7 @@ def run_prefix_benchmarks():
         print((args, res))
 
     build_graph_basic_throughput_X_prefix_cnt(TEST_ARGS, results)
-    #build_graph_basic_throughput_X_update_time(TEST_ARGS, results)
+    # build_graph_basic_throughput_X_update_time(TEST_ARGS, results)
 
 
 def main():

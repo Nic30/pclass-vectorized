@@ -261,8 +261,8 @@ public:
 						i)) {
 					return;
 				}
+				insert_tried[i] = true;
 			}
-			insert_tried[i] = true;
 		}
 		// try to insert to rest of the treees
 		for (size_t i = 0; i < tree_cnt; i++) {

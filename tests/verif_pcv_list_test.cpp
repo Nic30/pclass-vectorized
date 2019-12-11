@@ -72,7 +72,9 @@ void verify_tree_content(const Classifier0 & cls,
 		const vector<rule_spec_t> & expected_rules) {
 	vector<vector<rule_spec_t>> rules_in_tree;
 	// collect rules from trees in classifier
-	//bool must_be_empty = false;
+#ifndef NDEBUG
+	bool must_be_empty = false;
+#endif
 	for (auto & t : cls.trees) {
 		if (t->rules.size()) {
 			assert(!must_be_empty);
@@ -81,7 +83,9 @@ void verify_tree_content(const Classifier0 & cls,
 			tc.to_rules();
 			rules_in_tree.push_back(tmp);
 		} else {
-			//must_be_empty = true;
+#ifndef NDEBUG
+			must_be_empty = true;
+#endif
 		}
 	}
 	// check if everything is in classifier

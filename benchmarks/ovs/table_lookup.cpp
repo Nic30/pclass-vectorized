@@ -31,7 +31,10 @@ using namespace pcv::ovs;
  * (Classifier is selected from a meson build)
  * */
 int main(int argc, const char * argv[]) {
-	assert(argc == 1 + 3);
+	if (argc != 1 + 3) {
+		throw std::runtime_error("Expected 3 CLI args (rule_file, UNIQUE_TRACE_CNT, LOOKUP_CNT)");
+	}
+
 	const char * rule_file = argv[1];
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);

@@ -32,7 +32,9 @@ using namespace pcv::ovs;
  * The classifier used in OvsWrap is selected by the meson build configuration.
  * */
 int main(int argc, const char *argv[]) {
-	assert(argc == 1 + 3);
+	if (argc != 1 + 3)
+		throw std::runtime_error(
+				"Expected 3 CLI arguments (RANGE_CNT, UNIQUE_TRACE_CNT, LOOKUP_CNT)");
 	size_t RANGE_CNT = atoll(argv[1]);
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);
@@ -82,7 +84,7 @@ int main(int argc, const char *argv[]) {
 	auto pcv_cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
 	stats.set_number_of_tries_or_tables(pcv_cls->cls.tree_cnt);
 	// size_t i = 0;
-	for (auto & t: pcv_cls->cls.trees) {
+	for (auto &t : pcv_cls->cls.trees) {
 		if (t->rules.size() == 0)
 			continue;
 		assert(t->used_dim_cnt <= 7);

@@ -267,8 +267,9 @@ public:
 		// try to insert to rest of the treees
 		for (size_t i = 0; i < tree_cnt; i++) {
 			if (!insert_tried[i]) {
-				try_insert_to_tree_without_collisions(rule, this_rule_mask, i);
-				return;
+				if (try_insert_to_tree_without_collisions(rule, this_rule_mask,
+						i))
+					return;
 			}
 		}
 

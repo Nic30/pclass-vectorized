@@ -3,48 +3,16 @@
 #include <vector>
 #include <unordered_map>
 #include <assert.h>
+
 #include <pcv/partition_sort/dimension_order_resolver.h>
-#include <boost/functional/hash.hpp>
+#include <pcv/common/array_hasher.h>
+#include <pcv/common/rulespec_hasher.h>
+#include <pcv/common/array_resorter.h>
 
 namespace pcv {
 
-template<typename rule_spec_t>
-struct rule_spec_t_eq {
-	std::size_t operator()(const rule_spec_t &a, const rule_spec_t &b) const {
-		if (a.second.rule_id != b.second.rule_id
-				|| a.second.priority != b.second.priority)
-			return false;
-		auto _b = b.first.begin();
-		for (auto v : a.first) {
-			if (v != *_b)
-				return false;
-			++_b;
-		}
-		return true;
-	}
-};
-
-template<typename rule_spec_t>
-struct rule_spec_t_hasher {
-	std::size_t operator()(const rule_spec_t &k) const {
-		using boost::hash_value;
-		using boost::hash_combine;
-
-		std::size_t seed = 0;
-		for (auto v : k.first) {
-			hash_combine(seed, hash_value(v.low));
-			hash_combine(seed, hash_value(v.high));
-		}
-		hash_combine(seed, hash_value(k.second.priority));
-		hash_combine(seed, hash_value(k.second.rule_id));
-
-		// Return the result.
-		return seed;
-	}
-};
-
 /*
- * Partition sort like packet classifier classifier with configurable
+ * Partitionsort like packet classifier classifier with configurable
  * tree type
  *
  * @tparam TREE_FIXATION_THRESHOLD if this threshold is exceeded the dimension order is locked for this tree
@@ -74,12 +42,20 @@ public:
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
 
+	// Container of an information about a single classifier tree used in this classifier
 	// @note the trees are sorted [0] has the greatest max priority rule
 	struct tree_info {
+		// The tree for classification
 		TREE_T tree;
+		// maximum value of rule priority for rules sorted in this classification tree
 		priority_t max_priority;
+		// number of fields used during classification, the number is used to limit the number of combinations
+		// for field order resolution algorithm, and this variable is used to cache this value in order to avoid
+		// recomputation before each update
 		unsigned used_dim_cnt;
+		// rules stored in classifier tree in their original form, (used to prevent costly tree<->rule list conversions)
 		std::vector<rule_spec_t> rules;
+		// flag which is used to detect cycles during rule inserts
 		bool update_pending;
 
 		tree_info() :
@@ -95,12 +71,18 @@ public:
 						0), update_pending(false) {
 		}
 	};
+	// The trees used for classification itself
 	std::array<tree_info*, MAX_TREE_CNT> trees;
+	// number of trees actively used (rest of trees are just preallocated and does not contain any rules nor are used)
 	size_t tree_cnt;
 
 	// used to keep track of where are the rules stored for removing;
 	std::unordered_map<rule_spec_t, tree_info*, rule_spec_t_hasher<rule_spec_t>,
 			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
+	// The dictionary used to track used mask in trees, controls failsafe which will
+	// trigger the rebuild of trees where each tree will use only a single mask
+	std::unordered_map<packet_spec_t, std::size_t, array_hasher<key_t, D>,
+			array_eq<key_t, D>> used_rule_masks;
 
 	PartitionSortClassifer() :
 			tree_cnt(0) {
@@ -143,7 +125,7 @@ public:
 				ti.rules, tree.dimension_order);
 		auto new_dim_order = resolver.resolve();
 		if (tree.dimension_order != new_dim_order.first) {
-			// rebuild the tree because it has suboptimal dimension order
+			// rebuild the tree because it has sub-optimal dimension order
 			delete tree.root;
 			tree.root = nullptr;
 			tree.dimension_order = new_dim_order.first;
@@ -164,15 +146,12 @@ public:
 		ti.update_pending = false;
 		// else no change is required as the dimension order is optimal (or nearly optimal)
 	}
-	inline void assert_all_trees_unique() {
-#ifndef NDEBUG
-		std::set<tree_info*> tree_set;
-		for (auto ti : trees)
-			tree_set.insert(ti);
-		assert(tree_set.size() == MAX_TREE_CNT);
-#endif
-	}
 
+	struct max_priority_getter {
+		priority_t operator()(const tree_info *t) const {
+			return t->max_priority;
+		}
+	};
 	/*
 	 * Resort the trees if maximum priority of the tree has changed
 	 * (sorting alg is stable = the order of equal items is not changed)
@@ -180,56 +159,12 @@ public:
 	 * @param original_i the index of the tree which priority has changed
 	 * */
 	void resort_on_priority_change(const size_t original_i) {
-		if (tree_cnt == 1)
-			return; // nothing to sort
-
-		// we can not use directly tree_info because the destructor of tmp variable would be called
-		tree_info *t_tmp = trees[original_i];
 		assert(
-				t_tmp->rules.size() > 0
+				trees[original_i]->rules.size() > 0
 						&& "in this case it is useless to call this function");
-		auto p = t_tmp->max_priority;
-		// try to move it to the left it has larger max priority rule
-		if (original_i > 0) {
-			size_t i = original_i;
-			// while predecesor has lower priority
-			// find the index of the first item with the same or larger priority
-			while (i >= 1 and trees[i - 1]->max_priority < p) {
-				i--;
-			}
-			if (i != original_i) {
-				// shift all items with the lower max priority one to right
-				for (size_t i2 = original_i; i2 > i; i2--) {
-					trees[i2] = std::move(trees[i2 - 1]);
-				}
-				// put the actual tree on correct place
-				trees[i] = std::move(t_tmp);
-				assert_all_trees_unique();
-				return;
-			}
-
-		}
-
-		// try to move the tree to the right if it has lower max priority
-		if (original_i < tree_cnt - 1) {
-			size_t i = original_i;
-			// while successor has greater priority
-			while (i < tree_cnt - 1 and trees[i + 1]->max_priority > p) {
-				i++;
-			}
-			if (i != original_i) {
-				// shift all items with the greater priority one to left
-				for (size_t i2 = original_i; i2 < i; i2++) {
-					trees[i2] = std::move(trees[i2 + 1]);
-				}
-				// put the actual tree on correct place
-				trees[i] = std::move(t_tmp);
-				assert_all_trees_unique();
-				return;
-			}
-		}
+		array_resort<tree_info*, MAX_TREE_CNT, max_priority_getter>(trees,
+				tree_cnt, original_i);
 	}
-
 	/*
 	 * Insert rule to tree most suitable for this rule
 	 * and sort the tress by the max priority rule in descending order
@@ -315,7 +250,8 @@ public:
 		if (ti != rule_to_tree.end()) {
 			ti->second->tree.remove(rule);
 			rule_to_tree.erase(ti);
-			update_dimension_order(*ti->second);
+			if (ti->second->rules.size() < TREE_FIXATION_THRESHOLD)
+				update_dimension_order(*ti->second);
 		}
 	}
 	template<typename search_val_t>
@@ -331,9 +267,10 @@ public:
 				actual_found = res;
 			}
 			// check if we can find rule with higher priority in some next tree
+			unsigned next_tree_i = i + 1;
 			if (actual_found.is_valid()
-					and (i + 1 >= tree_cnt
-							or trees[i + 1]->max_priority
+					and (next_tree_i >= tree_cnt
+							or trees[next_tree_i]->max_priority
 									<= actual_found.priority)) {
 				break;
 			}

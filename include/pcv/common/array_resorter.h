@@ -1,11 +1,13 @@
 #pragma once
+#include <unordered_set>
 #include <set>
+#include <array>
 
 namespace pcv {
 
 template<typename T, size_t ITEM_CNT>
 inline void assert_all_items_unique(std::array<T, ITEM_CNT> &arr) {
-	std::set<typename T::value_type> item_set;
+	std::unordered_set<T> item_set;
 	for (auto i : arr)
 		item_set.insert(i);
 	assert(item_set.size() == ITEM_CNT);

@@ -21,6 +21,9 @@
 
 using namespace std;
 
+/*
+ * Benchmark which uses multiple rules with different prefix length to test OvS classifier properties.
+ **/
 int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 4);
 	string CLS_NAME = argv[1];

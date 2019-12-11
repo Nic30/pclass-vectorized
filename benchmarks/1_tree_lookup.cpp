@@ -9,6 +9,9 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
+/*
+ * Benchmark which uses the classbench-ng rules to tests properties of a single BTreeImp
+ * */
 int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 3);
 	const char *rule_file = argv[1];

@@ -6,6 +6,9 @@
 #include <array>
 #include <pcv/common/range.h>
 
+/*
+ * RFC like classifier based on hash tables
+ * */
 class HashTableBasedCls {
 public:
 	using rule_id_t = uint32_t;

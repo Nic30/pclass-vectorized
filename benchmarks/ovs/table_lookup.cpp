@@ -26,6 +26,10 @@ using namespace pcv;
 using namespace pcv::rule_conv_fn;
 using namespace pcv::ovs;
 
+/*
+ * Benchmark the classifier by the rules generated from classbench-ng
+ * (Classifier is selected from a meson build)
+ * */
 int main(int argc, const char * argv[]) {
 	assert(argc == 1 + 3);
 	const char * rule_file = argv[1];
@@ -59,7 +63,7 @@ int main(int argc, const char * argv[]) {
 #ifdef OVS_PCV
 	auto pcv_cls = reinterpret_cast<struct classifier_priv*>(cls.cls.priv);
 	stats.set_number_of_tries_or_tables(pcv_cls->cls.tree_cnt);
-	i = 0;
+	// i = 0;
 	for (auto & t: pcv_cls->cls.trees) {
 		if (t->rules.size() == 0)
 			continue;

@@ -432,7 +432,7 @@ vector<iParsedRule*> RuleReader::parse_rules(const string& filename) {
 	ifstream in(filename);
 	if (!in.is_open()) {
 		throw ifstream::failure(
-				string("Couldnt open filter set file \"") + filename + "\"");
+				string("Couldn't open filter set file \"") + filename + "\"");
 	}
 
 	string content;

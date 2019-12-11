@@ -93,6 +93,9 @@ public:
 	}
 };
 
+/*
+ * Benchmark which collect the statistics about memory efficiency in tree nodes
+ * */
 int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 1);
 	const char *rule_file = argv[1];

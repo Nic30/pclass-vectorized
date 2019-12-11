@@ -27,6 +27,10 @@ using namespace pcv;
 using namespace pcv::rule_conv_fn;
 using namespace pcv::ovs;
 
+/*
+ * The benchmark which uses randomly generated rules to test properties of a classifier.
+ * The classifier used in OvsWrap is selected by the meson build configuration.
+ * */
 int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 3);
 	size_t RANGE_CNT = atoll(argv[1]);

@@ -106,5 +106,5 @@ benchmark_ovs_tss_prefix_exe = executable('ovs_tss_prefix_exe',
     c_args: OVS_C_ARGS,
     include_directories : [include_directories('./ovs/', './ovs/include'), ],
 )
-test('ovs_tss_prefix_exe', benchmark_ovs_tss_prefix_exe, workdir : meson.source_root(),
-	args : ['32'])
+test('ovs_tss_prefix', benchmark_ovs_tss_prefix_exe, workdir : meson.source_root(),
+	args : ['ovs', '32', '1024', '10000'])

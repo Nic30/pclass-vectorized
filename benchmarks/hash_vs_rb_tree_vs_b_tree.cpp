@@ -16,7 +16,9 @@ using namespace pcv::rule_conv_fn;
 using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2, (1<<16) - 1, 4, false>>;
 //using BTree_compressed = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2, (1<<16) - 1, 4, true>>;
 
-
+/*
+ * Benchmark to compare interval trees and trees of hash tables
+ * */
 int main(int argc, const char * argv[]) {
 	assert(argc == 1 + 4);
 	string CLS_NAME = argv[1];

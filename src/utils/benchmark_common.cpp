@@ -25,8 +25,7 @@ void BenchmarkStats::lookup_packet_start() {
 
 void BenchmarkStats::lookup_packet_stop(size_t p_id) {
 	auto finish = std::chrono::high_resolution_clock::now();
-	std::chrono::duration < uint64_t, std::nano > t = finish
-			- actual_packet_start;
+	std::chrono::duration<uint64_t, std::nano> t = finish - actual_packet_start;
 	ns_per_packet[p_id] += t.count();
 }
 
@@ -50,7 +49,7 @@ void BenchmarkStats::dump(std::function<void(std::ostream&)> json_extra,
 	double lookup_speed;
 	if (lookup_time_from_packets == 0) {
 		// the packet time was not used at all
-		lookup_speed = (double(LOOKUP_CNT)/ lookup_timer->us());
+		lookup_speed = (double(LOOKUP_CNT) / lookup_timer->us());
 	} else {
 		lookup_speed =
 				((LOOKUP_CNT / double(lookup_time_from_packets)) * 1000.0);
@@ -71,19 +70,27 @@ void BenchmarkStats::dump(std::function<void(std::ostream&)> json_extra,
 	out << "\"real_rule_cnt\":" << real_rule_cnt << "," << std::endl;
 	out << "\"number_of_tries_or_tables\":" << number_of_tries_or_tables << ","
 			<< std::endl;
-	out << "\"packet_lookup_times\": [" << std::endl;
-
-	for (size_t i = 0; i < ns_per_packet.size(); i++) {
-		auto t = ns_per_packet[i];
-		out << t; // ns
-		if (i != ns_per_packet.size() - 1) {
-			out << ", ";
+	bool all_zeros = true;
+	for (auto t : ns_per_packet) {
+		if (t != 0) {
+			all_zeros = false;
+			break;
 		}
-		if ((i + 1) % 1024 == 0)
-			out << std::endl;
 	}
-	out << "]" << std::endl;
+	if (!all_zeros) {
+		out << "\"packet_lookup_times\": [" << std::endl;
 
+		for (size_t i = 0; i < ns_per_packet.size(); i++) {
+			auto t = ns_per_packet[i];
+			out << t; // ns
+			if (i != ns_per_packet.size() - 1) {
+				out << ", ";
+			}
+			if ((i + 1) % 1024 == 0)
+				out << std::endl;
+		}
+		out << "]" << std::endl;
+	}
 	json_extra(out);
 	out << "}";
 }

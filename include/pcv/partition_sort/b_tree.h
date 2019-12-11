@@ -19,35 +19,6 @@
 
 namespace pcv {
 
-
-struct IntRuleValue {
-	// the identifier of the rule store in tree
-	using rule_id_t = uint32_t;
-	using priority_t = uint32_t;
-
-	static constexpr rule_id_t INVALID_RULE = (1 << 24) - 1;
-
-	// invalid rule = rule with rule_id = INVALID_RULE and should have priority set to 0
-	priority_t priority :8;
-	rule_id_t rule_id :24;
-
-	IntRuleValue() :
-			priority(0), rule_id(INVALID_RULE) {
-	}
-	IntRuleValue(priority_t priority_, rule_id_t rule_id_) :
-			priority(priority_), rule_id(rule_id_) {
-	}
-	bool is_valid() const {
-		return rule_id != INVALID_RULE;
-	}
-	bool operator==(const IntRuleValue &other) const {
-		return priority == other.priority && rule_id == other.rule_id;
-	}
-	bool operator!=(const IntRuleValue &other) const {
-		return priority != other.priority || rule_id != other.rule_id;
-	}
-};
-
 /*
  * The B-Tree with multidimensional key
  *

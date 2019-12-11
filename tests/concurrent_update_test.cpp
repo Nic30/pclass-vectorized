@@ -19,7 +19,7 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
 constexpr size_t D = 7;
-using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, D>>;
+using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, D>>;
 using Classifier = PartitionSortClassifer<BTree, 32>;
 
 /*

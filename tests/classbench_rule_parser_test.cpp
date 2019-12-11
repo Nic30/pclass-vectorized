@@ -7,6 +7,8 @@
 
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/partition_sort/b_tree_impl.h>
+#include <pcv/partition_sort/rule_value_int.h>
+
 
 using namespace std;
 using namespace pcv;
@@ -96,8 +98,8 @@ void test_b_tree(const std::string & file_name) {
 	//o.close();
 }
 
-using NormalBTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, 65000, 8, false>>;
-using CompressedBTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, 65000, 8, true>>;
+using NormalBTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 7, 65000, 8, false>>;
+using CompressedBTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 7, 65000, 8, true>>;
 BOOST_AUTO_TEST_CASE( classifier_from_classbench_acl1_100 ) {
 	auto file_name = "tests/data/acl1_100";
 	test_b_tree<NormalBTree>(file_name);

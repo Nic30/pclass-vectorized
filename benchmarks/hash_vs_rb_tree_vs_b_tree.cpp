@@ -1,5 +1,6 @@
 #include <vector>
 #include <pcv/partition_sort/b_tree_impl.h>
+#include <pcv/partition_sort/rule_value_int.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
 #include "run_benchmark.h"
@@ -13,8 +14,8 @@ using namespace std;
 using namespace pcv;
 using namespace pcv::rule_conv_fn;
 
-using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2, (1<<16) - 1, 4, false>>;
-//using BTree_compressed = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2, (1<<16) - 1, 4, true>>;
+using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 2, (1<<16) - 1, 4, false>>;
+//using BTree_compressed = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 2, (1<<16) - 1, 4, true>>;
 
 /*
  * Benchmark to compare interval trees and trees of hash tables

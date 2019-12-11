@@ -22,7 +22,7 @@ int main(int argc, const char *argv[]) {
 	size_t UNIQUE_TRACE_CNT = atoll(argv[2]);
 	size_t LOOKUP_CNT = atoll(argv[3]);
 
-	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, (1<<16) - 1, 8>>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 7, (1<<16) - 1, 8>>;
 	using Classifier = PartitionSortClassifer<BTree, 64, 10>;
 	Classifier cls;
 

@@ -3,6 +3,8 @@
 #include <pcv/partition_sort/b_tree_impl.h>
 #include <pcv/partition_sort/partition_sort_classifier.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
+#include <pcv/partition_sort/rule_value_int.h>
+
 
 using namespace std;
 using namespace pcv;
@@ -100,7 +102,7 @@ int main(int argc, const char *argv[]) {
 	assert(argc == 1 + 1);
 	const char *rule_file = argv[1];
 
-	using BTree = BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 7, (1 << 16) - 1, 8>>;
+	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 7, (1 << 16) - 1, 8>>;
 	using Classifier = PartitionSortClassifer<BTree, 64, 10>;
 	Classifier t;
 

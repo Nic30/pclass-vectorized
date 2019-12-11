@@ -15,6 +15,8 @@ namespace pcv {
  * Partitionsort like packet classifier classifier with configurable
  * tree type
  *
+ * @tparam TREE_T the type of tree used for classification
+ * @tparam MAX_TREE_CNT maximal number of tree structures used for classification
  * @tparam TREE_FIXATION_THRESHOLD if this threshold is exceeded the dimension order is locked for this tree
  *	 	and is not checked for optimality
  *
@@ -37,13 +39,17 @@ public:
 	using packet_spec_t = typename TREE_T::packet_spec_t;
 	using Search_t = typename TREE_T::Search_t;
 	using rule_value_t = typename TREE_T::rule_value_t;
+	using rule_mask_t = key_vec_t;
 	static constexpr size_t D = TREE_T::D;
 
 	static constexpr index_t INVALID_INDEX = TREE_T::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = TREE_T::INVALID_RULE;
 
-	// Container of an information about a single classifier tree used in this classifier
-	// @note the trees are sorted [0] has the greatest max priority rule
+	/*
+	 *  Container of an information about a single classifier tree used in this classifier
+	 *
+	 *  @note the trees are sorted [0] has the greatest max priority rule
+	 */
 	struct tree_info {
 		// The tree for classification
 		TREE_T tree;
@@ -57,6 +63,9 @@ public:
 		std::vector<rule_spec_t> rules;
 		// flag which is used to detect cycles during rule inserts
 		bool update_pending;
+
+		std::unordered_map<rule_mask_t, std::size_t, array_hasher<rule_mask_t>,
+				array_eq<rule_mask_t>> used_rule_masks;
 
 		tree_info() :
 				tree(), max_priority(0), used_dim_cnt(0), update_pending(false) {
@@ -79,10 +88,6 @@ public:
 	// used to keep track of where are the rules stored for removing;
 	std::unordered_map<rule_spec_t, tree_info*, rule_spec_t_hasher<rule_spec_t>,
 			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
-	// The dictionary used to track used mask in trees, controls failsafe which will
-	// trigger the rebuild of trees where each tree will use only a single mask
-	std::unordered_map<key_vec_t, std::size_t, array_hasher<key_vec_t>,
-			array_eq<key_vec_t>> used_rule_masks;
 
 	PartitionSortClassifer() :
 			tree_cnt(0) {
@@ -104,6 +109,11 @@ public:
 		}
 	}
 
+	/*
+	 * Try to find better order of the fields used during tree construction,
+	 * reconstruct tree if required,
+	 * resort all tress by max rule priority if required
+	 * */
 	// @return true if the dimension order changed
 	void update_dimension_order(tree_info &ti,
 			const rule_spec_t *rule_to_add_before = nullptr) {
@@ -165,6 +175,69 @@ public:
 		array_resort<tree_info*, MAX_TREE_CNT, max_priority_getter>(trees,
 				tree_cnt, original_i);
 	}
+	inline static void used_rule_mask_incr(tree_info &t, const rule_mask_t &m) {
+		auto mi = t.used_rule_masks.find(m);
+		if (mi == t.used_rule_masks.end()) {
+			t.used_rule_masks[m] = 1;
+		} else {
+			mi->second += 1;
+		}
+	}
+	inline static void used_rule_mask_decr(tree_info &t, const rule_mask_t &m) {
+		auto mi = t.used_rule_masks.find(m);
+		assert(mi != t.used_rule_masks.end());
+		mi->second -= 1;
+		if (mi->second == 0) {
+			t.used_rule_masks.erase(mi);
+		}
+	}
+	/*
+	 * Insert rule to tree most suitable for this rule
+	 * and sort the tress by the max priority rule in descending order
+	 *
+	 * @return true if insert was successful
+	 * */
+	inline bool try_insert_to_tree_without_collisions(const rule_spec_t &rule,
+			const rule_mask_t &this_rule_mask, size_t tree_i) {
+		// try to insert rule to a tree with best compatibility
+		assert(tree_i < MAX_TREE_CNT);
+		auto &t = *trees[tree_i];
+		if (t.tree.does_rule_colide(rule))
+			return false;
+
+		t.rules.push_back(rule);
+		rule_to_tree[rule] = &t;
+		used_rule_mask_incr(t, this_rule_mask);
+
+		if (t.rules.size() < TREE_FIXATION_THRESHOLD) {
+			update_dimension_order(t, &rule);
+		} else {
+			if (t.used_dim_cnt < D) {
+				// if new dimension is used in rule which was not used in tree previously
+				// it is required to update dimension order to put the new dimension,
+				// being previously used, in order to prevent sparse levels in tree.
+				for (size_t d_i = t.used_dim_cnt; d_i < D; d_i++) {
+					// for all unused dimensions check if they are used in new rule
+					// if it is used swap it with first unused
+					auto d = t.tree.dimension_order[d_i];
+					if (not rule.first[d].is_wildcard()) {
+						std::swap(t.tree.dimension_order[t.used_dim_cnt],
+								t.tree.dimension_order[d_i]);
+						t.used_dim_cnt++;
+					}
+				}
+			}
+			assert(not t.tree.does_rule_colide(rule));
+			t.tree.insert(rule);
+		}
+
+		if (rule.second.priority > t.max_priority) {
+			t.max_priority = rule.second.priority;
+			resort_on_priority_change(tree_i);
+		}
+
+		return true;
+	}
 	/*
 	 * Insert rule to tree most suitable for this rule
 	 * and sort the tress by the max priority rule in descending order
@@ -175,45 +248,33 @@ public:
 			assert(r.low <= r.high);
 		}
 #endif
-		// try to insert rule to a tree with best compatibility
-		size_t i = 0;
-		for (; i < tree_cnt; i++) {
-			assert(i < MAX_TREE_CNT);
+		std::array<bool, MAX_TREE_CNT> insert_tried;
+		std::fill(insert_tried.begin(), insert_tried.end(), false);
+		// try to insert in to trees which already contains rules with same mask
+
+		rule_mask_t this_rule_mask = TREE_T::rule_value_t::get_rule_mask(rule);
+		for (size_t i = 0; i < tree_cnt; i++) {
 			auto &t = *trees[i];
-			if (not t.tree.does_rule_colide(rule)) {
-				t.rules.push_back(rule);
-				rule_to_tree[rule] = &t;
-				if (t.rules.size() < TREE_FIXATION_THRESHOLD) {
-					update_dimension_order(t, &rule);
-				} else {
-					if (t.used_dim_cnt < D) {
-						// if new dimension is used in rule which was not used in tree previously
-						// it is required to update dimension order to put the new dimension,
-						// being previously used, in order to prevent sparse levels in tree.
-						for (size_t d_i = t.used_dim_cnt; d_i < D; d_i++) {
-							// for all unused dimensions check if they are used in new rule
-							// if it is used swap it with first unused
-							auto d = t.tree.dimension_order[d_i];
-							if (not rule.first[d].is_wildcard()) {
-								std::swap(
-										t.tree.dimension_order[t.used_dim_cnt],
-										t.tree.dimension_order[d_i]);
-								t.used_dim_cnt++;
-							}
-						}
-					}
-					assert(not t.tree.does_rule_colide(rule));
-					t.tree.insert(rule);
+			auto &used_masks = t.used_rule_masks;
+			if (used_masks.find(this_rule_mask) != used_masks.end()) {
+				if (try_insert_to_tree_without_collisions(rule, this_rule_mask,
+						i)) {
+					return;
 				}
-				if (rule.second.priority > t.max_priority) {
-					t.max_priority = rule.second.priority;
-					resort_on_priority_change(i);
-				}
+			}
+			insert_tried[i] = true;
+		}
+		// try to insert to rest of the treees
+		for (size_t i = 0; i < tree_cnt; i++) {
+			if (!insert_tried[i]) {
+				try_insert_to_tree_without_collisions(rule, this_rule_mask, i);
 				return;
 			}
 		}
+
 		// else create new tree for this rule
-		if (i < MAX_TREE_CNT) {
+		if (tree_cnt < MAX_TREE_CNT) {
+			size_t i = tree_cnt;
 			// the rule does not fit to any tree, generate new tree for this rule
 			auto &t = *trees[i];
 			t.max_priority = rule.second.priority;
@@ -230,6 +291,7 @@ public:
 			t.tree.insert(rule);
 			t.rules.push_back(rule);
 			rule_to_tree[rule] = &t;
+			used_rule_mask_incr(t, this_rule_mask);
 			if (t.rules.size() > 1) {
 				update_dimension_order(t);
 			}
@@ -240,11 +302,11 @@ public:
 			throw std::runtime_error(
 					"all tress used (need to implement tree merging)");
 		}
-		if (tree_cnt > used_rule_masks.size()) {
-			// the rules are stored in classifier in efficiently
-			// if we store each group of rules with same mask
-			// to a separate tree we can achieve a lower number of trees
-		}
+		//if (tree_cnt > used_rule_masks.size()) {
+		//	// the rules are stored in classifier in efficiently
+		//	// if we store each group of rules with same mask
+		//	// to a separate tree we can achieve a lower number of trees
+		//}
 	}
 
 	/*
@@ -255,6 +317,9 @@ public:
 		if (ti != rule_to_tree.end()) {
 			ti->second->tree.remove(rule);
 			rule_to_tree.erase(ti);
+			rule_mask_t rule_mask = TREE_T::rule_value_t::get_rule_mask(rule);
+			used_rule_mask_decr(*ti->second, rule_mask);
+
 			if (ti->second->rules.size() < TREE_FIXATION_THRESHOLD)
 				update_dimension_order(*ti->second);
 		}

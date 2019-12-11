@@ -6,7 +6,7 @@ namespace pcv {
 /*
  *
  * @tparam _Key_t the type of key which will be used by the nodes in the tree
- * @tparam _Value_t the value stored in tree, take a look at IntRuleValue for a reference
+ * @tparam _Value_t the value stored in tree, take a look at RuleValueInt for a reference
  * @tparam _D maximal number of levels of the tree (number of fields in packet/dimensions)
  * @tparam _MAX_NODE_CNT maximal number of nodes for mempool preallocations
  * @tparam _T parameter which specifies the number of items per node

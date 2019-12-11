@@ -6,13 +6,15 @@
 #include <vector>
 
 #include <pcv/partition_sort/b_tree_impl.h>
+#include <pcv/partition_sort/rule_value_int.h>
+
 
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
-class BTree: public BTreeImp<_BTreeCfg<uint16_t, IntRuleValue, 2, 65000, 4, false>> {
+class BTree: public BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 2, 65000, 4, false>> {
 public:
 	rule_value_t search(key_t _v) const {
 		key_vec_t v = { _v, _v };

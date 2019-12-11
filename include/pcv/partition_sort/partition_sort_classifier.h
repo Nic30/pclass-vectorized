@@ -81,8 +81,8 @@ public:
 			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
 	// The dictionary used to track used mask in trees, controls failsafe which will
 	// trigger the rebuild of trees where each tree will use only a single mask
-	std::unordered_map<packet_spec_t, std::size_t, array_hasher<key_t, D>,
-			array_eq<key_t, D>> used_rule_masks;
+	std::unordered_map<key_vec_t, std::size_t, array_hasher<key_vec_t>,
+			array_eq<key_vec_t>> used_rule_masks;
 
 	PartitionSortClassifer() :
 			tree_cnt(0) {
@@ -239,6 +239,11 @@ public:
 		} else {
 			throw std::runtime_error(
 					"all tress used (need to implement tree merging)");
+		}
+		if (tree_cnt > used_rule_masks.size()) {
+			// the rules are stored in classifier in efficiently
+			// if we store each group of rules with same mask
+			// to a separate tree we can achieve a lower number of trees
 		}
 	}
 

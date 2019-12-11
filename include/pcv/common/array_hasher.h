@@ -9,9 +9,9 @@ namespace pcv {
  * The hasher and comparator for std::array
  * */
 
-template<typename VAL_T, std::size_t D>
+template<typename ARR_T>
 struct array_hasher {
-	std::size_t operator()(const std::array<VAL_T, D> &arr) const {
+	std::size_t operator()(const ARR_T &arr) const {
 		using boost::hash_value;
 		using boost::hash_combine;
 		std::size_t seed = 0;
@@ -22,10 +22,9 @@ struct array_hasher {
 	}
 };
 
-template<typename VAL_T, std::size_t D>
+template<typename ARR_T>
 struct array_eq {
-	bool operator()(const std::array<VAL_T, D> &a0,
-			const std::array<VAL_T, D> &a1) const {
+	bool operator()(const ARR_T &a0, const ARR_T &a1) const {
 		auto a1_it = a1.begin();
 		for (auto v0 : a0) {
 			if (v0 != *a1_it) {

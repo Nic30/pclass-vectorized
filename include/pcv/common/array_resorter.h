@@ -32,7 +32,7 @@ void array_resort(std::array<ITEM_T, MAX_SIZE> &arr, size_t actual_size,
 	// try to move it to the left it has larger max priority rule
 	if (changed_item_index > 0) {
 		size_t i = changed_item_index;
-		// while predecesor has lower value of key
+		// while predecessor has lower value of key
 		// find the index of the first item with the same or greater key value
 		while (i >= 1 and key(arr[i - 1]) < p) {
 			i--;

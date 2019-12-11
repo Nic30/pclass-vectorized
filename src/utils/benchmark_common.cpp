@@ -68,8 +68,7 @@ void BenchmarkStats::dump(std::function<void(std::ostream&)> json_extra,
 	out << "\"construction_time\":" << uint64_t(construction_timer->us()) << "," // us
 			<< std::endl;
 	out << "\"real_rule_cnt\":" << real_rule_cnt << "," << std::endl;
-	out << "\"number_of_tries_or_tables\":" << number_of_tries_or_tables << ","
-			<< std::endl;
+	out << "\"number_of_tries_or_tables\":" << number_of_tries_or_tables;
 	bool all_zeros = true;
 	for (auto t : ns_per_packet) {
 		if (t != 0) {
@@ -78,7 +77,7 @@ void BenchmarkStats::dump(std::function<void(std::ostream&)> json_extra,
 		}
 	}
 	if (!all_zeros) {
-		out << "\"packet_lookup_times\": [" << std::endl;
+		out << "," << std::endl << "\"packet_lookup_times\": [" << std::endl;
 
 		for (size_t i = 0; i < ns_per_packet.size(); i++) {
 			auto t = ns_per_packet[i];

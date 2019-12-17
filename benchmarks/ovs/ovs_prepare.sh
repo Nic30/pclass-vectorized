@@ -1,5 +1,7 @@
 #!/bin/bash
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
+OVS_VERSION=v2.12.0
+OVS_GIT=https://github.com/openvswitch/ovs.git
 
 # sudo apt install libunbound-dev
 
@@ -12,9 +14,9 @@ function prepare_ovs() {
 		if [ -d "$pre_build" ]; then
 			cp "$pre_build" "$ovs_dir" -r
 		else
-			git clone https://github.com/openvswitch/ovs.git "$ovs_dir"
+			git clone $OVS_GIT "$ovs_dir"
 			pushd "$ovs_dir"
-			git checkout v2.10.1
+			git checkout $OVS_VERSION
 			popd
 		fi
 	fi
@@ -27,9 +29,10 @@ function prepare_ovs() {
 		# make to actually generate files
 		make -j $CORES
 
-		git apply ../0001-c-17-compatibility.patch
-		git apply ../0002-MINIFLOW_GET_TYPE-ignore-asserts-c-compatibility.patch
-		git apply ../0003-export-internals-of-ovs-dpcls.patch
+		git apply ../0001-gcc-9-compatibility.patch
+		git apply ../0002-make-dpcls-api-public.patch
+		echo "\n/build/" >> .gitignore
+		echo "\n.sc[0-9]*.h\n" >> .gitignore
 	popd
 }
 
@@ -37,7 +40,7 @@ prepare_ovs "ovs" "ovs_meson.build"
 prepare_ovs "ovs_pcv" "ovs_pcv_meson.build" "ovs"
 for filename in ovs_api/*; do
 	l_name="ovs_pcv/lib/$(basename $filename)"
-	rm ovs_pcv/lib/$(basename $filename)
-	echo "linking $filename to ovs"
+	[ -f "$l_name" ] && rm "$l_name"
+	echo "linking $filename to $l_name"
 	ln -s "$PWD/$filename" "$l_name"
 done

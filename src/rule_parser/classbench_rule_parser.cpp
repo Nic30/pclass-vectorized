@@ -657,6 +657,9 @@ std::vector<Rule_OF_1_5_1*> RuleReader::parse_openflow(
 	return rules;
 }
 
+/*
+ * @return vector of pairs <rule, priority>
+ * */
 std::vector<std::pair<iParsedRule*, size_t>> parse_ruleset_file(
 		const std::string & rule_file) {
 	RuleReader rp;

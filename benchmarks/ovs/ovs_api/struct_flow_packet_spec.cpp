@@ -1,5 +1,6 @@
 #include "classifier-private.h"
 #include <pcv/rule_parser/rule.h>
+#include <algorithm>
 
 using namespace pcv::rule_vec_format;
 
@@ -1001,4 +1002,38 @@ typename Classifier::packet_spec_t struct_flow_packet_spec = {
 	in_packet_position_t(offsetof(flow, igmp_group_ip4) + 2, 2,  1), // igmp_group_ip4-2
 };
 
+size_t index_of(const typename Classifier::names_t &arr,
+		const std::string &elm) {
+	auto it = std::find(arr.begin(), arr.end(), elm);
+	assert(it != arr.end());
+	return distance(arr.begin(), it);
+}
 
+template<typename T>
+void apply_permutation(T & arr, const std::vector<size_t> & perm){
+	auto arr_tmp = arr; // copy array
+	for (size_t i0 = 0; i0 < arr.size(); i0++) {
+		auto i1 = perm.at(i0);
+		arr[i0] = arr_tmp[i1];
+	}
+}
+
+void sort_flow_packet_spec_fields(std::vector<std::string> &_names) {
+	std::vector<std::string> names = _names;
+
+	for (auto &n : struct_flow_packet_names) {
+		if (std::find(names.begin(), names.end(), n) == names.end()) {
+			names.push_back(n);
+		}
+	}
+
+	std::vector<size_t> perm(struct_flow_packet_names.size());
+	for (size_t i0 = 0; i0 < names.size(); i0++) {
+		auto i1 = index_of(struct_flow_packet_names, names[i0]);
+		perm[i0] = i1;
+	}
+
+	apply_permutation(struct_flow_packet_formaters, perm);
+	apply_permutation(struct_flow_packet_names, perm);
+	apply_permutation(struct_flow_packet_spec, perm);
+}

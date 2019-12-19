@@ -11,7 +11,7 @@ extern typename Classifier::packet_spec_t struct_flow_packet_spec;
 // used for dumping of the classifier to a tree in "dot" format
 extern typename Classifier::formaters_t struct_flow_packet_formaters;
 extern typename Classifier::names_t struct_flow_packet_names;
-
+void sort_flow_packet_spec_fields(std::vector<std::string> &_names);
 
 
 inline void flow_to_array(const struct flow * f,

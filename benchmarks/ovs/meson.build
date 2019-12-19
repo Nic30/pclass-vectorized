@@ -108,3 +108,13 @@ benchmark_ovs_tss_prefix_exe = executable('ovs_tss_prefix_exe',
 )
 test('ovs_tss_prefix', benchmark_ovs_tss_prefix_exe, workdir : meson.source_root(),
 	args : ['ovs', '32', '1024', '10000'])
+
+	
+verif_ovs_list_test_exe = executable('verif_ovs_list_test_exe',
+	['verif_ovs_list_test.cpp', 'ovs_wrap.cpp'],
+	dependencies: [boost_deps, pcv_dep, ovs_pcv_dep],
+    cpp_args: OVS_CXX_ARGS + ['-DOVS_PCV'],
+    c_args: OVS_C_ARGS + ['-DOVS_PCV'],
+    include_directories : [include_directories('./ovs_pcv/', './ovs_pcv/include', '../../tests/'), ],
+    )
+test('verif_ovs_list_test', verif_ovs_list_test_exe, workdir : meson.source_root())

@@ -126,7 +126,7 @@ void verify_tree_content(const Classifier0 & cls,
 	}
 	BOOST_CHECK_EQUAL(rule_in_cls_cnt, expected_rules.size());
 
-	dump_trees(std::cout, cls);
+	//dump_trees(std::cout, cls);
 }
 
 void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,

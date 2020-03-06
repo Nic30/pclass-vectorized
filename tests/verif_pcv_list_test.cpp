@@ -12,10 +12,10 @@
 #include <pcv/partition_sort/b_tree_remove.h>
 #include <pcv/partition_sort/b_tree_to_rules.h>
 #include <pcv/partition_sort/b_tree_impl.h>
+#include <pcv/partition_sort/partition_sort_classifier.h>
 #include <pcv/partition_sort/rule_value_int.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
-#include <pcv/partition_sort/partition_sort_classifier.h>
 #include <pcv/utils/benchmark_common.h>
 
 #include "../benchmarks/list/list_classifier.h"

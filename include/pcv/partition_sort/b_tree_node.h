@@ -288,4 +288,22 @@ public:
 		}
 	}
 }__attribute__((aligned(64)));
+
+
+template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
+		typename KeyInfo, typename key_range_t>
+constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::T;
+
+template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
+		typename KeyInfo, typename key_range_t>
+constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::MIN_DEGREE;
+
+template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
+		typename KeyInfo, typename key_range_t>
+constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::MAX_DEGREE;
+
+template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
+		typename KeyInfo, typename key_range_t>
+constexpr index_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::INVALID_INDEX;
+
 }

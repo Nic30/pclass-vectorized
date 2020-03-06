@@ -14,6 +14,7 @@
 #include <functional>
 #include <regex>
 #include <iomanip>
+#include <unordered_map>
 
 using namespace std;
 namespace pcv {

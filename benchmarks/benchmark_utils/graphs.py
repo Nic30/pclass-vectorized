@@ -3,6 +3,8 @@ from os.path import basename
 import matplotlib.pyplot as plt
 import json
 
+FIG_SIZE = (15, 8)
+
 
 def get_last_exec_time(db_conn):
     res = db_conn.execute('SELECT MAX(timestamp) FROM benchmark_execs')
@@ -35,7 +37,7 @@ def generate_graph_throughput_with_increasing_number_of_flows(db_file_name):
         if not flow_cnt_values or flow_cnt_values[-1] != flow_cnt:
             flow_cnt_values.append(flow_cnt)
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     for name, throughputs in app_namesXruleset_throughput.items():
         x = flow_cnt_values
@@ -65,7 +67,7 @@ def generate_ruleset_size_graph(order, data, x):
                    |-----
                        [rulesets ordered by decreasing lookup speed]
     """
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     ax.set_ylabel('ruleset size')  # we already handled the x-label with ax1
     data2 = [d[1] for d in sorted(data, key=lambda d: order[d[0]], reverse=True)]
@@ -86,7 +88,7 @@ def generate_graph_throughput_for_ruleset(ruleset_order, app_data, x, file_name)
                   |-----
                      [rulesets ordered by decreasing lookup speed]
     """
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
     rename_names = {
         "n_tree_lookup": "PCV (optimized B-trees)",
         "ovs_pcv_lookup": "OVS + PCV",
@@ -131,7 +133,7 @@ def generate_graph_construction_time_for_ruleset(ruleset_order, app_data, x, fil
                    |-----
                        [rulesets ordered by decreasing lookup speed]
     """
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
     # wildcard is excluded because it is only a single rule and measured time corresponds just to call overhead
     x = [_x for _x in x if _x != "wildcard"]
     for name, data in app_data.items():
@@ -182,7 +184,7 @@ def generate_tree_cnt_for_ruleset(ruleset_order, app_data, x, file_name):
                 |-----
                     [rulesets ordered by decreasing lookup speed]
     """
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     for name, data in app_data.items():
         y = [ int(d[3]) for d in sorted(data, key=lambda d: ruleset_order[d[0]], reverse=True)]

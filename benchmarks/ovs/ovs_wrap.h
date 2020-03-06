@@ -34,7 +34,7 @@ public:
 	rule_id_t search(const key_vec_t & f);
 
 	bool insert(struct cls_rule * rule);
-	void insert(Rule_Ipv4_ACL & r, size_t v);
+	rule_id_t insert(Rule_Ipv4_ACL & r, size_t v);
 	const Rule_Ipv4_ACL * cls_rule_get_pcv_rule(const struct cls_rule * r);
 
 	// utils

@@ -56,7 +56,7 @@ struct mask_getter {
 };
 
 using BTree = pcv::BTreeImp<pcv::_BTreeCfg<uint16_t, RuleValue, struct_flow_D, (1<<20) - 1, 8, true>>;
-using Classifier = pcv::PartitionSortClassifer<BTree, struct_flow_D, 10>;
+using Classifier = pcv::PartitionSortClassifer<BTree, 100, 10>;
 
 /*
  * Structure to hide cpp classes for c

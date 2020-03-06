@@ -20,9 +20,6 @@
 
 #include "../benchmarks/list/list_classifier.h"
 
-using namespace pcv;
-using namespace std;
-
 BOOST_AUTO_TEST_SUITE( pcv__testsuite )
 
 using namespace std;

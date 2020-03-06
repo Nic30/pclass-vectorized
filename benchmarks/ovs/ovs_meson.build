@@ -41,6 +41,7 @@ src = [
 	'lib/hmap.c',
 	'lib/hmapx.c',
 	'lib/id-pool.c',
+	'lib/ipf.c',
 	'lib/jhash.c',
 	'lib/json.c',
 	'lib/jsonrpc.c',
@@ -52,9 +53,11 @@ src = [
 	'lib/namemap.c',
 	'lib/netdev-linux.c',
 	'lib/netdev-native-tnl.c',
-	'lib/netdev-tc-offloads.c',
+	#'lib/netdev-tc-offloads.c',
 	'lib/netdev-vport.c',
 	'lib/netdev.c',
+	'lib/netdev-offload.c',
+	'lib/netdev-offload-tc.c',
 	'lib/netlink-conntrack.c',
 	'lib/netlink-notifier.c',
 	'lib/netlink-socket.c',
@@ -126,6 +129,7 @@ src = [
 	'lib/stream.c',
 	'lib/svec.c',
 	'lib/syslog-direct.c',
+	'lib/syslog-null.c',
 	'lib/syslog-libc.c',
 	'lib/tc.c',
 	'lib/timer.c',
@@ -141,6 +145,7 @@ src = [
 	'lib/vlog.c',
 	'lib/vswitch-idl.c',
 	'lib/dpif-netdev.c',
+	'lib/dpif-netdev-lookup-generic.c',
 ]
 cc = meson.get_compiler('c')
 librt = cc.find_library('rt')

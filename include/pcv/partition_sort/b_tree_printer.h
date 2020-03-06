@@ -51,13 +51,13 @@ public:
 		str << "|{";
 		for (size_t i = 0; i < Node::MAX_DEGREE; i++) {
 			if (i < n.key_cnt) {
-				auto k = n.get_key(i);
 				auto f = str.flags();
 				// << hex
 
 				// range on first row rule id on second
 				str << "{ <range" << i << ">";
 				auto d = n.get_dim(i);
+				auto k = n.get_key(i);
 				formaters.at(d)(str, k.key);
 				if (n.is_compressed) {
 					str << " D=" << names.at(d) << "(" << int(d) << ")";

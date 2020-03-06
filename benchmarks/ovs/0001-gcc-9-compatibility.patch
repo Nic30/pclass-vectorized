@@ -1,0 +1,96 @@
+From a5ea79a9abaa45e696020bcf4318d06bdfec1dd1 Mon Sep 17 00:00:00 2001
+From: Nic30 <nic30@seznam.cz>
+Date: Tue, 17 Dec 2019 16:36:16 +0100
+Subject: [PATCH 1/2] gcc-9 compatibility
+
+---
+ include/openvswitch/compiler.h | 6 +++++-
+ lib/bitmap.h                   | 6 +++---
+ lib/unaligned.h                | 6 +++---
+ 3 files changed, 11 insertions(+), 7 deletions(-)
+
+diff --git a/include/openvswitch/compiler.h b/include/openvswitch/compiler.h
+index 5289a70f6..55cb2a3ea 100644
+--- a/include/openvswitch/compiler.h
++++ b/include/openvswitch/compiler.h
+@@ -27,6 +27,10 @@
+   #define __has_extension(x) 0
+ #endif
+ 
++#ifndef typeof
++#define typeof(x) __typeof__(x)
++#endif
++
+ /* To make OVS_NO_RETURN portable across gcc/clang and MSVC, it should be
+  * added at the beginning of the function declaration. */
+ #if __GNUC__ && !__CHECKER__
+@@ -256,7 +260,7 @@
+ #define BUILD_ASSERT(EXPR) ((void) 0)
+ #define BUILD_ASSERT_DECL(EXPR) extern int (*build_assert(void))[1]
+ #elif defined(__cplusplus) && __cplusplus >= 201103L
+-#define BUILD_ASSERT(EXPR) static_assert(EXPR, "assertion failed")
++#define BUILD_ASSERT(EXPR) []{ static_assert(EXPR, "assertion failed"); }
+ #define BUILD_ASSERT_DECL(EXPR) static_assert(EXPR, "assertion failed")
+ #elif defined(__cplusplus) && __cplusplus < 201103L
+ #include <boost/static_assert.hpp>
+diff --git a/lib/bitmap.h b/lib/bitmap.h
+index 0b62066c6..ac1523bfd 100644
+--- a/lib/bitmap.h
++++ b/lib/bitmap.h
+@@ -48,7 +48,7 @@ bitmap_n_bytes(size_t n_bits)
+ static inline unsigned long *
+ bitmap_allocate(size_t n_bits)
+ {
+-    return xzalloc(bitmap_n_bytes(n_bits));
++    return (unsigned long *) xzalloc(bitmap_n_bytes(n_bits));
+ }
+ 
+ /* Initializes bitmap to all-1-bits and returns the bitmap pointer. */
+@@ -70,13 +70,13 @@ bitmap_init1(unsigned long *bitmap, size_t n_bits)
+ static inline unsigned long *
+ bitmap_allocate1(size_t n_bits)
+ {
+-    return bitmap_init1(xmalloc(bitmap_n_bytes(n_bits)), n_bits);
++    return bitmap_init1((unsigned long *) xmalloc(bitmap_n_bytes(n_bits)), n_bits);
+ }
+ 
+ static inline unsigned long *
+ bitmap_clone(const unsigned long *bitmap, size_t n_bits)
+ {
+-    return xmemdup(bitmap, bitmap_n_bytes(n_bits));
++    return (unsigned long *) xmemdup(bitmap, bitmap_n_bytes(n_bits));
+ }
+ 
+ static inline void
+diff --git a/lib/unaligned.h b/lib/unaligned.h
+index f40e4e10d..ade692317 100644
+--- a/lib/unaligned.h
++++ b/lib/unaligned.h
+@@ -65,7 +65,7 @@ struct unaligned_##ABBREV {                     \
+     TYPE x __attribute__((__packed__));         \
+ };                                              \
+ static inline struct unaligned_##ABBREV *       \
+-unaligned_##ABBREV(const TYPE *p)               \
++unaligned_ovs_##ABBREV(const TYPE *p)           \
+ {                                               \
+     return (struct unaligned_##ABBREV *) p;     \
+ }                                               \
+@@ -73,13 +73,13 @@ unaligned_##ABBREV(const TYPE *p)               \
+ static inline TYPE                              \
+ get_unaligned_##ABBREV(const TYPE *p)           \
+ {                                               \
+-    return unaligned_##ABBREV(p)->x;            \
++    return unaligned_ovs_##ABBREV(p)->x;            \
+ }                                               \
+                                                 \
+ static inline void                              \
+ put_unaligned_##ABBREV(TYPE *p, TYPE x)         \
+ {                                               \
+-    unaligned_##ABBREV(p)->x = x;               \
++    unaligned_ovs_##ABBREV(p)->x = x;               \
+ }
+ 
+ GCC_UNALIGNED_ACCESSORS(uint16_t, u16);
+-- 
+2.20.1
+

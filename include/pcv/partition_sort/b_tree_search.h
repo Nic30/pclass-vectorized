@@ -179,10 +179,10 @@ public:
 		auto p = in_packet_position[dim];
 		const key_t * k = reinterpret_cast<const key_t *>(val_vec + p.offset);
 		if (p.size == 1) {
-			return *k;
+			return *reinterpret_cast<const uint8_t*>(k);
 		} else if (p.is_big_endian) {
 			assert(p.size == 2);
-			return __swab16p(((const key_t *)k));
+			return __swab16p(k);
 		} else {
 			assert(p.size == 2);
 			return *k;

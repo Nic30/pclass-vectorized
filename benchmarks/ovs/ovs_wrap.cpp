@@ -49,7 +49,7 @@ bool OvsWrap::insert(struct cls_rule *rule) {
 	}
 }
 
-void OvsWrap::insert(Rule_Ipv4_ACL &r, size_t prio) {
+OvsWrap::rule_id_t OvsWrap::insert(Rule_Ipv4_ACL &r, size_t prio) {
 	struct match match = rule_ipv4_acl_to_ovs_match(r);
 	struct cls_rule *rule = (struct cls_rule*) xzalloc(sizeof *rule);
 	int priority = prio;
@@ -57,9 +57,11 @@ void OvsWrap::insert(Rule_Ipv4_ACL &r, size_t prio) {
 	if (insert(rule)) {
 		// std::cout << r << " inserted" << std::endl;
 		ovs_rule_to_pcv_rule[rule] = &r;
+		return rule;
 	} else {
 		free(rule);
 		std::cout << r << " already exists" << std::endl;
+		return nullptr;
 	}
 }
 const Rule_Ipv4_ACL* OvsWrap::cls_rule_get_pcv_rule(const struct cls_rule *r) {

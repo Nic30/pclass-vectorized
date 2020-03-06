@@ -17,6 +17,16 @@ classifier_priv::classifier_priv() :
 
 void classifier_init(struct classifier *cls, const uint8_t *flow_segments) {
 	ovs_assert(flow_segments == nullptr && "not implemented");
+	std::vector<std::string> names = {
+			"nw_src-2", //
+			"nw_src-0", //
+			"nw_dst-2", //
+			"nw_dst-0", //
+			"tp_src", //
+			"tp_dst", //
+			"nw_proto",
+	};
+	sort_flow_packet_spec_fields(names);
 	cls->priv = new classifier_priv();
 	cls->publish = true;
 }

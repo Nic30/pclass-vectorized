@@ -2,6 +2,7 @@
 #include <pcv/utils/debug_timer.h>
 #include <iostream>
 #include <functional>
+#include <vector>
 
 namespace pcv {
 

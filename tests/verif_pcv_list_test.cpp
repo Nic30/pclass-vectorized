@@ -12,10 +12,10 @@
 #include <pcv/partition_sort/b_tree_remove.h>
 #include <pcv/partition_sort/b_tree_to_rules.h>
 #include <pcv/partition_sort/b_tree_impl.h>
+#include <pcv/partition_sort/partition_sort_classifier.h>
 #include <pcv/partition_sort/rule_value_int.h>
 #include <pcv/rule_parser/classbench_rule_parser.h>
 #include <pcv/rule_parser/trace_tools.h>
-#include <pcv/partition_sort/partition_sort_classifier.h>
 #include <pcv/utils/benchmark_common.h>
 
 #include "../benchmarks/list/list_classifier.h"
@@ -126,7 +126,7 @@ void verify_tree_content(const Classifier0 & cls,
 	}
 	BOOST_CHECK_EQUAL(rule_in_cls_cnt, expected_rules.size());
 
-	dump_trees(std::cout, cls);
+	//dump_trees(std::cout, cls);
 }
 
 void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,

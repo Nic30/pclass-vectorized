@@ -29,17 +29,17 @@ TRAC_CNTS = [
     '32768',
 ]
 ALGS = ['hash',
-        # 'b_tree', 
+        #'b_tree',
 ]
 ALGS_PREFIX = [
-    'tss',
-    # 'b_tree', 
+     'tss',
+    # 'b_tree',
 ]
 LOOKUP_CNTS = [
-    # '10000'
-    '1000000'
+    # '10000',
+    '1000000',
 ]
-PREFIXES = [str(i + 1) for i in range(63)]
+PREFIXES = [str(i + 1) for i in range(62)]
 
 
 def run_test(test, args):
@@ -125,7 +125,7 @@ def grouper(n, iterable, padvalue=None):
     return zip_longest(*[iter(iterable)] * n, fillvalue=padvalue)
 
 
-def build_graph_basic_throughput_X_prefix_cnt(args, results):
+def build_graph_basic_throughput_X_prefix_cnt(args, results, grupping_factor=11):
     fig, ax = plt.subplots(figsize=(8, 4))
     clsXlookup = {}
     # cls, prefix, traces, lookup
@@ -143,7 +143,7 @@ def build_graph_basic_throughput_X_prefix_cnt(args, results):
         _x = [int(v) for v in PREFIXES]
         # y = [r["lookup_speed"] for r in res ]
         # y = [r['lookup_speed'] for r in res]
-        for g in grouper(5, _x, padvalue=PREFIXES[-1]):
+        for g in grouper(grupping_factor, _x, padvalue=PREFIXES[-1]):
             y = []
             for r in res:
                 prefix_cnt = r['real_rule_cnt']
@@ -164,7 +164,7 @@ def build_graph_basic_throughput_X_prefix_cnt(args, results):
     # ax.boxplot(data)
 
     ax.set_ylabel('Throughput  [Mpps]')
-    ax.set_xlabel('TSS tables')
+    ax.set_xlabel('Number of rule masks')
     # ax.set_xlim([1, 32])
     # graph_defaults(ax)
 

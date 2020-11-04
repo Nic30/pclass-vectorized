@@ -1,6 +1,6 @@
 #!/bin/bash
 CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
-OVS_VERSION=v2.12.0
+OVS_VERSION=v2.13.0
 OVS_GIT=https://github.com/openvswitch/ovs.git
 
 # sudo apt install libunbound-dev

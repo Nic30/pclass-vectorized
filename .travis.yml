@@ -1,4 +1,4 @@
-dist: xenial
+dist: focal
 language: cpp
 sudo: true
 os: linux
@@ -7,22 +7,18 @@ cache:
 
 # for meson
 python:
-- '3.6'
+- '3.7'
 
 matrix:
   include:
-    - env: COMPILER_CXX=g++-8 COMPILER_CC=gcc-8 BUILD=Debug
+    - env: COMPILER_CXX=g++-9 COMPILER_CC=gcc-9 BUILD=Debug
       compiler: gcc
       addons:
         apt:
-          update: true
-          sources:
-            - sourceline: 'ppa:mhier/libboost-latest'
-            - ubuntu-toolchain-r-test
           packages:
-            - g++-8
-            - gcc-8
-            - boost1.67
+            - g++-9
+            - gcc-9
+            - libboost-dev-all
             - ninja-build
             - python3-pip
             - python3-setuptools

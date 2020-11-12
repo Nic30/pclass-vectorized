@@ -10,6 +10,7 @@ src = [
 
 PCV_EXTRA_CXX_ARGS = PCV_OPT + [
  	'-Wall',
+ 	'-std=c++17',
 ]
 PCV_EXTRA_C_ARGS = PCV_EXTRA_CXX_ARGS
 

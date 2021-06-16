@@ -46,3 +46,4 @@ build/
 # generated results
 test_results.db
 fig/
+benchmarks/test_data/

@@ -16,7 +16,7 @@ public:
 	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;
 	using KeyInfo = typename BTree::KeyInfo;
-	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
+	using KeyIterator = BTreeKeyIterator<Node, KeyInfo, typename BTree::NodeAllocator>;
 	using level_t = typename BTree::level_t;
 private:
 	static SearchResult search_closest_lower_or_equal_seq(const Node & node,
@@ -35,7 +35,8 @@ private:
 	}
 
 	// [TODO] replace pair with iterator
-	static std::pair<Node*, unsigned> search_closest_lower_or_equal_key(
+	template<typename ALLOCATOR_T>
+	static std::pair<Node*, unsigned> search_closest_lower_or_equal_key(ALLOCATOR_T & allocator,
 			Node * n, const key_t val) {
 		while (n) {
 			auto s = search_closest_lower_or_equal_seq(*n, val);
@@ -51,7 +52,7 @@ private:
 					return {n, s.val_index};
 				}
 			} else {
-				n = n->child(s.val_index);
+				n = n->child(allocator, s.val_index);
 			}
 		}
 		return {nullptr, 0};
@@ -86,12 +87,12 @@ public:
 					return false;
 				}
 				if (in_node_key_i + 1 == n->key_cnt) {
-					n = n->get_next_layer(in_node_key_i);
+					n = n->get_next_layer(tree.node_allocator, in_node_key_i);
 				}
 				continue;
 			}
 
-			auto p_low = search_closest_lower_or_equal_key(n, d_val.low);
+			auto p_low = search_closest_lower_or_equal_key(tree.node_allocator, n, d_val.low);
 			Range1d<key_t> lk;
 			bool lk_found = false;
 			if (p_low.first) {
@@ -136,7 +137,7 @@ public:
 
 			bool last_it = level == BTree::D - 1;
 			if (not last_it) {
-				n = p_low.first->get_next_layer(p_low.second);
+				n = p_low.first->get_next_layer(tree.node_allocator, p_low.second);
 				start_of_this_node = level;
 			}
 			// search the key which starts on the larger or equal to this one

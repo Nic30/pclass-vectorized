@@ -61,7 +61,8 @@ int main(int argc, const char *argv[]) {
 		//	HashTableBasedCls cls;
 		//	run_benchmark(cls, rules, packets, LOOKUP_CNT);
 	} else if (CLS_NAME == "b_tree") {
-		BTree cls;
+		BTree::NodeAllocator mempool(1024*1024);
+		BTree cls(mempool);
 		run_benchmark_struct(cls, rules, packets, LOOKUP_CNT);
 	} else {
 		throw runtime_error("Unsupported classifier");

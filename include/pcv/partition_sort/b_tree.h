@@ -63,8 +63,9 @@ public:
 	// specification of the rule for insert/remove ops
 	using rule_spec_t = std::pair<std::array<key_range_t, D>, rule_value_t>;
 	using Node = _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>;
+	using NodeAllocator = DynamicMempool<Node, false>;
 	static constexpr index_t INVALID_INDEX = Node::INVALID_INDEX;
-
+	NodeAllocator&node_allocator;
 	Node *root;
 	std::array<level_t, D> dimension_order;
 
@@ -73,17 +74,18 @@ public:
 	_BTree& operator=(_BTree const&) = delete;
 	// enable move constructor so it is possible to explicitly move the tree
 	_BTree(_BTree &&o) noexcept :
-			root(std::move(o.root)), dimension_order(
+			node_allocator(std::move(node_allocator)), root(std::move(o.root)), dimension_order(
 					std::move(o.dimension_order)) {
 	}
 	_BTree& operator=(_BTree &&o) noexcept {
+		node_allocator = std::move(node_allocator);
 		root = std::move(o.root);
 		dimension_order = std::move(o.dimension_order);
 		return *this;
 	}
 
-	_BTree() :
-			root(nullptr) {
+	_BTree(NodeAllocator &_node_allocator) :
+			node_allocator(_node_allocator), root(nullptr) {
 		for (size_t i = 0; i < dimension_order.size(); i++)
 			dimension_order[i] = i;
 	}

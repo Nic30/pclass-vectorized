@@ -117,7 +117,7 @@ public:
 				offset(_offset), size(_size), is_big_endian(_is_big_endian) {
 		}
 	};
-	using KeyIterator = BTreeKeyIterator<Node, KeyInfo>;
+	using KeyIterator = BTreeKeyIterator<Node, KeyInfo, typename BTree::NodeAllocator>;
 
 	const BTree & t;
 	using packet_spec_t = std::array<in_packet_position_t, cfg::D>;

@@ -5,6 +5,7 @@
 
 #include <pcv/rule_parser/trace_tools.h>
 #include <pcv/utils/benchmark_common.h>
+#include <pcv/partition_sort/dynamic_mempool.h>
 #include "run_benchmark.h"
 
 using namespace std;
@@ -21,8 +22,8 @@ int main(int argc, const char *argv[]) {
 	size_t LOOKUP_CNT = atoll(argv[3]);
 
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 7, (1<<16) - 1, 8>>;
-
-	BTree cls;
+	BTree::NodeAllocator mempool(1024*1024);
+	BTree cls(mempool);
 
 	// load rules from the file
 	vector<iParsedRule*> _rules;

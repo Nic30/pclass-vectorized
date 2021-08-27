@@ -26,17 +26,18 @@ public:
 	using level_t = typename BTree::level_t;
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_value_t = typename BTree::rule_value_t;
+	DynamicMempool<Node, false> &node_allocator;
 
 	/*
 	 * Information about insert state
 	 * */
 	class InsertCookie {
-		size_t total_levels_required_cnt(const rule_spec_t & rule_) const {
+		size_t total_levels_required_cnt(const rule_spec_t &rule_) const {
 			// iterate from the end of the rule ordered by dimension_order and check
 			// where is the last specified value for the field
 			for (int i = int(dimension_order.size()) - 1; i >= 0; i--) {
 				auto d = dimension_order[i];
-				auto & k = rule_.first[d];
+				auto &k = rule_.first[d];
 
 				if (not k.is_wildcard())
 					return i + 1;
@@ -46,14 +47,16 @@ public:
 			return 1;
 		}
 	public:
-		std::array<level_t, BTree::D> & dimension_order;
+		std::array<level_t, BTree::D> &dimension_order;
 		level_t level;
 		const level_t requires_levels;
-		const rule_spec_t & rule;
+		const rule_spec_t &rule;
+		DynamicMempool<Node, false> &node_allocator;
 
-		InsertCookie(BTree & tree, const rule_spec_t & rule_) :
+		InsertCookie(BTree &tree, const rule_spec_t &rule_) :
 				dimension_order(tree.dimension_order), level(0), requires_levels(
-						total_levels_required_cnt(rule_)), rule(rule_) {
+						total_levels_required_cnt(rule_)), rule(rule_), node_allocator(
+						tree.node_allocator) {
 			assert(requires_levels <= BTree::D);
 		}
 		inline Range1d<typename BTree::key_t> get_actual_key() const {
@@ -69,21 +72,22 @@ public:
 		}
 	};
 
-	inline static void insert(BTree & tree, const rule_spec_t & rule) {
+	inline static void insert(BTree &tree, const rule_spec_t &rule) {
 		InsertCookie cookie(tree, rule);
-		tree.root = insert(tree.root, cookie);
+		tree.root = insert(tree.node_allocator, tree.root, cookie);
 #ifndef NDEBUG
-		tree.root->integrity_check(cookie.dimension_order);
+		tree.root->integrity_check(tree.node_allocator, cookie.dimension_order);
 #endif
 	}
 
 	/*
 	 * Check if the inserting value is unique and perform the insert or the update
 	 */
-	static Node * insert(Node * root, InsertCookie & cookie) {
+	template<typename ALLOCATOR_T>
+	static Node* insert(ALLOCATOR_T & allocator, Node *root, InsertCookie &cookie) {
 		// search if there is some prefix already in decision tree because we do not
 		// want to duplicate keys which are already present
-		std::vector<std::tuple<Node *, Node *, level_t>> path;
+		std::vector<std::tuple<Node*, Node*, level_t>> path;
 		BTreeSearch_t::search_path(root, cookie.dimension_order, cookie.rule,
 				path, cookie.level);
 
@@ -102,10 +106,10 @@ public:
 					_insert_in_to_compressed(n, cookie, i + 1);
 				} else {
 					// insert to the next layer
-					Node * ins_root = n->get_next_layer(i);
+					Node *ins_root = n->get_next_layer(allocator, i);
 					ins_root = insert_to_root(ins_root, cookie);
 					// update ptr on next layer in previous layer
-					n->set_next_layer(i, ins_root);
+					n->set_next_layer(allocator, i, ins_root);
 				}
 			} else {
 				// rule prefix is already contained in tree
@@ -124,7 +128,7 @@ public:
 	 * The assumption is, the node must be non-full when this
 	 * function is called
 	 * */
-	static void insert_non_full(Node & node, InsertCookie & cookie) {
+	static void insert_non_full(Node &node, InsertCookie &cookie) {
 		// Initialise index as index of rightmost element
 		int i = int(node.key_cnt) - 1;
 		// If this is a leaf node
@@ -177,11 +181,11 @@ public:
 					i++;
 			}
 			assert(i >= 0);
-			Node * c = node.child(i);
+			Node *c = node.child(i);
 			insert_non_full(*c, cookie);
 		}
 	}
-	static void insert_in_to_compressed(Node * root, InsertCookie & cookie) {
+	static void insert_in_to_compressed(Node *root, InsertCookie &cookie) {
 		assert(root->is_compressed);
 		assert(root->is_leaf);
 		assert(root->key_cnt > 1);
@@ -204,8 +208,7 @@ public:
 		}
 		_insert_in_to_compressed(root, cookie, keep_keys_cnt);
 	}
-	static Node * decompress_node(Node * node,
-			uint8_t index_of_key_to_separate) {
+	static Node* decompress_node(Node *node, uint8_t index_of_key_to_separate) {
 		// if the key does not exists in the node new empty node is created and connected
 		// as new layer behind the last item
 		if (node->key_cnt <= index_of_key_to_separate) {
@@ -238,7 +241,7 @@ public:
 			// to other node
 
 			// extract the segment behind the first non matching item
-			Node * nnl = nullptr;
+			Node *nnl = nullptr;
 			auto keys_to_nnl_cnt = node->key_cnt - index_of_key_to_separate - 1;
 			if (keys_to_nnl_cnt) {
 				nnl = new Node;
@@ -278,7 +281,7 @@ public:
 	 * @param keep_keys_cnt the number of the same keys in the node
 	 * 	(same as the rule, that means that this keys should stay in this node as they are)
 	 * */
-	static void _insert_in_to_compressed(Node * root, InsertCookie & cookie,
+	static void _insert_in_to_compressed(Node *root, InsertCookie &cookie,
 			uint8_t keep_keys_cnt) {
 		assert(root->is_compressed);
 		assert(root->is_leaf);
@@ -315,7 +318,7 @@ public:
 	 *
 	 * @note just a copy of the
 	 * */
-	static void insert_compressed(Node * root, InsertCookie & cookie,
+	static void insert_compressed(Node *root, InsertCookie &cookie,
 			size_t keys_to_insert) {
 		assert(keys_to_insert <= BTree::D);
 		auto end = std::min(Node::MAX_DEGREE, root->key_cnt + keys_to_insert);
@@ -346,7 +349,7 @@ public:
 	/*
 	 * Allocate new node and insert the rule in it with an optional path compression
 	 * */
-	static Node * insert_in_to_new_node(InsertCookie & cookie) {
+	static Node* insert_in_to_new_node(InsertCookie &cookie) {
 		auto k = cookie.get_actual_key();
 		// Allocate memory for root
 		auto root = new Node;
@@ -383,7 +386,7 @@ public:
 	 * @param cookie which stores the state of insertion
 	 * @return new root of the tree
 	 * */
-	static Node * insert_to_root(Node * root, InsertCookie & cookie) {
+	static Node* insert_to_root(Node *root, InsertCookie &cookie) {
 		// If tree is empty
 		if (root == nullptr) {
 			root = insert_in_to_new_node(cookie);
@@ -409,7 +412,7 @@ public:
 			int i = 0;
 			if (s->get_key(0) < k)
 				i++;
-			Node * c = s->child(i);
+			Node *c = s->child(i);
 			insert_non_full(*c, cookie);
 			// Change root
 			root = s;
@@ -425,7 +428,7 @@ public:
 	 * @param i index of key which should be transfered to this node
 	 * @param y the child node
 	 **/
-	static void split_child(Node & node, unsigned i, Node & y) {
+	static void split_child(Node &node, unsigned i, Node &y) {
 		// y - left
 		// node - parent
 		// z - right

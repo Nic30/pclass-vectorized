@@ -3,18 +3,18 @@
 
 namespace pcv {
 
-template<typename Node, typename KeyInfo>
+template<typename Node, typename KeyInfo, typename ALLOCATOR_T>
 class BTreeKeyIterator {
 public:
 	class State {
 	public:
-		Node * actual;
+		Node *actual;
 		unsigned index;
 
-		bool operator!=(const State & other) const {
+		bool operator!=(const State &other) const {
 			return actual != other.actual or index != other.index;
 		}
-		bool operator==(const State & other) const {
+		bool operator==(const State &other) const {
 			return actual == other.actual and index == other.index;
 		}
 		void operator++() {
@@ -27,14 +27,16 @@ public:
 			return actual->get_key(index);
 		}
 	};
-
+	ALLOCATOR_T &node_allocator;
 	State _end;
 	State _begin;
 
-	BTreeKeyIterator(Node * root) :
-			BTreeKeyIterator(left_most(root), 0) {
+	BTreeKeyIterator(ALLOCATOR_T &node_allocator, Node *root) :
+			BTreeKeyIterator(node_allocator, left_most(root), 0) {
 	}
-	BTreeKeyIterator(Node * start_node, unsigned start_index) {
+	BTreeKeyIterator(ALLOCATOR_T &node_allocator, Node *start_node,
+			unsigned start_index) :
+			node_allocator(node_allocator) {
 		_begin.actual = start_node;
 		_begin.index = start_index;
 
@@ -42,21 +44,21 @@ public:
 		_end.index = 0;
 	}
 
-	static Node * left_most(Node * n) {
+	static Node* left_most(Node *n) {
 		while (n->child(0)) {
 			n = n->child(0);
 		}
 		return n;
 	}
 
-	constexpr State & end() {
+	constexpr State& end() {
 		return _end;
 	}
 
-	constexpr State & begin() {
+	constexpr State& begin() {
 		return _begin;
 	}
-	static unsigned index_of_child(Node *p, Node * ch) {
+	static unsigned index_of_child(Node *p, Node *ch) {
 		size_t i = 0;
 		for (; p != nullptr and i <= p->key_cnt; i++) {
 			if (p->child(i) == ch)
@@ -64,14 +66,14 @@ public:
 		}
 		return i;
 	}
-	static Node* get_most_left(Node * n) {
+	Node* get_most_left(Node *n) {
 		while (not n->is_leaf) {
-			n = n->child(0);
+			n = n->child(node_allocator, 0);
 		}
 		return n;
 	}
 
-	static std::pair<Node*, unsigned> get_most_left_after(Node * p, Node * ch) {
+	std::pair<Node*, unsigned> get_most_left_after(Node *p, Node *ch) {
 		while (p != nullptr) {
 			// move up to a parent node
 			size_t my_index = index_of_child(p, ch);
@@ -87,15 +89,14 @@ public:
 	// A function to get position of successor of keys[idx]
 	// @return next node and next index of key in it
 	// 		if there is no key after this one returns {nullptr, 0};
-	static std::pair<Node*, unsigned> getSucc_global(Node & node,
-			unsigned idx) {
+	std::pair<Node*, unsigned> getSucc_global(Node &node, unsigned idx) {
 		if (node.is_leaf) {
 			if (int(idx) < int(node.key_cnt) - 1) {
 				// move forward in this node
 				return {&node, idx + 1};
 			} else {
-				Node * p = node.parent;
-				Node * n = &node;
+				Node *p = node.parent;
+				Node *n = &node;
 				while (p) {
 					auto i = index_of_child(p, n);
 					if (i == p->key_cnt) {
@@ -109,15 +110,14 @@ public:
 				}
 				return {nullptr, 0};
 			}
-		} else if (node.child(idx + 1)) {
+		} else if (node.child(node_allocator, idx + 1)) {
 			// move on lowest in right sibling
 			return {get_most_left(node.child(idx + 1)), 0};
 		} else {
 			return get_most_left_after(node.parent, &node);
 		}
 	}
-	static std::pair<Node*, unsigned> getPred_global(Node & node,
-			unsigned idx) {
+	std::pair<Node*, unsigned> getPred_global(Node &node, unsigned idx) {
 		if (node.is_leaf) {
 			if (idx > 0) {
 				// move backward in this node
@@ -125,7 +125,7 @@ public:
 			} else {
 				// move to parent and check if there is key on left
 				// if there is not this is the 1st child and the value can be on the parent of the parent
-				Node * p = node.parent, *n = &node;
+				Node *p = node.parent, *n = &node;
 				while (p) {
 					size_t i = index_of_child(p, n);
 					if (i > 0) {

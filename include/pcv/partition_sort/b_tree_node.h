@@ -3,7 +3,8 @@
 #include <array>
 #include <set>
 //#include <pcv/partiton_sort/mempool_mockup.h>
-#include <pcv/partition_sort/mempool.h>
+//#include <pcv/partition_sort/mempool.h>
+#include <pcv/partition_sort/dynamic_mempool.h>
 
 namespace pcv {
 /*
@@ -13,19 +14,19 @@ namespace pcv {
  * @tparam cfg the class derived from pcv::_BTreeCfg which has parameters
  * 			   for specification of maximum sizes and other alg. configs
  * */
-template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
-		typename KeyInfo, typename key_range_t>
-class alignas(64) _BTreeNode: public ObjectWithStaticMempool<
-		_BTreeNode<cfg, level_t, rule_value_t, index_t,
-				KeyInfo, key_range_t>, cfg::MAX_NODE_CNT, false> {
+template<typename cfg, typename level_t, typename rule_value_t,
+		typename index_t, typename KeyInfo, typename key_range_t>
+class alignas(64) _BTreeNode: public ObjectWithDynamicMempool<
+		_BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>,
+		false> {
 public:
 	// T is the parameter which describes the size of the B-tree node
 	static constexpr size_t T = cfg::T;
 	// limit of number of items in the node
 	static constexpr size_t MIN_DEGREE = T - 1;
 	static constexpr size_t MAX_DEGREE = 2 * T - 1;
-	static constexpr index_t INVALID_INDEX =
-			std::numeric_limits<index_t>::max();
+	static constexpr index_t INVALID_INDEX = std::numeric_limits < index_t
+			> ::max();
 
 	// keys for the items in the node
 	__m256i keys[2];
@@ -114,11 +115,13 @@ public:
 	/*
 	 * Set pointer to next layer
 	 * */
-	inline void set_next_layer(unsigned index, _BTreeNode *next_layer_root) {
+	template<typename ALLOCATOR_T>
+	inline void set_next_layer(ALLOCATOR_T &allocator, unsigned index,
+			_BTreeNode *next_layer_root) {
 		if (next_layer_root == nullptr)
 			next_level[index] = INVALID_INDEX;
 		else
-			next_level[index] = _BTreeNode::_Mempool_t::getId(next_layer_root);
+			next_level[index] = allocator.getId(next_layer_root);
 	}
 
 	/*
@@ -131,51 +134,61 @@ public:
 	}
 
 	// get node from mempool from its index
-	static inline _BTreeNode& by_index(const index_t index) {
-		return *reinterpret_cast<_BTreeNode*>(_BTreeNode::_Mempool_t::getById(
-				index));
+	template<typename ALLOCATOR_T>
+	static inline _BTreeNode& by_index(ALLOCATOR_T &allocator,
+			const index_t index) {
+		return *reinterpret_cast<_BTreeNode*>(allocator.getById(index));
 	}
 
 	// get child node on specified index
-	inline _BTreeNode* child(const index_t index) {
+	template<typename ALLOCATOR_T>
+	inline _BTreeNode* child(ALLOCATOR_T &allocator, const index_t index) {
 		return const_cast<_BTreeNode*>(const_cast<const _BTreeNode*>(this)->child(
-				index));
+				allocator, index));
 	}
-	inline const _BTreeNode* child(const index_t index) const {
+	template<typename ALLOCATOR_T>
+	inline const _BTreeNode* child(ALLOCATOR_T &allocator,
+			const index_t index) const {
 		if (child_index[index] == INVALID_INDEX)
 			return nullptr;
 		else
-			return &by_index(child_index[index]);
+			return &by_index(allocator, child_index[index]);
 	}
 
 	// get root node of the next layer starting from this node on specified index
-	inline _BTreeNode* get_next_layer(unsigned index) {
-		return const_cast<_BTreeNode*>(const_cast<const _BTreeNode*>(this)->get_next_layer(
+
+	template<typename ALLOCATOR_T>
+	inline _BTreeNode* get_next_layer(ALLOCATOR_T &allocator, unsigned index) {
+		return const_cast<_BTreeNode*>(const_cast<const _BTreeNode*>(this)->get_next_layer(allocator,
 				index));
 	}
 	/*
 	 * @return the pointer on root of the next layer in the tree
 	 * */
-	inline const _BTreeNode* get_next_layer(unsigned index) const {
+	template<typename ALLOCATOR_T>
+	inline const _BTreeNode* get_next_layer(ALLOCATOR_T &allocator,
+			unsigned index) const {
 		auto i = next_level[index];
 		if (i == INVALID_INDEX)
 			return nullptr;
 		else
-			return &by_index(i);
+			return &by_index(allocator, i);
 	}
 
 	/*
 	 * @return number of the keys in this node and all subtrees
 	 * */
-	size_t size() const {
+
+	template<typename ALLOCATOR_T>
+	size_t size(ALLOCATOR_T &allocator) const {
 		size_t s = key_cnt;
 		for (size_t i = 0; i < key_cnt + 1u; i++) {
-			auto ch = child(i);
+			auto ch = child(allocator, i);
 			if (ch)
 				s += ch->size();
 		}
 		for (size_t i = 0; i < key_cnt; i++) {
-			auto nl = get_next_layer(i);
+			auto nl = get_next_layer(allocator, i);
 			if (nl)
 				s += nl->size();
 		}
@@ -192,8 +205,10 @@ public:
 #endif
 	}
 
-	inline void move_child(uint8_t src_i, _BTreeNode &dst, uint8_t dst_i) {
-		dst.set_child(dst_i, this->child(src_i));
+	template<typename ALLOCATOR_T>
+	inline void move_child(ALLOCATOR_T &allocator, uint8_t src_i,
+			_BTreeNode &dst, uint8_t dst_i) {
+		dst.set_child(dst_i, this->child(allocator, src_i));
 	}
 
 	/*
@@ -201,8 +216,9 @@ public:
 	 *
 	 * @note this node is source
 	 * */
-	inline void transfer_items(unsigned src_start, _BTreeNode &dst,
-			unsigned dst_start, unsigned key_cnt_) {
+	template<typename ALLOCATOR_T>
+	inline void transfer_items(ALLOCATOR_T &allocator, unsigned src_start,
+			_BTreeNode &dst, unsigned dst_start, unsigned key_cnt_) {
 		// Copying the keys from
 		auto end = src_start + key_cnt_;
 		for (unsigned i = src_start; i < end; ++i)
@@ -211,7 +227,7 @@ public:
 		// Copying the child pointers
 		if (not dst.is_leaf) {
 			for (unsigned i = src_start; i <= end; ++i) {
-				auto ch = child(i);
+				auto ch = child(allocator, i);
 				dst.set_child(i + dst_start, ch);
 				//dst.child_index[i + dst_start] = src.child_index[i];
 			}
@@ -234,7 +250,10 @@ public:
 	 * Check if the pointers in node are valid (recursively)
 	 * */
 #ifndef NDEBUG
-	void integrity_check(const std::array<level_t, cfg::D> &dimension_order,
+
+	template<typename ALLOCATOR_T>
+	void integrity_check(ALLOCATOR_T &allocator,
+			const std::array<level_t, cfg::D> &dimension_order,
 			std::set<_BTreeNode*> *seen = nullptr, size_t level = 0) {
 		std::set<_BTreeNode*> _seen;
 		if (seen == nullptr)
@@ -254,7 +273,7 @@ public:
 		if (not is_leaf) {
 			assert(not is_compressed);
 			for (size_t i = 0; i <= key_cnt; i++) {
-				auto ch = child(i);
+				auto ch = child(allocator, i);
 				assert(ch);
 				assert(ch->parent == this);
 				ch->integrity_check(dimension_order, seen, level);
@@ -262,7 +281,7 @@ public:
 		}
 		for (size_t i = 0; i < key_cnt; i++) {
 			get_key(i);
-			auto nl = get_next_layer(i);
+			auto nl = get_next_layer(allocator, i);
 			if (nl) {
 				assert(nl->parent == nullptr);
 				size_t l = level + 1;
@@ -277,33 +296,37 @@ public:
 	/*
 	 * @attention will delete the sub-tree recursively
 	 * */
-	~_BTreeNode() {
+	template<typename ALLOCATOR_T>
+	void destroy(ALLOCATOR_T &allocator) {
 		if (not is_leaf) {
 			for (uint8_t i = 0; i < key_cnt + 1; i++) {
-				delete child(i);
+				child(allocator, i).destroy(allocator);
 			}
 		}
 		for (uint8_t i = 0; i < key_cnt; i++) {
-			delete get_next_layer(i);
+			get_next_layer(allocator, i).destroy(allocator);
 		}
 	}
 }__attribute__((aligned(64)));
 
+template<typename cfg, typename level_t, typename rule_value_t,
+		typename index_t, typename KeyInfo, typename key_range_t>
+constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo,
+		key_range_t>::T;
 
-template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
-		typename KeyInfo, typename key_range_t>
-constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::T;
+template<typename cfg, typename level_t, typename rule_value_t,
+		typename index_t, typename KeyInfo, typename key_range_t>
+constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo,
+		key_range_t>::MIN_DEGREE;
 
-template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
-		typename KeyInfo, typename key_range_t>
-constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::MIN_DEGREE;
+template<typename cfg, typename level_t, typename rule_value_t,
+		typename index_t, typename KeyInfo, typename key_range_t>
+constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo,
+		key_range_t>::MAX_DEGREE;
 
-template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
-		typename KeyInfo, typename key_range_t>
-constexpr size_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::MAX_DEGREE;
-
-template<typename cfg, typename level_t, typename rule_value_t, typename index_t,
-		typename KeyInfo, typename key_range_t>
-constexpr index_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>::INVALID_INDEX;
+template<typename cfg, typename level_t, typename rule_value_t,
+		typename index_t, typename KeyInfo, typename key_range_t>
+constexpr index_t _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo,
+		key_range_t>::INVALID_INDEX;
 
 }

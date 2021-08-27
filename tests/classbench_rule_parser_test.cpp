@@ -67,7 +67,8 @@ BOOST_AUTO_TEST_CASE( parse_openflow_1 ) {
 
 template<typename BTree>
 void test_b_tree(const std::string & file_name) {
-	BTree t;
+	typename BTree::NodeAllocator mempool(1024*1024);
+	BTree t(mempool);
 
 	vector<iParsedRule*> _rules;
 	{

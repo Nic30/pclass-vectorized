@@ -7,6 +7,7 @@
 #include <pcv/partition_sort/b_tree_remove.h>
 #include <pcv/partition_sort/b_tree_printer.h>
 #include <pcv/partition_sort/b_tree_to_rules.h>
+#include <pcv/partition_sort/dynamic_mempool.h>
 #include <sstream>
 
 namespace pcv {
@@ -32,6 +33,7 @@ public:
 	using rule_id_t = typename BTree::rule_id_t;
 	using key_range_t = typename BTree::key_range_t;
 	using rule_spec_t = typename BTree::rule_spec_t;
+	using NodeAllocator = typename BTree::NodeAllocator;
 	using key_t = typename BTree::key_t;
 	using index_t = typename BTree::index_t;
 	using KeyInfo = typename BTree::KeyInfo;
@@ -51,17 +53,17 @@ public:
 	const names_t names;
 	Search_t searcher;
 
-	BTreeImp() :
-			BTree(), formaters(_default_formaters()), names(_default_names()), searcher(
+	BTreeImp(NodeAllocator & node_allocator) :
+			BTree(node_allocator), formaters(_default_formaters()), names(_default_names()), searcher(
 					*reinterpret_cast<const BTree*>(this)) {
 	}
-	BTreeImp(const formaters_t & _formaters, const names_t & _names) :
-			BTree(), formaters(_formaters), names(_names), searcher(
+	BTreeImp(NodeAllocator & node_allocator, const formaters_t & _formaters, const names_t & _names) :
+			BTree(node_allocator), formaters(_formaters), names(_names), searcher(
 					*reinterpret_cast<const BTree*>(this)) {
 	}
-	BTreeImp(const packet_spec_t & in_packet_pos, const formaters_t & _formaters,
+	BTreeImp(NodeAllocator & node_allocator, const packet_spec_t & in_packet_pos, const formaters_t & _formaters,
 			const names_t & _names) :
-			BTree(), formaters(_formaters), names(_names), searcher(
+			BTree(node_allocator), formaters(_formaters), names(_names), searcher(
 					*reinterpret_cast<const BTree*>(this), in_packet_pos) {
 	}
 	inline void insert(const rule_spec_t & r) {

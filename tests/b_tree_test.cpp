@@ -28,7 +28,8 @@ public:
 };
 
 void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
-	BTree t;
+	BTree::NodeAllocator mempool(N*16);
+	BTree t(mempool);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());

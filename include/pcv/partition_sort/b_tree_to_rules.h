@@ -51,7 +51,7 @@ private:
 				if (k.value.is_valid()) {
 					save_actual_path(k.value);
 				}
-				to_rules(n->get_next_layer(i), level + i + 1);
+				to_rules(n->get_next_layer(t.node_allocator, i), level + i + 1);
 			}
 			for (size_t i = 0; i < n->key_cnt; i++) {
 				size_t d = t.dimension_order[level + i];
@@ -59,7 +59,7 @@ private:
 			}
 #ifndef NDEBUG
 			for (size_t i = 0; i < size_t(n->key_cnt) + 1; i++) {
-				auto c = n->child(i);
+				auto c = n->child(t.node_allocator(), i);
 				assert(c == nullptr);
 			}
 #endif

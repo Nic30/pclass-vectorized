@@ -15,7 +15,8 @@ BOOST_AUTO_TEST_SUITE( pcv__testsuite )
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 2>>;
-	BTree t;
+	BTree::NodeAllocator mempool(1024);
+	BTree t(mempool);
 	using K = BTree::KeyInfo;
 
 	t.root = new BTree::Node;
@@ -25,7 +26,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	t.root->set_key_cnt(1);
 	auto nl = new BTree::Node;
 	nl->set_key_cnt(1);
-	t.root->set_next_layer(0, nl);
+	t.root->set_next_layer(mempool, 0, nl);
 
 	K k2( { 10, 20 }, {0, 10}, BTree::INVALID_INDEX);
 	nl->set_key(0, k2);
@@ -70,7 +71,8 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 
 BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 4>>;
-	BTree t;
+	BTree::NodeAllocator mempool(1024);
+	BTree t(mempool);
 
 	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
@@ -127,7 +129,8 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 
 BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 4>>;
-	BTree t;
+	BTree::NodeAllocator mempool(1024);
+	BTree t(mempool);
 
 	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
@@ -195,7 +198,8 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 	constexpr size_t D = 7;
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, D, 8, true>>;
 	using InsertCookie = typename BTree::Insert_t::InsertCookie;
-	BTree t;
+	BTree::NodeAllocator mempool(1024);
+	BTree t(mempool);
 	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;
 	using R1d = typename BTree::key_range_t;
@@ -228,7 +232,8 @@ BOOST_AUTO_TEST_CASE( insert_nearly_wildcard ) {
 
 BOOST_AUTO_TEST_CASE( rewrite_on_demand ) {
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 4>>;
-	BTree t;
+	BTree::NodeAllocator mempool(1024);
+	BTree t(mempool);
 
 	using V = typename BTree::key_vec_t;
 	using R = typename BTree::rule_spec_t;

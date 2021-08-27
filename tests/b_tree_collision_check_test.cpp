@@ -17,7 +17,8 @@ using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 2>>;
 void simple_collision_check(size_t N) {
 	size_t STEP = 10;
 	size_t SIZE = 4;
-	BTree t;
+	BTree::NodeAllocator mempool(N*16);
+	BTree t(mempool);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 
@@ -52,14 +53,17 @@ BOOST_AUTO_TEST_CASE( collision_check_wildcard ) {
 	R r0 = { { any, any }, { 0, 0 } };
 	R r1 = { { R1d(0, 0), R1d(4, 4), }, { 0, 1 } };
 	{
-		BTree t;
+		BTree::NodeAllocator mempool(1024);
+		BTree t(mempool);
 		t.insert(r0);
 		bool collide = t.does_rule_colide(r1);
 		BOOST_CHECK(collide);
 	}
 	R r3 = { { any, R1d(4, 4) }, { 0, 0 } };
 	{
-		BTree t2;
+
+		BTree::NodeAllocator mempool(1024);
+		BTree t2(mempool);
 		t2.insert(r3);
 		bool collide = t2.does_rule_colide(r1);
 		BOOST_CHECK(collide);

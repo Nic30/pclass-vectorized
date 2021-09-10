@@ -158,12 +158,12 @@ public:
 	constexpr size_t getId(const T *addr) const {
 		size_t id = (addr - reinterpret_cast<const T*>(&mempool[0]));
 #ifndef NDEBUG
+		assert(id < ITEM_CNT);
 		if (mempool_info[id].next_free != nullptr) {
 			throw std::runtime_error(
 					std::string("Item ") + std::to_string(id)
 							+ " is deallocated");
 		}
-		assert(id < ITEM_CNT);
 #endif
 		return id;
 	}

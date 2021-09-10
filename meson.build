@@ -5,8 +5,8 @@ PCV_OPT = [
  '-m64',
  '-march=haswell',
  '-mavx2',
- #'-O3', '-DNDEBUG',
- '-g',
+#'-O3', '-DNDEBUG',
+ '-O0', '-g3',
 ]
 
 subdir('src')

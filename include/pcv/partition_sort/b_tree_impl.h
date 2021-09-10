@@ -7,7 +7,7 @@
 #include <pcv/partition_sort/b_tree_remove.h>
 #include <pcv/partition_sort/b_tree_printer.h>
 #include <pcv/partition_sort/b_tree_to_rules.h>
-#include <pcv/partition_sort/dynamic_mempool.h>
+#include <pcv/partition_sort/mempool_dynamic.h>
 #include <sstream>
 
 namespace pcv {
@@ -22,11 +22,11 @@ template<typename cfg>
 class BTreeImp: public _BTree<cfg> {
 public:
 	using BTree = _BTree<cfg>;
-	using Insert_t = BTreeInsert<cfg>;
-	using CollisionCheck_t = BTreeCollisionCheck<cfg>;
-	using Search_t = BTreeSearch<cfg>;
-	using Remove_t = BTreeRemove<cfg>;
-	using ToRules = _BTreeToRules<cfg>;
+	using Insert_t = BTreeInsert<BTree>;
+	using CollisionCheck_t = BTreeCollisionCheck<BTree>;
+	using Search_t = BTreeSearch<BTree>;
+	using Remove_t = BTreeRemove<BTree>;
+	using ToRules = _BTreeToRules<BTree>;
 
 	static constexpr size_t D = BTree::D;
 	using Node = typename BTree::Node;
@@ -43,7 +43,7 @@ public:
 	using priority_t = typename BTree::priority_t;
 	using rule_value_t = typename BTree::rule_value_t;
 	using packet_spec_t = typename Search_t::packet_spec_t;
-	using Printer_t = BTreePrinter<cfg, formaters_t, names_t>;
+	using Printer_t = BTreePrinter<BTree, formaters_t, names_t>;
 
 	static constexpr index_t INVALID_INDEX = BTree::INVALID_INDEX;
 	static constexpr rule_id_t INVALID_RULE = BTree::INVALID_RULE;
@@ -52,38 +52,56 @@ public:
 	const formaters_t formaters;
 	const names_t names;
 	Search_t searcher;
+	Insert_t inserter;
+	CollisionCheck_t collision_checker;
+	Remove_t remover;
 
-	BTreeImp(NodeAllocator & node_allocator) :
-			BTree(node_allocator), formaters(_default_formaters()), names(_default_names()), searcher(
-					*reinterpret_cast<const BTree*>(this)) {
+	BTreeImp(NodeAllocator &node_allocator) :
+			BTree(node_allocator), formaters(_default_formaters()), names(
+					_default_names()), searcher(as_BTree()), inserter(
+					as_BTree()), collision_checker(as_BTree()), remover(
+					as_BTree()) {
 	}
-	BTreeImp(NodeAllocator & node_allocator, const formaters_t & _formaters, const names_t & _names) :
+	BTreeImp(NodeAllocator &node_allocator, const formaters_t &_formaters,
+			const names_t &_names) :
 			BTree(node_allocator), formaters(_formaters), names(_names), searcher(
-					*reinterpret_cast<const BTree*>(this)) {
+					as_BTree()), inserter(as_BTree()), collision_checker(
+					as_BTree()), remover(as_BTree()) {
 	}
-	BTreeImp(NodeAllocator & node_allocator, const packet_spec_t & in_packet_pos, const formaters_t & _formaters,
-			const names_t & _names) :
+	BTreeImp(NodeAllocator &node_allocator, const packet_spec_t &in_packet_pos,
+			const formaters_t &_formaters, const names_t &_names) :
 			BTree(node_allocator), formaters(_formaters), names(_names), searcher(
-					*reinterpret_cast<const BTree*>(this), in_packet_pos) {
+					*reinterpret_cast<const BTree*>(this), in_packet_pos), inserter(
+					as_BTree()), collision_checker(as_BTree()), remover(
+					as_BTree()) {
 	}
-	inline void insert(const rule_spec_t & r) {
-		Insert_t::insert(*reinterpret_cast<BTree*>(this), r);
+	inline BTree& as_BTree() {
+		return *reinterpret_cast<BTree*>(this);
 	}
-	inline bool does_rule_colide(const rule_spec_t & r) {
-		return CollisionCheck_t::does_rule_colide(
-				*reinterpret_cast<BTree*>(this), r);
+	inline void insert(const rule_spec_t &r) {
+		inserter.insert(r);
+	}
+	inline bool does_rule_colide(const rule_spec_t &r) {
+		return collision_checker.does_rule_colide(r);
 	}
 	template<typename search_val_t>
 	inline rule_value_t search(search_val_t v) const {
 		return searcher.search(v);
 	}
-	inline void remove(const rule_spec_t & r) {
-		Remove_t::remove(*this, r);
+	inline void remove(const rule_spec_t &r) {
+		remover.remove(r);
 	}
-
+	// get number of keys stored on all levels in tree (!= number of stored rules)
+	size_t size() const {
+		if (this->root)
+			return collision_checker.size(*this->root);
+		else
+			return 0;
+	}
 	// serialize graph to string in dot format
-	friend std::ostream & operator<<(std::ostream & str, const BTreeImp & t) {
-		Printer_t p(t.formaters, t.names);
+	friend std::ostream& operator<<(std::ostream &str, const BTreeImp &t) {
+		Printer_t p(const_cast<BTreeImp*>(&t)->as_BTree(), t.formaters,
+				t.names);
 		return p.print_top(str, t);
 	}
 	operator std::string() const {
@@ -98,6 +116,7 @@ public:
 				rule_vec_format::rule_vec_format_default<key_t>);
 		return f;
 	}
+
 	static names_t _default_names() {
 		names_t names;
 		for (size_t i = 0; i < D; i++) {

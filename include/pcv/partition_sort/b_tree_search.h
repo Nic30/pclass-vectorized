@@ -9,6 +9,7 @@
 #include <pcv/common/range.h>
 #include <pcv/partition_sort/b_tree.h>
 #include <pcv/partition_sort/b_tree_key_iterator.h>
+#include <pcv/partition_sort/b_tree_node_navigator.h>
 
 namespace pcv {
 
@@ -53,8 +54,8 @@ inline static __m256i __attribute__((__always_inline__)) _mm256_cmpgt_epu16(
 }
 
 template<typename T>
-SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
-		const Range1d<T> & val) {
+SearchResult search_seq(const __m256i *keys, const uint8_t key_cnt,
+		const Range1d<T> &val) {
 	SearchResult r;
 	for (r.val_index = 0; r.val_index < key_cnt; r.val_index++) {
 		auto cur = reinterpret_cast<const Range1d<T>*>(&keys[0])[r.val_index];
@@ -69,7 +70,7 @@ SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt,
 }
 
 template<typename T>
-SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt, T val) {
+SearchResult search_seq(const __m256i *keys, const uint8_t key_cnt, T val) {
 	SearchResult r;
 	for (r.val_index = 0; r.val_index < key_cnt; r.val_index++) {
 		auto cur = reinterpret_cast<const Range1d<T>*>(&keys[0])[r.val_index];
@@ -86,14 +87,13 @@ SearchResult search_seq(const __m256i * keys, const uint8_t key_cnt, T val) {
 }
 
 template<typename T>
-SearchResult search_avx2(const __m256i * keys, T val);
-
+SearchResult search_avx2(const __m256i *keys, T val);
 
 }
 
-template<typename cfg>
-class BTreeSearch {
-	using BTree = _BTree<cfg>;
+template<typename BTree>
+class BTreeSearch: _BTreeNodeNavigator<BTree> {
+	using _BTreeNodeNavigator<BTree>::_BTreeNodeNavigator;
 public:
 	using Node = typename BTree::Node;
 	using key_t = typename BTree::key_t;
@@ -117,38 +117,35 @@ public:
 				offset(_offset), size(_size), is_big_endian(_is_big_endian) {
 		}
 	};
-	using KeyIterator = BTreeKeyIterator<Node, KeyInfo, typename BTree::NodeAllocator>;
+	using KeyIterator = BTreeKeyIterator<BTree, KeyInfo>;
 
-	const BTree & t;
-	using packet_spec_t = std::array<in_packet_position_t, cfg::D>;
-	const packet_spec_t & in_packet_position;
+	using packet_spec_t = std::array<in_packet_position_t, BTree::D>;
+	const packet_spec_t &in_packet_position;
 	packet_spec_t default_in_packet_position;
 
 	/*
 	 * Constructor with specified in packet positions
 	 * */
-	BTreeSearch(const BTree & _t, const packet_spec_t & _in_packet_pos) :
-			t(_t), in_packet_position(_in_packet_pos) {
+	BTreeSearch(BTree &_t, const packet_spec_t &_in_packet_pos) :
+			_BTreeNodeNavigator<BTree>(_t), in_packet_position(_in_packet_pos) {
 	}
 
 	/*
 	 * Constructor with a dummy in_packet_position for just simple array of values
 	 * */
-	BTreeSearch(const BTree & _t) :
+	BTreeSearch(BTree &_t) :
 			BTreeSearch(_t, default_in_packet_position) {
-		for (uint16_t i = 0; i < cfg::D; i++) {
-			default_in_packet_position[i] = {
-				static_cast<uint16_t>(i*2),
-				2,
-				static_cast<uint8_t>(false)};
+		for (uint16_t i = 0; i < BTree::D; i++) {
+			default_in_packet_position[i] = { static_cast<uint16_t>(i * 2), 2,
+					static_cast<uint8_t>(false) };
 		}
 	}
 
 	template<typename T>
-	static SearchResult search_compressed_seq(const __m256i * keys,
-			const level_t * _dims __attribute__((unused)),
+	static SearchResult search_compressed_seq(const __m256i *keys,
+			const level_t *_dims __attribute__((unused)),
 			const uint8_t key_cnt __attribute__((unused)),
-			const Range1d<T> & val __attribute__((unused))) {
+			const Range1d<T> &val __attribute__((unused))) {
 		SearchResult r;
 		r.val_index = 0;
 		// search only the first position as this function is called only for the roots
@@ -160,8 +157,8 @@ public:
 	}
 
 	template<typename T>
-	static SearchResult search_compressed_seq(const __m256i * keys,
-			const level_t * _dims __attribute__((unused)),
+	static SearchResult search_compressed_seq(const __m256i *keys,
+			const level_t *_dims __attribute__((unused)),
 			const uint8_t key_cnt __attribute__((unused)), const T val) {
 		SearchResult r;
 		r.val_index = 0;
@@ -172,12 +169,12 @@ public:
 		r.in_range = k.in_range(val);
 		return r;
 	}
-	key_t get_val(const uint8_t * val_vec, level_t dim) const {
+	key_t get_val(const uint8_t *val_vec, level_t dim) const {
 #ifndef NDEBUG
 		assert(dim < in_packet_position.size());
 #endif
 		auto p = in_packet_position[dim];
-		const key_t * k = reinterpret_cast<const key_t *>(val_vec + p.offset);
+		const key_t *k = reinterpret_cast<const key_t*>(val_vec + p.offset);
 		if (p.size == 1) {
 			return *reinterpret_cast<const uint8_t*>(k);
 		} else if (p.is_big_endian) {
@@ -196,14 +193,14 @@ public:
 	 * @note if the node is compressed there may be some
 	 * */
 	template<typename Key_t>
-	static std::pair<Node*, unsigned> search_possition_1d(Node * n,
-			const Key_t val) {
+	std::pair<const Node*, unsigned> search_possition_1d(const Node *n,
+			const Key_t val) const {
 		while (n) {
 			//auto s = search_fn::search_avx2(n->keys, n->key_mask, val);
 			SearchResult s;
 			if (n->is_compressed) {
-				s = search_compressed_seq(n->keys, &n->dim_index[0],
-						n->key_cnt, val);
+				s = search_compressed_seq(n->keys, &n->dim_index[0], n->key_cnt,
+						val);
 			} else {
 				s = search_fn::search_seq(n->keys, n->key_cnt, val);
 			}
@@ -212,7 +209,7 @@ public:
 			} else if (n->is_leaf or n->is_compressed) {
 				return {nullptr, 0};
 			} else {
-				n = n->child(s.val_index);
+				n = this->child(*n, s.val_index);
 			}
 		}
 		return {nullptr, 0};
@@ -228,33 +225,33 @@ public:
 	//}
 
 	// A function to get predecessor of keys[idx] (only in the local subtree)
-	static typename BTree::KeyInfo getPred(Node & node, unsigned idx) {
+	typename BTree::KeyInfo getPred(Node &node, unsigned idx) {
 		// Keep moving to the right most node until we reach a leaf
-		auto cur = node.child(idx);
+		auto cur = this->child(node, idx);
 		while (!cur->is_leaf) {
-			cur = cur->child(cur->key_cnt);
+			cur = this->child(*cur, cur->key_cnt);
 		}
 		// Return the last key of the leaf
 		return cur->get_key(cur->key_cnt - 1);
 	}
 	// A function to get successor of keys[idx] (only in the local subtree)
-	static typename BTree::KeyInfo getSucc(Node & node, unsigned idx) {
+	typename BTree::KeyInfo getSucc(Node &node, unsigned idx) {
 		// Keep moving the left most node starting from child(idx+1) until we reach a leaf
-		auto * cur = node.child(idx + 1);
+		auto *cur = this->child(node, idx + 1);
 		while (not cur->is_leaf) {
-			cur = cur->child(0);
+			cur = this->child(*cur, 0);
 		}
 		// Return the first key of the leaf
 		return cur->get_key(0);
 	}
-	static KeyIterator iter_keys(BTree & tree) {
-		return KeyIterator(tree.root);
+	KeyIterator iter_keys() {
+		return KeyIterator(this->tree, this->tree.root);
 	}
-	static KeyIterator iter_keys(Node * start, unsigned start_i) {
-		return KeyIterator(start, start_i);
+	KeyIterator iter_keys(Node *start, unsigned start_i) {
+		return KeyIterator(this->tree, start, start_i);
 	}
 	// Find index of the key in this node
-	static unsigned findKey(Node & node, const Range1d<key_t> k) {
+	static unsigned findKey(Node &node, const Range1d<key_t> k) {
 		unsigned i = 0;
 		while (i < node.key_cnt && node.get_key(i) < k) {
 			++i;
@@ -265,15 +262,15 @@ public:
 	// @param _val value vector to search
 	// @param res id or best matching rule
 	// @param i dimension index (the index of the field index in the dimension_order array)
-	Node * search_rest_of_path_in_compressed_node(Node * n, const uint8_t * val_vec, rule_value_t & res,
-			unsigned & i) const {
+	const Node* search_rest_of_path_in_compressed_node(const Node *n,
+			const uint8_t *val_vec, rule_value_t &res, unsigned &i) const {
 		// first item was already checked in search_possition_1d
 		// find length of the sequence of the matching ranges in the items stored in node
 		auto v0 = n->value[0];
 		if (v0.is_valid()) {
 			res = v0;
 		}
-		Node * next_n = nullptr;
+		const Node *next_n = nullptr;
 		unsigned add_to_i = 0;
 		for (unsigned i2 = 1; i2 < n->key_cnt; i2++) {
 			auto k = n->get_key(i2);
@@ -286,7 +283,7 @@ public:
 			if (v.is_valid()) {
 				res = v;
 			}
-			auto _next_n = n->get_next_layer(i2);
+			auto _next_n = this->get_next_layer_const(*n, i2);
 			if (_next_n) {
 				// do not overwrite if there are some non matching items in this node
 				next_n = _next_n;
@@ -300,23 +297,24 @@ public:
 	 * Search in all levels of the tree
 	 *
 	 * */
-	rule_value_t search(const key_vec_t & _val) const {
-		const uint8_t * val_vec = (const uint8_t*) &_val[0];
+	rule_value_t search(const key_vec_t &_val) const {
+		const uint8_t *val_vec = (const uint8_t*) &_val[0];
 		return search(val_vec);
 	}
 
-	rule_value_t search(const uint8_t * val_vec) const {
+	rule_value_t search(const uint8_t *val_vec) const {
 		rule_value_t res;
-		Node * n = t.root;
+		const Node *n = this->tree.root;
 		unsigned i = 0;
 		while (n) {
-			auto d = t.dimension_order[i];
+			auto d = this->tree.dimension_order[i];
 			auto val = get_val(val_vec, d);
 			auto r = search_possition_1d(n, val);
 			n = r.first;
 			if (n) {
 				if (n->is_compressed) {
-					n = search_rest_of_path_in_compressed_node(n, val_vec, res, i);
+					n = search_rest_of_path_in_compressed_node(n, val_vec, res,
+							i);
 					continue;
 				}
 				auto v = n->value[r.second];
@@ -325,7 +323,7 @@ public:
 					res = v;
 				}
 				// search in next layer if there is some
-				n = n->get_next_layer(r.second);
+				n = this->get_next_layer_const(*n, r.second);
 				i++;
 			}
 		}
@@ -339,13 +337,13 @@ public:
 	 * 		the compressed node may be stored in the path multiple times if multiple keys are matching on the path
 	 * @param start the index of the item in rule vector where the search should start
 	 **/
-	static void search_path(Node * root,
-			const std::array<unsigned, BTree::D> & dimension_order,
-			const rule_spec_t & rule,
-			std::vector<std::tuple<Node *, Node *, unsigned>> & path,
+	void search_path(Node *root,
+			const std::array<unsigned, BTree::D> &dimension_order,
+			const rule_spec_t &rule,
+			std::vector<std::tuple<Node*, Node*, unsigned>> &path,
 			size_t start = 0) {
 		{
-			Node * n = root;
+			Node *n = root;
 			unsigned level = start;
 			while (n) {
 				auto d = dimension_order[level];
@@ -365,7 +363,7 @@ public:
 				{
 					auto n_d = r.first->get_dim(r.second);
 					assert(n_d == d);
-					auto nl = r.first->get_next_layer(r.second);
+					auto nl = this->get_next_layer_const(*r.first, r.second);
 					auto _d = dimension_order[level + 1];
 					if (nl != nullptr) {
 						auto nl_dim = nl->get_dim(0);
@@ -376,8 +374,8 @@ public:
 				// some matching rule found on path from the root in this node
 				// search in next layer if there is some
 				path.push_back(
-						std::tuple<Node *, Node *, unsigned>(n, r.first,
-								r.second));
+						std::tuple<Node*, Node*, unsigned>(n,
+								const_cast<Node*>(r.first), r.second));
 
 				if (r.first->is_compressed and r.second < n->key_cnt) {
 					// it is required to find the rest of the path in this compressed node
@@ -400,17 +398,18 @@ public:
 							break;
 						}
 						path.push_back(
-								std::tuple<Node *, Node *, unsigned>(n, n, i2));
+								std::tuple<Node*, Node*, unsigned>(n, n, i2));
 					}
 					if (not match) {
 						break;
 					}
 
 					level += n->key_cnt;
-					n = n->get_next_layer(n->key_cnt - 1);
+					n = this->get_next_layer(*n, n->key_cnt - 1);
 				} else {
 					level++;
-					n = r.first->get_next_layer(r.second);
+					n = this->get_next_layer(*const_cast<Node*>(r.first),
+							r.second);
 				}
 			}
 		}
@@ -432,7 +431,7 @@ public:
 					if (_n->is_compressed and _n == n) {
 						assert(i2 == _i2 + 1);
 					} else {
-						assert(r == _n->get_next_layer(_i2));
+						assert(r == this->get_next_layer(*_n, _i2));
 					}
 				}
 
@@ -442,7 +441,7 @@ public:
 				} else {
 					assert(
 							r->get_dim(0) == n->get_dim(0)
-							&& "root and node are from same tree");
+									&& "root and node are from same tree");
 				}
 				auto n_d = n->get_dim(i2);
 				auto l = start + i;

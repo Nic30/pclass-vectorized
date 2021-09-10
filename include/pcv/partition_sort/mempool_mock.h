@@ -11,7 +11,7 @@
 namespace pcv {
 
 /**
- * The template used override the new/delete operators to use statically callocated memory
+ * The template used override the new/delete operators to use statically allocated memory
  **/
 template<typename T, std::size_t ITEM_CNT, bool THREAD_SAFE>
 class StaticMempool final {

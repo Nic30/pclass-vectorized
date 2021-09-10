@@ -5,31 +5,37 @@
 
 namespace pcv {
 
-template<typename cfg>
-class BTreeRemove {
-	using BTree = _BTree<cfg>;
-	using BTreeSearch_t = BTreeSearch<cfg>;
+template<typename BTree>
+class BTreeRemove: _BTreeNodeNavigator<BTree> {
+	using BTreeSearch_t = BTreeSearch<BTree>;
 public:
 	using Node = typename BTree::Node;
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using key_t = typename BTree::key_t;
 	using rule_value_t = typename BTree::rule_value_t;
 
-	static void remove(BTree & tree, const rule_spec_t & k) {
-		std::vector<std::tuple<Node *, Node *, unsigned>> path;
+	BTreeSearch_t searcher;
+
+	BTreeRemove(BTree &_t) :
+			_BTreeNodeNavigator<BTree>(_t), searcher(_t) {
+	}
+
+	void remove(const rule_spec_t &k) {
+		std::vector<std::tuple<Node*, Node*, unsigned>> path;
 		path.reserve(64);
-		BTreeSearch_t::search_path(tree.root, tree.dimension_order, k, path);
+		searcher.search_path(this->tree.root, this->tree.dimension_order, k,
+				path);
 		//search in boom-up manner
 		for (int i = int(path.size()) - 1; i >= 0; i--) {
-			auto d = tree.dimension_order[i];
+			auto d = this->tree.dimension_order[i];
 			auto key = k.first[d];
 			// <node, index of item>
-			Node * root;
-			Node * node;
+			Node *root;
+			Node *node;
 			unsigned index;
-			Node * new_root;
+			Node *new_root;
 			std::tie(root, node, index) = path[i];
-			auto nl = node->get_next_layer(index);
+			auto nl = this->get_next_layer(*node, index);
 			if (nl) {
 				// delete only rule specification
 				node->value[index] = rule_value_t();
@@ -40,21 +46,21 @@ public:
 				// delete whole item in node
 				new_root = remove_1d(key, root);
 			}
-			if (root == tree.root) {
-				tree.root = new_root;
+			if (root == this->tree.root) {
+				this->tree.root = new_root;
 				// skip check of the parent as there is not any
 				break;
 			}
 
 			// replace next payer pointer in up level
-			Node * prev_root;
-			Node * prev_node;
+			Node *prev_root;
+			Node *prev_node;
 			unsigned prev_index;
 			std::tie(prev_root, prev_node, prev_index) = path.at(i - 1);
-			prev_node->set_next_layer(prev_index, nl);
+			this->set_next_layer(*prev_node, prev_index, nl);
 		}
 	}
-	static Node * remove_1d(const Range1d<key_t> & k, Node * current_root) {
+	Node* remove_1d(const Range1d<key_t> &k, Node *current_root) {
 		assert(current_root && "The tree is empty");
 
 		// Call the remove function for root
@@ -67,7 +73,7 @@ public:
 			if (current_root->is_leaf) {
 				current_root = nullptr;
 			} else {
-				current_root = current_root->child(0);
+				current_root = this->child(*current_root, 0);
 				current_root->parent = nullptr;
 			}
 			// Free the old root
@@ -80,7 +86,7 @@ public:
 	/* A wrapper function to remove the key k in subtree rooted with
 	 * this node.
 	 * */
-	static void remove(Node & node, Range1d<key_t> k) {
+	void remove(Node &node, Range1d<key_t> k) {
 		unsigned idx = BTreeSearch_t::findKey(node, k);
 
 		// The key to be removed is present in this node
@@ -106,17 +112,17 @@ public:
 			bool flag = idx == node.key_cnt;
 			// If the child where the key is supposed to exist has less that t keys,
 			// we fill that child
-			if (node.child(idx)->key_cnt < Node::MIN_DEGREE + 1) {
+			if (this->child(node, idx)->key_cnt < Node::MIN_DEGREE + 1) {
 				fill(node, idx);
 			}
 			// If the last child has been merged, it must have merged with the previous
 			// child and so we recurse on the (idx-1)th child. Else, we recurse on the
 			// (idx)th child which now has at least t keys
-			Node * c;
+			Node *c;
 			if (flag && idx > node.key_cnt) {
-				c = node.child(idx - 1);
+				c = this->child(node, idx - 1);
 			} else {
-				c = node.child(idx);
+				c = this->child(node, idx);
 			}
 			remove(*c, k);
 		}
@@ -124,9 +130,9 @@ public:
 	/* A function to remove the key present in idx-th position in
 	 * this node which is a leaf
 	 * */
-	static void removeFromLeaf(Node & node, unsigned idx) {
+	void removeFromLeaf(Node &node, unsigned idx) {
 		assert(
-				node.get_next_layer(idx) == nullptr
+				this->get_next_layer(node, idx) == nullptr
 						and "The remove has to be performed in bottom-up order");
 		// Move all the keys after the idx-th pos one place backward
 		for (unsigned i = idx + 1; i < node.key_cnt; ++i)
@@ -142,28 +148,29 @@ public:
 	 *
 	 * @param idx index of the key to remove
 	 */
-	static void removeFromNonLeaf(Node & node, unsigned idx) {
+	void removeFromNonLeaf(Node &node, unsigned idx) {
 		auto k = node.get_key(idx);
 
-		if (node.child(idx)->key_cnt >= Node::MIN_DEGREE + 1) {
+		if (this->child(node, idx)->key_cnt >= Node::MIN_DEGREE + 1) {
 			// If the child that precedes k (child(idx)) has atleast t keys,
 			// find the predecessor 'pred' of k in the subtree rooted at
 			// child(idx). Replace k by pred. Recursively delete pred
 			// in child(idx)
-			auto pred = BTreeSearch_t::getPred(node, idx);
+			auto pred = searcher.getPred(node, idx);
 			node.set_key(idx, pred);
-			auto c = node.child(idx);
+			auto c = this->child(node, idx);
 			remove(*c, pred.key);
 
-		} else if (node.child(idx + 1)->key_cnt >= Node::MIN_DEGREE + 1) {
+		} else if (this->child(node, idx + 1)->key_cnt
+				>= Node::MIN_DEGREE + 1) {
 			// If the child child(idx) has less that t keys, examine child(idx+1).
 			// If child(idx+1) has at least t keys, find the successor 'succ' of k in
 			// the subtree rooted at child(idx+1)
 			// Replace k by succ
 			// Recursively delete succ in child(idx+1)
-			auto succ = BTreeSearch_t::getSucc(node, idx);
+			auto succ = searcher.getSucc(node, idx);
 			node.set_key(idx, succ);
-			auto c = node.child(idx + 1);
+			auto c = this->child(node, idx + 1);
 			remove(*c, succ.key);
 
 		} else {
@@ -173,16 +180,16 @@ public:
 			// Now child(idx) contains 2t-1 keys
 			// Free child(idx+1) and recursively delete k from child(idx)
 			merge(node, idx);
-			auto c = node.child(idx);
+			auto c = this->child(node, idx);
 			remove(*c, k.key);
 		}
 	}
 	/* A function to borrow a key from child(idx-1) and insert it
 	 * into child(idx)
 	 * */
-	static void borrowFromPrev(Node & node, unsigned idx) {
-		Node * ch = node.child(idx);
-		Node * sib = node.child(idx - 1);
+	void borrowFromPrev(Node &node, unsigned idx) {
+		Node *ch = this->child(node, idx);
+		Node *sib = this->child(node, idx - 1);
 
 		// The last key from child(idx-1) goes up to the parent and key[idx-1]
 		// from parent is inserted as the first key in child(idx). Thus, the loses
@@ -203,8 +210,8 @@ public:
 
 		// Moving sibling's last child as child(idx)'s first child
 		if (!ch->is_leaf) {
-			auto _ch = sib->child(sib->key_cnt);
-			ch->set_child(0, _ch);
+			auto _ch = this->child(*sib, sib->key_cnt);
+			this->set_child(*ch, 0, _ch);
 			//ch->child_index[0] = sib->child_index[sib->key_cnt];
 		}
 		// Moving the key from the sibling to the parent
@@ -216,9 +223,9 @@ public:
 	}
 	// A function to borrow a key from the child(idx+1) and place
 	// it in child(idx)
-	static void borrowFromNext(Node & node, unsigned idx) {
-		Node* ch = node.child(idx);
-		Node* sib = node.child(idx + 1);
+	void borrowFromNext(Node &node, unsigned idx) {
+		Node *ch = this->child(node, idx);
+		Node *sib = this->child(node, idx + 1);
 
 		// keys[idx] is inserted as the last key in child(idx)
 		node.move_key(idx, *ch, ch->key_cnt);
@@ -226,8 +233,8 @@ public:
 		// Sibling's first child is inserted as the last child
 		// into child(idx)
 		if (!(ch->is_leaf)) {
-			auto _ch = sib->child(0);
-			ch->set_child(ch->key_cnt + 1, _ch);
+			auto _ch = this->child(*sib, 0);
+			this->set_child(*ch, ch->key_cnt + 1, _ch);
 			//ch->child_index[ch->key_cnt + 1] = sib->child_index[0];
 		}
 		//The first key from sib is inserted into keys[idx]
@@ -250,16 +257,16 @@ public:
 	}
 	// A function to merge child(idx) with child(idx+1)
 	// child(idx+1) is freed after merging
-	static void merge(Node & node, unsigned idx) {
-		auto ch = node.child(idx);
-		auto sib = node.child(idx + 1);
+	void merge(Node &node, unsigned idx) {
+		auto ch = this->child(node, idx);
+		auto sib = this->child(node, idx + 1);
 		assert(idx <= node.key_cnt);
 
 		node.move_key(idx, *ch, Node::MIN_DEGREE);
 
 		// Copying the keys from child(idx+1) to child(idx) at the end
 		// Copying the child pointers from child(idx+1) to child(idx)
-		sib->transfer_items(0, *ch, Node::MIN_DEGREE + 1, sib->key_cnt);
+		this->transfer_items(*sib, 0, *ch, Node::MIN_DEGREE + 1, sib->key_cnt);
 
 		// Moving all keys after idx in the current node one step before -
 		// to fill the gap created by moving keys[idx] to child(idx)
@@ -275,14 +282,17 @@ public:
 		delete sib;
 	}
 	// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
-	static void fill(Node & node, unsigned idx) {
-		if (idx != 0 && node.child(idx - 1)->key_cnt >= Node::MIN_DEGREE + 1) {
+	void fill(Node &node, unsigned idx) {
+		if (idx != 0
+				&& this->child(node, idx - 1)->key_cnt
+						>= Node::MIN_DEGREE + 1) {
 			// If the previous child(idx-1) has more than MIN_DEGREE-1 keys, borrow a key
 			// from that child
 			borrowFromPrev(node, idx);
 
 		} else if (idx != node.key_cnt
-				&& node.child(idx + 1)->key_cnt >= Node::MIN_DEGREE + 1) {
+				&& this->child(node, idx + 1)->key_cnt
+						>= Node::MIN_DEGREE + 1) {
 			// If the next child(idx+1) has more than t-1 keys, borrow a key
 			// from that child
 			borrowFromNext(node, idx);

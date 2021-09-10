@@ -22,7 +22,8 @@ int main(int argc, const char * argv[]) {
 
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 7, (1<<16) - 1, 8>>;
 	using Classifier = PartitionSortClassifer<BTree, 64, 10>;
-	Classifier cls;
+	Classifier::NodeAllocator mem(1024*1024);
+	Classifier cls(mem);
 
 	// load rules from the file
 	auto _rules = parse_ruleset_file(rule_file);

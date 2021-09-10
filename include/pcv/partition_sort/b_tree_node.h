@@ -2,9 +2,8 @@
 
 #include <array>
 #include <set>
-//#include <pcv/partiton_sort/mempool_mockup.h>
-//#include <pcv/partition_sort/mempool.h>
-#include <pcv/partition_sort/dynamic_mempool.h>
+#include <assert.h>
+
 
 namespace pcv {
 /*
@@ -16,9 +15,7 @@ namespace pcv {
  * */
 template<typename cfg, typename level_t, typename rule_value_t,
 		typename index_t, typename KeyInfo, typename key_range_t>
-class alignas(64) _BTreeNode: public ObjectWithDynamicMempool<
-		_BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>,
-		false> {
+class alignas(64) _BTreeNode {
 public:
 	// T is the parameter which describes the size of the B-tree node
 	static constexpr size_t T = cfg::T;
@@ -101,30 +98,6 @@ public:
 	}
 
 	/*
-	 * Set pointer to child node
-	 * */
-	inline void set_child(unsigned index, _BTreeNode *child) {
-		if (child == nullptr)
-			child_index[index] = INVALID_INDEX;
-		else {
-			child_index[index] = _BTreeNode::_Mempool_t::getId(child);
-			child->parent = this;
-		}
-	}
-
-	/*
-	 * Set pointer to next layer
-	 * */
-	template<typename ALLOCATOR_T>
-	inline void set_next_layer(ALLOCATOR_T &allocator, unsigned index,
-			_BTreeNode *next_layer_root) {
-		if (next_layer_root == nullptr)
-			next_level[index] = INVALID_INDEX;
-		else
-			next_level[index] = allocator.getId(next_layer_root);
-	}
-
-	/*
 	 * Set key_cnt and also update key_mask
 	 * */
 	inline void set_key_cnt(size_t key_cnt_) {
@@ -133,67 +106,6 @@ public:
 		key_mask = (1 << key_cnt_) - 1;
 	}
 
-	// get node from mempool from its index
-	template<typename ALLOCATOR_T>
-	static inline _BTreeNode& by_index(ALLOCATOR_T &allocator,
-			const index_t index) {
-		return *reinterpret_cast<_BTreeNode*>(allocator.getById(index));
-	}
-
-	// get child node on specified index
-	template<typename ALLOCATOR_T>
-	inline _BTreeNode* child(ALLOCATOR_T &allocator, const index_t index) {
-		return const_cast<_BTreeNode*>(const_cast<const _BTreeNode*>(this)->child(
-				allocator, index));
-	}
-	template<typename ALLOCATOR_T>
-	inline const _BTreeNode* child(ALLOCATOR_T &allocator,
-			const index_t index) const {
-		if (child_index[index] == INVALID_INDEX)
-			return nullptr;
-		else
-			return &by_index(allocator, child_index[index]);
-	}
-
-	// get root node of the next layer starting from this node on specified index
-
-	template<typename ALLOCATOR_T>
-	inline _BTreeNode* get_next_layer(ALLOCATOR_T &allocator, unsigned index) {
-		return const_cast<_BTreeNode*>(const_cast<const _BTreeNode*>(this)->get_next_layer(allocator,
-				index));
-	}
-	/*
-	 * @return the pointer on root of the next layer in the tree
-	 * */
-	template<typename ALLOCATOR_T>
-	inline const _BTreeNode* get_next_layer(ALLOCATOR_T &allocator,
-			unsigned index) const {
-		auto i = next_level[index];
-		if (i == INVALID_INDEX)
-			return nullptr;
-		else
-			return &by_index(allocator, i);
-	}
-
-	/*
-	 * @return number of the keys in this node and all subtrees
-	 * */
-
-	template<typename ALLOCATOR_T>
-	size_t size(ALLOCATOR_T &allocator) const {
-		size_t s = key_cnt;
-		for (size_t i = 0; i < key_cnt + 1u; i++) {
-			auto ch = child(allocator, i);
-			if (ch)
-				s += ch->size();
-		}
-		for (size_t i = 0; i < key_cnt; i++) {
-			auto nl = get_next_layer(allocator, i);
-			if (nl)
-				s += nl->size();
-		}
-		return s;
-	}
 	/*
 	 * Move key, value and next level pointer between two places
 	 * @note this node is source
@@ -203,35 +115,6 @@ public:
 #ifndef NDEBUG
 		dst.set_dim(dst_i, this->get_dim(src_i));
 #endif
-	}
-
-	template<typename ALLOCATOR_T>
-	inline void move_child(ALLOCATOR_T &allocator, uint8_t src_i,
-			_BTreeNode &dst, uint8_t dst_i) {
-		dst.set_child(dst_i, this->child(allocator, src_i));
-	}
-
-	/*
-	 * Copy keys, child pointers etc between the nodes
-	 *
-	 * @note this node is source
-	 * */
-	template<typename ALLOCATOR_T>
-	inline void transfer_items(ALLOCATOR_T &allocator, unsigned src_start,
-			_BTreeNode &dst, unsigned dst_start, unsigned key_cnt_) {
-		// Copying the keys from
-		auto end = src_start + key_cnt_;
-		for (unsigned i = src_start; i < end; ++i)
-			move_key(i, dst, i + dst_start);
-
-		// Copying the child pointers
-		if (not dst.is_leaf) {
-			for (unsigned i = src_start; i <= end; ++i) {
-				auto ch = child(allocator, i);
-				dst.set_child(i + dst_start, ch);
-				//dst.child_index[i + dst_start] = src.child_index[i];
-			}
-		}
 	}
 
 	/*
@@ -246,67 +129,6 @@ public:
 		}
 	}
 
-	/*
-	 * Check if the pointers in node are valid (recursively)
-	 * */
-#ifndef NDEBUG
-
-	template<typename ALLOCATOR_T>
-	void integrity_check(ALLOCATOR_T &allocator,
-			const std::array<level_t, cfg::D> &dimension_order,
-			std::set<_BTreeNode*> *seen = nullptr, size_t level = 0) {
-		std::set<_BTreeNode*> _seen;
-		if (seen == nullptr)
-			seen = &_seen;
-		assert(seen->find(this) == seen->end());
-		assert(key_cnt > 0);
-		assert(key_cnt <= MAX_DEGREE);
-		if (is_compressed) {
-			assert(is_leaf);
-			assert(key_cnt > 1);
-			for (size_t i = 0; i < key_cnt; i++) {
-				auto d = dimension_order.at(level + i);
-				auto actual_d = get_dim(i);
-				assert(d == actual_d);
-			}
-		}
-		if (not is_leaf) {
-			assert(not is_compressed);
-			for (size_t i = 0; i <= key_cnt; i++) {
-				auto ch = child(allocator, i);
-				assert(ch);
-				assert(ch->parent == this);
-				ch->integrity_check(dimension_order, seen, level);
-			}
-		}
-		for (size_t i = 0; i < key_cnt; i++) {
-			get_key(i);
-			auto nl = get_next_layer(allocator, i);
-			if (nl) {
-				assert(nl->parent == nullptr);
-				size_t l = level + 1;
-				if (is_compressed)
-					l += i;
-				nl->integrity_check(dimension_order, seen, l);
-			}
-		}
-	}
-#endif
-
-	/*
-	 * @attention will delete the sub-tree recursively
-	 * */
-	template<typename ALLOCATOR_T>
-	void destroy(ALLOCATOR_T &allocator) {
-		if (not is_leaf) {
-			for (uint8_t i = 0; i < key_cnt + 1; i++) {
-				child(allocator, i).destroy(allocator);
-			}
-		}
-		for (uint8_t i = 0; i < key_cnt; i++) {
-			get_next_layer(allocator, i).destroy(allocator);
-		}
-	}
 }__attribute__((aligned(64)));
 
 template<typename cfg, typename level_t, typename rule_value_t,

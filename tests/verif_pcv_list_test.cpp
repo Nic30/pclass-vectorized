@@ -130,7 +130,8 @@ void verify_tree_content(const Classifier0 & cls,
 
 void run_verification(const std::string & rule_file, size_t UNIQUE_TRACE_CNT,
 		size_t LOOKUP_CNT) {
-	Classifier0 cls0(rule_vec_format::Rule_Ipv4_ACL_formaters,
+	Classifier0::NodeAllocator mem0(1024*1024);
+	Classifier0 cls0(mem0, rule_vec_format::Rule_Ipv4_ACL_formaters,
 			rule_vec_format::Rule_Ipv4_ACL_names);
 	Classifier1 cls1(formater<Classifier1>);
 

@@ -5,7 +5,6 @@
 
 #include <pcv/rule_parser/trace_tools.h>
 #include <pcv/utils/benchmark_common.h>
-#include <pcv/partition_sort/dynamic_mempool.h>
 #include "run_benchmark.h"
 
 using namespace std;

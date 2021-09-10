@@ -27,7 +27,8 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges ) {
 	}
 
 	size_t i = 0;
-	for (auto k : BTree::Search_t::iter_keys(t)) {
+	BTree::Search_t search(t);
+	for (auto k : search.iter_keys()) {
 		BOOST_CHECK_EQUAL(k.key.low, i);
 		BOOST_CHECK_EQUAL(k.key.high, i);
 		i++;
@@ -47,7 +48,9 @@ BOOST_AUTO_TEST_CASE( iterate_100_ranges_backward ) {
 		t.insert(r);
 	}
 
-	auto _it = BTree::Search_t::iter_keys(t);
+
+	BTree::Search_t search(t);
+	auto _it = search.iter_keys();
 	auto it = _it.begin();
 	for (size_t i = 0; i < N - 1; i++) {
 		BOOST_CHECK_EQUAL((*it).key.low, i);

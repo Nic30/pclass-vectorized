@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	t.root->set_key_cnt(1);
 	auto nl = new BTree::Node;
 	nl->set_key_cnt(1);
-	t.root->set_next_layer(mempool, 0, nl);
+	t.collision_checker.set_next_layer(*t.root, 0, nl);
 
 	K k2( { 10, 20 }, {0, 10}, BTree::INVALID_INDEX);
 	nl->set_key(0, k2);
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE( ins_search_rem_4layer ) {
 		res = t.search(v1);
 		BOOST_CHECK_EQUAL(res.rule_id, 0);
 
-		BOOST_CHECK_EQUAL(t.root->get_next_layer(0), nullptr);
+		BOOST_CHECK_EQUAL(t.collision_checker.get_next_layer(*t.root, 0), nullptr);
 		R r1 = { { R1d(0, 0), R1d(1, 1), any, any }, {0, 1} };
 		t.insert(r1);
 
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE( rewrite_4layer ) {
 	BOOST_CHECK_EQUAL(t.root->key_cnt, 2);
 	BOOST_CHECK(not t.root->is_compressed);
 	BOOST_CHECK(t.root->is_leaf);
-	auto l1 = t.root->get_next_layer(1);
+	auto l1 = t.collision_checker.get_next_layer(*t.root, 1);
 
 	BOOST_CHECK(l1->is_compressed);
 	BOOST_CHECK(l1->is_leaf);

@@ -5,6 +5,7 @@
 
 #include <pcv/common/range.h>
 #include <pcv/partition_sort/b_tree_search.h>
+#include <pcv/partition_sort/b_tree_node_navigator.h>
 
 namespace pcv {
 
@@ -14,10 +15,9 @@ namespace pcv {
  * @tparam cfg the class derived from pcv::_BTreeCfg which has parameters
  *             for specification of maximum sizes and other alg. configs
  **/
-template<typename cfg>
-class BTreeInsert {
-	using BTree = _BTree<cfg>;
-	using BTreeSearch_t = BTreeSearch<cfg>;
+template<typename BTree>
+class BTreeInsert: _BTreeNodeNavigator<BTree> {
+	using BTreeSearch_t = BTreeSearch<BTree>;
 public:
 	using key_t = typename BTree::key_t;
 	using Node = typename BTree::Node;
@@ -26,7 +26,6 @@ public:
 	using level_t = typename BTree::level_t;
 	using KeyInfo = typename BTree::KeyInfo;
 	using rule_value_t = typename BTree::rule_value_t;
-	DynamicMempool<Node, false> &node_allocator;
 
 	/*
 	 * Information about insert state
@@ -51,7 +50,7 @@ public:
 		level_t level;
 		const level_t requires_levels;
 		const rule_spec_t &rule;
-		DynamicMempool<Node, false> &node_allocator;
+		typename BTree::NodeAllocator &node_allocator;
 
 		InsertCookie(BTree &tree, const rule_spec_t &rule_) :
 				dimension_order(tree.dimension_order), level(0), requires_levels(
@@ -72,24 +71,26 @@ public:
 		}
 	};
 
-	inline static void insert(BTree &tree, const rule_spec_t &rule) {
-		InsertCookie cookie(tree, rule);
-		tree.root = insert(tree.node_allocator, tree.root, cookie);
+	using _BTreeNodeNavigator<BTree>::_BTreeNodeNavigator;
+
+	inline void insert(const rule_spec_t &rule) {
+		InsertCookie cookie(this->tree, rule);
+		this->tree.root = insert(this->tree.root, cookie);
 #ifndef NDEBUG
-		tree.root->integrity_check(tree.node_allocator, cookie.dimension_order);
+		this->integrity_check(*(this->tree.root), cookie.dimension_order);
 #endif
 	}
 
 	/*
 	 * Check if the inserting value is unique and perform the insert or the update
 	 */
-	template<typename ALLOCATOR_T>
-	static Node* insert(ALLOCATOR_T & allocator, Node *root, InsertCookie &cookie) {
+	Node* insert(Node *root, InsertCookie &cookie) {
 		// search if there is some prefix already in decision tree because we do not
 		// want to duplicate keys which are already present
 		std::vector<std::tuple<Node*, Node*, level_t>> path;
-		BTreeSearch_t::search_path(root, cookie.dimension_order, cookie.rule,
-				path, cookie.level);
+		BTreeSearch_t searcher(this->tree);
+		searcher.search_path(root, cookie.dimension_order, cookie.rule, path,
+				cookie.level);
 
 		if (path.size()) {
 			cookie.level += path.size() - 1;
@@ -106,10 +107,10 @@ public:
 					_insert_in_to_compressed(n, cookie, i + 1);
 				} else {
 					// insert to the next layer
-					Node *ins_root = n->get_next_layer(allocator, i);
+					Node *ins_root = this->get_next_layer(*n, i);
 					ins_root = insert_to_root(ins_root, cookie);
 					// update ptr on next layer in previous layer
-					n->set_next_layer(allocator, i, ins_root);
+					this->set_next_layer(*n, i, ins_root);
 				}
 			} else {
 				// rule prefix is already contained in tree
@@ -128,8 +129,8 @@ public:
 	 * The assumption is, the node must be non-full when this
 	 * function is called
 	 * */
-	static void insert_non_full(Node &node, InsertCookie &cookie) {
-		// Initialise index as index of rightmost element
+	void insert_non_full(Node &node, InsertCookie &cookie) {
+		// Initialize index as index of rightmost element
 		int i = int(node.key_cnt) - 1;
 		// If this is a leaf node
 		auto k = cookie.get_actual_key();
@@ -158,9 +159,9 @@ public:
 			// continue on next layer if required
 			if (require_more_levels) {
 				cookie.level++;
-				auto nl = node.get_next_layer(i + 1);
+				auto nl = this->get_next_layer(node, i + 1);
 				nl = insert_to_root(nl, cookie);
-				node.set_next_layer(i + 1, nl);
+				this->set_next_layer(node, i + 1, nl);
 			}
 		} else {
 			// If this node is not leaf
@@ -170,9 +171,9 @@ public:
 
 			i++;
 			// See if the found child is full
-			if (node.child(i)->key_cnt == Node::MAX_DEGREE) {
+			if (this->child(node, i)->key_cnt == Node::MAX_DEGREE) {
 				// If the child is full, then split it
-				split_child(node, i, *node.child(i));
+				this->split_child(node, i, *this->child(node, i));
 
 				// After split, the middle key of C[i] goes up and
 				// C[i] is splitted into two. See which of the two
@@ -181,11 +182,11 @@ public:
 					i++;
 			}
 			assert(i >= 0);
-			Node *c = node.child(i);
+			Node *c = this->child(node, i);
 			insert_non_full(*c, cookie);
 		}
 	}
-	static void insert_in_to_compressed(Node *root, InsertCookie &cookie) {
+	void insert_in_to_compressed(Node *root, InsertCookie &cookie) {
 		assert(root->is_compressed);
 		assert(root->is_leaf);
 		assert(root->key_cnt > 1);
@@ -208,13 +209,13 @@ public:
 		}
 		_insert_in_to_compressed(root, cookie, keep_keys_cnt);
 	}
-	static Node* decompress_node(Node *node, uint8_t index_of_key_to_separate) {
+	Node* decompress_node(Node *node, uint8_t index_of_key_to_separate) {
 		// if the key does not exists in the node new empty node is created and connected
 		// as new layer behind the last item
 		if (node->key_cnt <= index_of_key_to_separate) {
 			assert(node->key_cnt == index_of_key_to_separate);
-			auto nl = new Node;
-			node->set_next_layer(index_of_key_to_separate - 1, nl);
+			auto nl = this->tree.node_allocator.get();
+			this->set_next_layer(*node, index_of_key_to_separate - 1, nl);
 			return nl;
 		} else if (index_of_key_to_separate == 0) {
 			if (node->key_cnt == 1) {
@@ -223,7 +224,7 @@ public:
 				return node;
 			}
 			// the re is something behind the first non matching key, wee need to to extract it to new node
-			auto nl = new Node;
+			auto nl = this->tree.node_allocator.get();
 			for (uint8_t i2 = 1; i2 < node->key_cnt; i2++) {
 				nl->set_key(i2 - 1, node->get_key(i2));
 				nl->set_dim(i2 - 1, node->get_dim(i2));
@@ -231,7 +232,7 @@ public:
 			nl->set_key_cnt(node->key_cnt - 1);
 			nl->is_compressed = nl->key_cnt > 1;
 
-			node->set_next_layer(0, nl);
+			this->set_next_layer(*node, 0, nl);
 			node->set_key_cnt(1);
 			node->is_compressed = false;
 			return node;
@@ -244,7 +245,7 @@ public:
 			Node *nnl = nullptr;
 			auto keys_to_nnl_cnt = node->key_cnt - index_of_key_to_separate - 1;
 			if (keys_to_nnl_cnt) {
-				nnl = new Node;
+				nnl = this->tree.node_allocator.get();
 				for (uint8_t i2 = 0; i2 < keys_to_nnl_cnt; i2++) {
 					auto i = index_of_key_to_separate + i2 + 1;
 					nnl->set_key(i2, node->get_key(i));
@@ -254,7 +255,7 @@ public:
 				nnl->is_compressed = nnl->key_cnt > 1;
 			}
 			// extract the non matching item
-			auto nl = new Node;
+			auto nl = this->tree.node_allocator.get();
 			nl->set_key(0, node->get_key(index_of_key_to_separate));
 #ifndef NDEBUG
 			nl->set_dim(0, node->get_dim(index_of_key_to_separate));
@@ -263,12 +264,12 @@ public:
 
 			// connect the layers together
 			assert(
-					node->get_next_layer(index_of_key_to_separate - 1)
+					this->get_next_layer(*node, index_of_key_to_separate - 1)
 							== nullptr);
-			node->set_next_layer(index_of_key_to_separate - 1, nl);
+			this->set_next_layer(*node, index_of_key_to_separate - 1, nl);
 			if (nnl) {
-				assert(nl->get_next_layer(0) == nullptr);
-				nl->set_next_layer(0, nnl);
+				assert(this->get_next_layer(*nl, 0) == nullptr);
+				this->set_next_layer(*nl, 0, nnl);
 			}
 			node->set_key_cnt(index_of_key_to_separate);
 			node->is_compressed = node->key_cnt > 1;
@@ -281,7 +282,7 @@ public:
 	 * @param keep_keys_cnt the number of the same keys in the node
 	 * 	(same as the rule, that means that this keys should stay in this node as they are)
 	 * */
-	static void _insert_in_to_compressed(Node *root, InsertCookie &cookie,
+	void _insert_in_to_compressed(Node *root, InsertCookie &cookie,
 			uint8_t keep_keys_cnt) {
 		assert(root->is_compressed);
 		assert(root->is_leaf);
@@ -297,9 +298,9 @@ public:
 			bool required_more_levels = cookie.level < cookie.requires_levels;
 			if (required_more_levels) {
 				// continue insert on next level
-				auto nl = root->get_next_layer(keep_keys_cnt - 1);
+				auto nl = this->get_next_layer(*root, keep_keys_cnt - 1);
 				nl = insert(nl, cookie);
-				root->set_next_layer(keep_keys_cnt - 1, nl);
+				this->set_next_layer(*root, keep_keys_cnt - 1, nl);
 			} else {
 				root->value[keep_keys_cnt - 1] = cookie.rule.second;
 			}
@@ -307,7 +308,7 @@ public:
 		} else {
 			auto n = decompress_node(root, keep_keys_cnt);
 #ifndef NDEBUG
-			n->integrity_check(cookie.dimension_order, nullptr, cookie.level);
+			this->integrity_check(*n, cookie.dimension_order, nullptr, cookie.level);
 #endif
 			insert(n, cookie);
 		}
@@ -318,7 +319,7 @@ public:
 	 *
 	 * @note just a copy of the
 	 * */
-	static void insert_compressed(Node *root, InsertCookie &cookie,
+	void insert_compressed(Node *root, InsertCookie &cookie,
 			size_t keys_to_insert) {
 		assert(keys_to_insert <= BTree::D);
 		auto end = std::min(Node::MAX_DEGREE, root->key_cnt + keys_to_insert);
@@ -339,9 +340,9 @@ public:
 		root->set_key_cnt(end);
 		if (cookie.required_more_levels()) {
 			cookie.level++;
-			auto end_next_level = root->get_next_layer(end - 1);
+			auto end_next_level = this->get_next_layer(*root, end - 1);
 			auto nl = insert_to_root(end_next_level, cookie);
-			root->set_next_layer(end - 1, nl);
+			this->set_next_layer(*root, end - 1, nl);
 		}
 		root->is_compressed = end > 1;
 	}
@@ -349,10 +350,10 @@ public:
 	/*
 	 * Allocate new node and insert the rule in it with an optional path compression
 	 * */
-	static Node* insert_in_to_new_node(InsertCookie &cookie) {
+	Node* insert_in_to_new_node(InsertCookie &cookie) {
 		auto k = cookie.get_actual_key();
 		// Allocate memory for root
-		auto root = new Node;
+		auto root = this->tree.node_allocator.get();
 
 		auto nl_cnt =
 				BTree::PATH_COMPRESSION and cookie.required_more_levels() ?
@@ -371,8 +372,8 @@ public:
 			root->set_key_cnt(1);
 			if (cookie.required_more_levels()) {
 				cookie.level++;
-				auto nl = insert_to_root(root->get_next_layer(0), cookie);
-				root->set_next_layer(0, nl);
+				auto nl = this->insert_to_root(this->get_next_layer(*root, 0), cookie);
+				this->set_next_layer(*root, 0, nl);
 			}
 		}
 		return root;
@@ -386,7 +387,7 @@ public:
 	 * @param cookie which stores the state of insertion
 	 * @return new root of the tree
 	 * */
-	static Node* insert_to_root(Node *root, InsertCookie &cookie) {
+	Node* insert_to_root(Node *root, InsertCookie &cookie) {
 		// If tree is empty
 		if (root == nullptr) {
 			root = insert_in_to_new_node(cookie);
@@ -398,11 +399,11 @@ public:
 			auto k = cookie.get_actual_key();
 			// If root is full, then tree grows in height
 			// Allocate memory for new root
-			Node *s = new Node;
+			Node *s = this->tree.node_allocator.get();
 			s->is_leaf = false;
 
 			// Make old root as child of new root
-			s->set_child(0, root);
+			this->set_child(*s, 0, root);
 			// Split the old root and move 1 key to the new root
 			split_child(*s, 0, *root);
 
@@ -412,7 +413,7 @@ public:
 			int i = 0;
 			if (s->get_key(0) < k)
 				i++;
-			Node *c = s->child(i);
+			Node *c = this->child(*s, i);
 			insert_non_full(*c, cookie);
 			// Change root
 			root = s;
@@ -428,14 +429,14 @@ public:
 	 * @param i index of key which should be transfered to this node
 	 * @param y the child node
 	 **/
-	static void split_child(Node &node, unsigned i, Node &y) {
+	void split_child(Node &node, unsigned i, Node &y) {
 		// y - left
 		// node - parent
 		// z - right
 
 		// Create a new node which is going to store (t-1) keys
 		// of y
-		Node *z = new Node;
+		Node *z = this->tree.node_allocator.get();
 		z->is_leaf = y.is_leaf;
 		z->set_key_cnt(Node::MIN_DEGREE);
 
@@ -447,8 +448,8 @@ public:
 		if (not y.is_leaf) {
 			for (unsigned j = 0; j < Node::MIN_DEGREE + 1; j++) {
 				// Copy the last t children of y to z
-				auto ch = y.child(Node::MIN_DEGREE + j + 1);
-				z->set_child(j, ch);
+				auto ch = this->child(y, Node::MIN_DEGREE + j + 1);
+				this->set_child(*z, j, ch);
 			}
 		}
 
@@ -459,11 +460,11 @@ public:
 		// Since this node is going to have a new child,
 		// create space of new child
 		for (int j = node.key_cnt; j >= int(i + 1); j--) {
-			node.move_child(j, node, j + 1);
+			this->move_child(node, j, node, j + 1);
 		}
 
 		// Link the new child to this node
-		node.set_child(i + 1, z);
+		this->set_child(node, i + 1, z);
 
 		// A key of y will move to this node. Find location of
 		// new key and move all greater keys one space ahead
@@ -476,7 +477,6 @@ public:
 		// Increment count of keys in this node
 		node.set_key_cnt(node.key_cnt + 1);
 	}
-
 };
 
 }

@@ -28,8 +28,10 @@ public:
 	using Tree = TREE_T;
 	using key_t = typename TREE_T::key_t;
 	using Node = typename TREE_T::Node;
+	using NodeAllocator = typename Tree::NodeAllocator;
 	using rule_spec_t = typename TREE_T::rule_spec_t;
 	using index_t = typename TREE_T::index_t;
+	using level_t = typename TREE_T::level_t;
 	using KeyInfo = typename TREE_T::KeyInfo;
 	using rule_id_t= typename TREE_T::rule_id_t;
 	using key_vec_t= typename TREE_T::key_vec_t;
@@ -67,17 +69,20 @@ public:
 		std::unordered_map<rule_mask_t, std::size_t, array_hasher<rule_mask_t>,
 				array_eq<rule_mask_t>> used_rule_masks;
 
-		tree_info() :
-				tree(), max_priority(0), used_dim_cnt(0), update_pending(false) {
-		}
-		tree_info(const formaters_t &_formaters, const names_t &_names) :
-				tree(_formaters, _names), max_priority(0), used_dim_cnt(0), update_pending(
+		tree_info(NodeAllocator &_node_allocator) :
+				tree(_node_allocator), max_priority(0), used_dim_cnt(0), update_pending(
 						false) {
 		}
-		tree_info(const packet_spec_t &in_packet_pos,
-				const formaters_t &_formaters, const names_t &_names) :
-				tree(in_packet_pos, _formaters, _names), max_priority(0), used_dim_cnt(
+		tree_info(NodeAllocator &_node_allocator, const formaters_t &_formaters,
+				const names_t &_names) :
+				tree(_node_allocator, _formaters, _names), max_priority(0), used_dim_cnt(
 						0), update_pending(false) {
+		}
+		tree_info(NodeAllocator &_node_allocator,
+				const packet_spec_t &in_packet_pos,
+				const formaters_t &_formaters, const names_t &_names) :
+				tree(_node_allocator, in_packet_pos, _formaters, _names), max_priority(
+						0), used_dim_cnt(0), update_pending(false) {
 		}
 	};
 	// The trees used for classification itself
@@ -89,23 +94,26 @@ public:
 	std::unordered_map<rule_spec_t, tree_info*, rule_spec_t_hasher<rule_spec_t>,
 			rule_spec_t_eq<rule_spec_t>> rule_to_tree;
 
-	PartitionSortClassifer() :
+	PartitionSortClassifer(NodeAllocator &_node_allocator) :
 			tree_cnt(0) {
 		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
-			trees[i] = new tree_info;
+			trees[i] = new tree_info(_node_allocator);
 		}
 	}
-	PartitionSortClassifer(const formaters_t &_formaters, const names_t &_names) :
-			tree_cnt(0) {
-		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
-			trees[i] = new tree_info(_formaters, _names);
-		}
-	}
-	PartitionSortClassifer(const packet_spec_t &in_packet_pos,
+	PartitionSortClassifer(NodeAllocator &_node_allocator,
 			const formaters_t &_formaters, const names_t &_names) :
 			tree_cnt(0) {
 		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
-			trees[i] = new tree_info(in_packet_pos, _formaters, _names);
+			trees[i] = new tree_info(_node_allocator, _formaters, _names);
+		}
+	}
+	PartitionSortClassifer(NodeAllocator &_node_allocator,
+			const packet_spec_t &in_packet_pos, const formaters_t &_formaters,
+			const names_t &_names) :
+			tree_cnt(0) {
+		for (size_t i = 0; i < MAX_TREE_CNT; i++) {
+			trees[i] = new tree_info(_node_allocator, in_packet_pos, _formaters,
+					_names);
 		}
 	}
 
@@ -136,7 +144,7 @@ public:
 		auto new_dim_order = resolver.resolve();
 		if (tree.dimension_order != new_dim_order.first) {
 			// rebuild the tree because it has sub-optimal dimension order
-			delete tree.root;
+			tree.destroy_node(tree.root);
 			tree.root = nullptr;
 			tree.dimension_order = new_dim_order.first;
 			ti.used_dim_cnt = new_dim_order.second;

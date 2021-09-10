@@ -26,8 +26,8 @@ BOOST_AUTO_TEST_CASE( simple_non_overlapping ) {
 	using rule_spec_t = typename BTree::rule_spec_t;
 	using key_vec_t = typename BTree::key_vec_t;
 	R1d any(0, numeric_limits<uint16_t>::max());
-
-	Classifier cls;
+	Classifier::NodeAllocator mem(1024);
+	Classifier cls(mem);
 	vector<rule_spec_t> rules;
 	// all this should fit in to a single tree where is only 1st dim used
 	for (BTree::rule_id_t i = 0; i < 5; i++) {
@@ -48,8 +48,8 @@ BOOST_AUTO_TEST_CASE( ruleset_acl1_100 ) {
 	constexpr size_t UNIQUE_TRACE_CNT = 128;
 	using BTree = BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, D>>;
 	using Classifier = PartitionSortClassifer<BTree, 32>;
-
-	Classifier cls;
+	Classifier::NodeAllocator mem(1024);
+	Classifier cls(mem);
 
 	vector<iParsedRule*> _rules;
 	RuleReader rp;

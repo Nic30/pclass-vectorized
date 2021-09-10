@@ -7,20 +7,21 @@
 #include <pcv/partition_sort/b_tree_impl.h>
 #include <pcv/partition_sort/rule_value_int.h>
 
-
 using namespace pcv;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE( pcv_testsuite )
 
-class BTree: public BTreeImp<_BTreeCfg<uint16_t, RuleValueInt, 2, 65000, 4, false>> {
+class BTree: public BTreeImp<
+		_BTreeCfg<uint16_t, RuleValueInt, 2, 65000, 4, false>> {
 public:
+	using BTreeImp::BTreeImp;
 	rule_value_t search(key_t _v) const {
 		key_vec_t v = { _v, _v };
 		return BTreeImp::search(v);
 	}
 
-	rule_value_t search(const std::vector<key_t> & _v) const {
+	rule_value_t search(const std::vector<key_t> &_v) const {
 		key_vec_t v;
 		std::copy(_v.begin(), _v.begin() + D, v.begin());
 		return BTreeImp::search(v);
@@ -28,7 +29,7 @@ public:
 };
 
 void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
-	BTree::NodeAllocator mempool(N*16);
+	typename BTree::NodeAllocator mempool(N * 16);
 	BTree t(mempool);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
@@ -59,8 +60,9 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 }
 
 void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
-	size_t allocated_node_cnt_before = BTree::Node::_Mempool_t::size();
-	BTree t;
+	typename BTree::NodeAllocator mem(1024 * 1024);
+	BTree t(mem);
+	size_t allocated_node_cnt_before = mem.size();
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
@@ -69,7 +71,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 				{ 0, i } };
 		t.insert(r);
 #ifndef NDEBUG
-		t.root->integrity_check(t.dimension_order);
+		t.collision_checker.integrity_check(*t.root, t.dimension_order);
 #endif
 	}
 
@@ -113,13 +115,13 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 		BOOST_CHECK_EQUAL_MESSAGE(res.rule_id, BTree::INVALID_RULE,
 				"searching:" << s << " i:" << i);
 	}
-	BOOST_CHECK_EQUAL(BTree::Node::_Mempool_t::size(),
-			allocated_node_cnt_before);
+	BOOST_CHECK_EQUAL(mem.size(), allocated_node_cnt_before);
 }
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
-	BTree t;
-	t.root = new BTree::Node;
+	typename BTree::NodeAllocator mem(1024 * 1024);
+	BTree t(mem);
+	t.root = mem.get();
 	BTree::KeyInfo k( { 4, 6 }, { 0, 10 }, BTree::INVALID_INDEX);
 
 	t.root->set_key(0, k);
@@ -141,7 +143,8 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert ) {
-	BTree t;
+	typename BTree::NodeAllocator mem(1024 * 1024);
+	BTree t(mem);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
@@ -176,7 +179,8 @@ BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {
 							14753 }, { 1433, 1433 }, { 5631, 5631 }, { 6000,
 							6000 }, { 1712, 1712 }, { 80, 80 }, { 1706, 1706 },
 					{ 1550, 1550 }, { 1706, 1706 }, { 5555, 5555 }, };
-	BTree t;
+	typename BTree::NodeAllocator mem(1024 * 1024);
+	BTree t(mem);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
@@ -193,14 +197,15 @@ BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {
 		//	o.close();
 		//}
 #ifndef NDEBUG
-		t.root->integrity_check(t.dimension_order);
+		t.collision_checker.integrity_check(*t.root, t.dimension_order);
 #endif
 		i++;
 	}
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert_same ) {
-	BTree t;
+	typename BTree::NodeAllocator mem(1024 * 1024);
+	BTree t(mem);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
@@ -209,12 +214,13 @@ BOOST_AUTO_TEST_CASE( simple_insert_same ) {
 		t.insert(r);
 	}
 #ifndef NDEBUG
-	t.root->integrity_check(t.dimension_order);
+	t.collision_checker.integrity_check(*t.root, t.dimension_order);
 #endif
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert_same_into_something ) {
-	BTree t;
+	typename BTree::NodeAllocator mem(1024);
+	BTree t(mem);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
 	R1d any(0, numeric_limits<BTree::key_t>::max());
@@ -227,7 +233,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_same_into_something ) {
 		t.insert(r);
 	}
 #ifndef NDEBUG
-	t.root->integrity_check(t.dimension_order);
+	t.collision_checker.integrity_check(*t.root, t.dimension_order);
 #endif
 }
 

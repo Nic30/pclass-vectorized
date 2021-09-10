@@ -5,26 +5,27 @@
 #include <functional>
 #include <string>
 #include <pcv/partition_sort/b_tree.h>
+#include <pcv/partition_sort/b_tree_node_navigator.h>
 
 namespace pcv {
 
-template<typename cfg,
-		typename formaters_t, typename names_t>
-class BTreePrinter {
-	using BTree = _BTree<cfg>;
+template<typename BTree, typename formaters_t, typename names_t>
+class BTreePrinter: public _BTreeNodeNavigator<BTree> {
+	using _BTreeNodeNavigator<BTree>::_BTreeNodeNavigator;
 public:
 	using Node = typename BTree::Node;
 	using key_t = typename BTree::key_t;
 
-	const formaters_t & formaters;
-	const names_t & names;
+	const formaters_t &formaters;
+	const names_t &names;
 
-	BTreePrinter(const formaters_t & _formaters, const names_t & _names) :
-			formaters(_formaters), names(_names) {
+	BTreePrinter(BTree &_t, const formaters_t &_formaters,
+			const names_t &_names) :
+			_BTreeNodeNavigator<BTree>(_t), formaters(_formaters), names(_names) {
 	}
 
-	void print_to_stream(std::ostream & str, const Node & n) const {
-		auto id = Node::_Mempool_t::getId(&n);
+	void print_to_stream(std::ostream &str, const Node &n) const {
+		auto id = this->tree.node_allocator.getId(&n);
 		/*
 		 * <id>
 		 * <key>[MAX_DEGREE]
@@ -33,7 +34,7 @@ public:
 
 		str << "node" << id << " [label=\"{ <label> " << id << " ";
 		if (n.parent) {
-			str << "(parent:" << Node::_Mempool_t::getId(n.parent) << ")";
+			str << "(parent:" << this->tree.node_allocator.getId(n.parent) << ")";
 		}
 		if (n.is_leaf) {
 			str << " leaf";
@@ -64,7 +65,7 @@ public:
 				}
 				str << " | ";
 				if (k.value.is_valid())
-					str << "p" << k.value.priority  << " r" << k.value.rule_id;
+					str << "p" << k.value.priority << " r" << k.value.rule_id;
 				str << "}";
 				str.flags(f);
 			}
@@ -88,7 +89,7 @@ public:
 		if (not n.is_leaf) {
 			// print child nodes
 			for (uint8_t i = 0; i < n.key_cnt + 1; i++) {
-				auto ch = n.child(i);
+				auto ch = this->child(n, i);
 				print_to_stream(str, *ch);
 			}
 			// print connections to them
@@ -98,7 +99,7 @@ public:
 			}
 		}
 		for (size_t i = 0; i < n.key_cnt; i++) {
-			auto nl = n.get_next_layer(i);
+			auto nl = this->get_next_layer_const(n, i);
 			if (nl) {
 				print_to_stream(str, *nl);
 				str << "    node" << id << ":range" << int(i) << " -> "
@@ -111,11 +112,11 @@ public:
 	}
 
 	// serialize graph to string in dot format
-	std::ostream & print_top(std::ostream & str, const BTree & t) {
+	std::ostream& print_top(std::ostream &str, const BTree &t) {
 		str << "digraph layered_btree {" << std::endl;
 		str << "    " << "node [shape=record];" << std::endl;
-		if (t.root)
-			print_to_stream(str, *t.root);
+		if (this->tree.root)
+			print_to_stream(str, *this->tree.root);
 		str << "}";
 		return str;
 	}

@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE( insert_search_manytimes_any_in_center ) {
 		auto k = t.root->get_key(i);
 		BOOST_CHECK_EQUAL(k.key.low, i == 0 ? 99 : 0);
 		BOOST_CHECK_EQUAL(k.value.rule_id, INV);
-		auto nl = t.root->get_next_layer(i);
+		auto nl = t.collision_checker.get_next_layer(*t.root, i);
 		if (i == 7 - 1) {
 			BOOST_CHECK_EQUAL(nl->key_cnt, 1);
 			auto k = nl->get_key(0);

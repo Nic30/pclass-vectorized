@@ -58,7 +58,6 @@ public:
 		mempool_info[mempool_info.size() - 1].next_free = &mempool_info.back();
 	}
 
-
 public:
 	size_t ITEM_CNT;
 	/*
@@ -73,7 +72,7 @@ public:
 			// this mempool was not even initialized yet
 			return 0;
 		}
-		while (i != mempool_info.end()) {
+		while (i != &mempool_info.back()) {
 			unused++;
 			i = i->next_free;
 			assert(unused <= ITEM_CNT);
@@ -85,10 +84,10 @@ public:
 	/*
 	 * Allocate raw memory for specified type
 	 * */
-	template<typename... Args>
-	T* get(Args... args) {
+	template<typename ... Args>
+	T* get(Args ... args) {
 		acquire_lock();
-		if (m_first_free == mempool_info.end()) {
+		if (m_first_free == &mempool_info.back()) {
 			throw std::bad_alloc(); // out of memory
 		}
 
@@ -115,7 +114,7 @@ public:
 	 * */
 	void release(T *addr) {
 		acquire_lock();
-		static_cast<const T*> (addr)->~T ();
+		static_cast<const T*>(addr)->~T();
 		size_t indx = addr - reinterpret_cast<T*>(&mempool[0][0]);
 		//std::cout << "release " << addr << " index" << indx << std::endl;
 		assert(indx < ITEM_CNT);
@@ -137,22 +136,7 @@ public:
 
 	void operator=(DynamicMempool const&) = delete;
 
-	~DynamicMempool() {
-		// count free items
-		// and check if all items were removed before deleting of this mempool
-		if (m_first_free != &mempool_info.back()) {
-			auto *item = m_first_free;
-			size_t cnt = 0;
-			while (item != &mempool_info.back()) {
-				cnt++;
-			}
-			if (cnt == ITEM_CNT)
-				return;
-		}
-		assert(0 && "There are still items in the mempool");
-	}
-
-	constexpr T* getById(size_t id) const {
+	constexpr T* getById(size_t id) {
 #ifndef NDEBUG
 		assert(id < ITEM_CNT);
 		if (mempool_info[id].next_free != nullptr) {
@@ -162,6 +146,10 @@ public:
 		}
 #endif
 		return reinterpret_cast<T*>(&(mempool[id][0]));
+	}
+
+	constexpr const T* getById(size_t id) const {
+		return const_cast<DynamicMempool*>(this)->getById(id);
 	}
 
 	constexpr size_t getId(const T *addr) const {
@@ -176,17 +164,21 @@ public:
 #endif
 		return id;
 	}
-};
 
-template<typename T, bool THREAD_SAFE = false>
-class ObjectWithDynamicMempool {
-public:
-	using _Mempool_t = DynamicMempool<T, THREAD_SAFE>;
-private:
-	//static void* operator new(std::size_t sz) = default;
-	//static void operator delete(void *ptr) = default;
-	//static void* operator new[](std::size_t count) = delete;
-	//friend class _Mempool_t;
+	~DynamicMempool() {
+		// count free items
+		// and check if all items were removed before deleting of this mempool
+		if (m_first_free != &mempool_info.back()) {
+			auto *item = m_first_free;
+			size_t cnt = 0;
+			while (item != &mempool_info.back()) {
+				cnt++;
+			}
+			if (cnt == ITEM_CNT)
+				return;
+		}
+		assert(0 && "There are still items in the mempool");
+	}
 };
 
 }

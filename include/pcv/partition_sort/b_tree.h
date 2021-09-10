@@ -15,6 +15,8 @@
 #include <pcv/common/range.h>
 #include <pcv/partition_sort/key_info.h>
 #include <pcv/partition_sort/b_tree_node.h>
+#include <pcv/partition_sort/b_tree_node_navigator.h>
+#include <pcv/partition_sort/mempool_dynamic.h>
 #include <pcv/rule_parser/rule.h>
 
 namespace pcv {
@@ -64,8 +66,10 @@ public:
 	using rule_spec_t = std::pair<std::array<key_range_t, D>, rule_value_t>;
 	using Node = _BTreeNode<cfg, level_t, rule_value_t, index_t, KeyInfo, key_range_t>;
 	using NodeAllocator = DynamicMempool<Node, false>;
+
 	static constexpr index_t INVALID_INDEX = Node::INVALID_INDEX;
-	NodeAllocator&node_allocator;
+
+	NodeAllocator &node_allocator;
 	Node *root;
 	std::array<level_t, D> dimension_order;
 
@@ -89,17 +93,23 @@ public:
 		for (size_t i = 0; i < dimension_order.size(); i++)
 			dimension_order[i] = i;
 	}
-
-	// get number of keys stored on all levels in tree (!= number of stored rules)
-	size_t size() const {
-		if (root)
-			return root->size();
-		else
-			return 0;
+	/*
+	 * @attention will delete the sub-tree recursively
+	 * */
+	void destroy_node(Node *n) {
+		_BTreeNodeNavigator<_BTree<cfg>> nn(*this);
+		if (!n->is_leaf) {
+			for (uint8_t i = 0; i < n->key_cnt + 1; i++) {
+				destroy_node(nn.child(*n, i));
+			}
+		}
+		for (uint8_t i = 0; i < n->key_cnt; i++) {
+			destroy_node(nn.get_next_layer(*n, i));
+		}
+		node_allocator.release(n);
 	}
-
 	~_BTree() {
-		delete root;
+		destroy_node(root);
 		root = nullptr;
 	}
 

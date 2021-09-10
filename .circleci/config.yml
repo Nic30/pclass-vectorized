@@ -1,0 +1,65 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+  py: nic30/python-all-in-1@0.2.47
+
+jobs:
+  install-test-coverage:
+    # executor: python/default
+    resource_class: medium
+    docker:
+      - image: circleci/buildpack-deps:groovy
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+      # - python/load-cache
+      - run: sudo apt update
+      - run: sudo apt install -y \
+      		build-essential\
+      		ninja-build\
+      		python3-pip\
+	        python3-setuptools\
+                libboost-all-dev\
+            	libunbound-dev\
+            	openssl
+      - run:
+          command: |
+            sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10;
+            sudo update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10;
+
+      - run:
+          command: |
+            sudo pip3 install meson;
+            gcc -v;
+            python --version;
+            cmake --version;
+            free;
+      - py/install-gcov: {}
+      #- run:
+      #    command: |
+      #      echo export CXXFLAGS=\"$CXXFLAGS --param ggc-min-expand=1 --param ggc-min-heapsize=32768\" >> "$BASH_ENV"
+        - 
+  #- pushd benchmarks/ovs/
+  #- bash ovs_prepare.sh
+  #- popd
+      - run:
+          command: mkdir build; meson build; cd build
+          #- meson configure -Dovs_test_app=true
+      - run: ninja && ninja test && cat meson-logs/testlog.txt
+
+
+workflows:
+  main:
+    jobs:
+      - install-test-coverage:
+          filters:
+            tags:
+              only: /.*/
+      - install-test-deploy:
+          requires:
+            - install-test-coverage
+          filters:
+            tags:
+              only: /.*/

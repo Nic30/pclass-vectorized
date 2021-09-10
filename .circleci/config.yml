@@ -56,9 +56,3 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - install-test-deploy:
-          requires:
-            - install-test-coverage
-          filters:
-            tags:
-              only: /.*/

@@ -1,4 +1,4 @@
-# pclass-vectorized [![Build Status](https://travis-ci.org/Nic30/pclass-vectorized.svg?branch=master)](https://travis-ci.org/Nic30/pclass-vectorized)
+# pclass-vectorized [![CircleCI](https://circleci.com/gh/Nic30/pclass-vectorized/tree/master.svg?style=svg)](https://circleci.com/gh/Nic30/pclass-vectorized/tree/master)
 Library of packet classification algorithms suitable for OpenFlow switches
 
 
@@ -40,12 +40,12 @@ ninja test
 How to build OvS switch with this library.
 
 * after previous step you should have a `libpcv.so` and `build/benchmarks/ovs/ovs_pcv/` build directory
-* `ovs_pcv/` contains 
+* `ovs_pcv/` contains
 * in generated makefile there should be variables `vswitchd_ovs_vswitchd_OBJECTS` `vswitchd_ovs_vswitchd_LDADD`
   In order to build ovs with this library you have to manually substitute the objects produced from `benchmarks/ovs/ovs_api/`, add include directories and set `CC=g++`. All described is far from ideal. Integration of custom build target to a OvS autotools build is planed.
 
 ### Layered B-trees
-Layered B-trees in this library is the [multidimensional interval tree](https://github.com/Nic30/pclass-vectorized/blob/master/include/pcv/partition_sort/b_tree.h#L67). 
+Layered B-trees in this library is the [multidimensional interval tree](https://github.com/Nic30/pclass-vectorized/blob/master/include/pcv/partition_sort/b_tree.h#L67).
 
 Like the trie datastructure the Layered B-tree is diveded in to levels which performs [the classification on specific subset of bits](https://github.com/Nic30/pclass-vectorized/blob/master/include/pcv/partition_sort/b_tree_search.h#L312) from packet headers.
 
@@ -57,7 +57,7 @@ Each interval stored in B-tree may have pointer [on tree in next level](https://
 
 
 #### Path compression
-To prevent the long paths trough the levels of tree which contains nodes only with the single key it is possible to utilize path compression. Path compression takes segment of such a nodes and replaces it with the single node which contains the keys from all the nodes on path. 
+To prevent the long paths trough the levels of tree which contains nodes only with the single key it is possible to utilize path compression. Path compression takes segment of such a nodes and replaces it with the single node which contains the keys from all the nodes on path.
 
 The compressed nodes behave like a vector of the keys.
 
@@ -87,7 +87,7 @@ In this library the multidimensional RB-tree is replaced with the Layered B-tree
 
 * Main datastructure of classifier: list of b-trees (`O(log n)` lookup/update time but weakness to rule replication, ideal field match order resolution problem in `NP`)
 
-* Rule replication workaround (the problem where an overlapping rule can exponentially increase memory consumption): 
+* Rule replication workaround (the problem where an overlapping rule can exponentially increase memory consumption):
 
   * Multiple classifiers used to separate overlapping rules as much as possible in cost of potentionally additional lookup time [0].
 
@@ -96,7 +96,7 @@ In this library the multidimensional RB-tree is replaced with the Layered B-tree
 * Lookup speed improvements:
 
   * memory access optimisations:
-     
+
      * tree node optimised to fit in cache lines, AVX2
 
      * memory pool and index of object instead of pointers to minimise the memory used on pointers in tree-nodes
@@ -108,6 +108,6 @@ In this library the multidimensional RB-tree is replaced with the Layered B-tree
   * interval (the key of tree-node) format optimised for cache locality and AVX2
 
 
-[0] Kirill Kogan, Sergey Nikolenko, Ori Rottenstreich, William Culhane, and Patrick Eugster. 2014. SAX-PAC (Scalable And eXpressive PAcket Classification). SIGCOMM Comput. Commun. Rev. 44, 4 (August 2014), 15-26. DOI: https://doi.org/10.1145/2740070.2626294 
+[0] Kirill Kogan, Sergey Nikolenko, Ori Rottenstreich, William Culhane, and Patrick Eugster. 2014. SAX-PAC (Scalable And eXpressive PAcket Classification). SIGCOMM Comput. Commun. Rev. 44, 4 (August 2014), 15-26. DOI: https://doi.org/10.1145/2740070.2626294
 
 [1] S. Yingchareonthawornchai, J. Daly, A. X. Liu and E. Torng, "A sorted partitioning approach to high-speed and fast-update OpenFlow classification," 2016 IEEE 24th International Conference on Network Protocols (ICNP), Singapore, 2016, pp. 1-10. doi: 10.1109/ICNP.2016.7784429

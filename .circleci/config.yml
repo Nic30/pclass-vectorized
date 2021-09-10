@@ -46,7 +46,7 @@ jobs:
       - run:
           command: mkdir build; meson build; cd build
           #- meson configure -Dovs_test_app=true
-      - run: ninja && ninja test && cat meson-logs/testlog.txt
+      - run: cd build && ninja && ninja test && cat meson-logs/testlog.txt
 
 
 workflows:

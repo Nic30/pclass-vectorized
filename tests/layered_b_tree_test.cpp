@@ -19,12 +19,12 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 	BTree t(mempool);
 	using K = BTree::KeyInfo;
 
-	t.root = new BTree::Node;
+	t.root = t.node_allocator.get();
 	K k( { 4, 6 }, {0, 9}, BTree::INVALID_INDEX);
 
 	t.root->set_key(0, k);
 	t.root->set_key_cnt(1);
-	auto nl = new BTree::Node;
+	auto nl = t.node_allocator.get();
 	nl->set_key_cnt(1);
 	t.collision_checker.set_next_layer(*t.root, 0, nl);
 

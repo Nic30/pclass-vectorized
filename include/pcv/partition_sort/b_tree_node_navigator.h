@@ -47,7 +47,7 @@ public:
 		return *reinterpret_cast<Node*>(tree.node_allocator.getById(index));
 	}
 
-	inline const Node* child(const Node &n, index_t index) const {
+	inline const Node* child_const(const Node &n, index_t index) const {
 		if (n.child_index[index] == INVALID_INDEX)
 			return nullptr;
 		else
@@ -57,7 +57,8 @@ public:
 
 	// get child node on specified index
 	inline Node* child(Node &n, const index_t index) {
-		return const_cast<Node*>(child(n, index));
+		return const_cast<Node*>(const_cast<_BTreeNodeNavigator<BTree>*>(this)->child_const(
+				n, index));
 	}
 
 	/*
@@ -87,7 +88,7 @@ public:
 	size_t size(const Node &n) const {
 		size_t s = n.key_cnt;
 		for (size_t i = 0; i < n.key_cnt + 1u; i++) {
-			auto ch = child(n, i);
+			auto ch = child_const(n, i);
 			if (ch)
 				s += size(*ch);
 		}

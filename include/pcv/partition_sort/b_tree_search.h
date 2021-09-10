@@ -209,7 +209,7 @@ public:
 			} else if (n->is_leaf or n->is_compressed) {
 				return {nullptr, 0};
 			} else {
-				n = this->child(*n, s.val_index);
+				n = this->child_const(*n, s.val_index);
 			}
 		}
 		return {nullptr, 0};

@@ -13,11 +13,13 @@ namespace pcv {
  * The template used override the new/delete operators to use statically callocated memory
  **/
 template<typename T, bool THREAD_SAFE>
-class alignas(64) DynamicMempool {
+class DynamicMempool {
 
 	// the T type is not used as we do not want to call constructor for unallocated memory
 	// index of the next free node
-	using mem_of_obj_t = std::array<uint8_t, sizeof(T)>;
+	struct alignas(alignof(T)) mem_of_obj_t {
+		int8_t data[sizeof(T)];
+	};
 
 	// Singly Linked List node
 	struct Info;
@@ -25,10 +27,10 @@ class alignas(64) DynamicMempool {
 		Info *next_free;
 	};
 	// Singly Linked List
-	std::vector<mem_of_obj_t> mempool __attribute__((aligned(64)));
+	mem_of_obj_t *mempool;
 	std::vector<Info> mempool_info;
 
-	// pointer of the first item in the list of the free items
+	// pointer of the first item in the list of the free items (nullptr if no free item)
 	Info *m_first_free;
 
 	// spinlock for allocation and deallocation
@@ -48,14 +50,15 @@ public:
 	// constructor of this mempool which initializes the pointers
 	// in the singly linked list
 	DynamicMempool(size_t ITEM_CNT) :
-			mempool(ITEM_CNT), mempool_info(ITEM_CNT), ITEM_CNT(ITEM_CNT) {
+			mempool(new mem_of_obj_t[ITEM_CNT]), mempool_info(ITEM_CNT), ITEM_CNT(
+					ITEM_CNT) {
 		assert(ITEM_CNT > 1);
 		//assert(mempool_info.end() != nullptr);
 		m_first_free = &mempool_info[0];
 		for (auto &item : mempool_info) {
 			item.next_free = (&item) + 1;
 		}
-		mempool_info[mempool_info.size() - 1].next_free = &mempool_info.back();
+		mempool_info[mempool_info.size() - 1].next_free = nullptr;
 	}
 
 public:
@@ -72,7 +75,7 @@ public:
 			// this mempool was not even initialized yet
 			return 0;
 		}
-		while (i != &mempool_info.back()) {
+		while (i) {
 			unused++;
 			i = i->next_free;
 			assert(unused <= ITEM_CNT);
@@ -87,13 +90,13 @@ public:
 	template<typename ... Args>
 	T* get(Args ... args) {
 		acquire_lock();
-		if (m_first_free == &mempool_info.back()) {
+		if (m_first_free == nullptr) {
 			throw std::bad_alloc(); // out of memory
 		}
 
 		size_t indx = m_first_free - &mempool_info[0];
 		assert(indx < ITEM_CNT);
-		auto *obj = reinterpret_cast<void*>(&mempool[indx][0]);
+		auto *obj = reinterpret_cast<void*>(&mempool[indx]);
 		//std::cout << "allocate " << obj << " index" << indx << std::endl;
 		auto tmp = m_first_free->next_free;
 		assert(tmp != nullptr);
@@ -115,9 +118,9 @@ public:
 	void release(T *addr) {
 		acquire_lock();
 		static_cast<const T*>(addr)->~T();
-		size_t indx = addr - reinterpret_cast<T*>(&mempool[0][0]);
+		size_t indx = addr - reinterpret_cast<T*>(mempool);
 		//std::cout << "release " << addr << " index" << indx << std::endl;
-		assert(indx < ITEM_CNT);
+		assert(indx < ITEM_CNT && "Allocation of item which is not in this mempool");
 
 		Info *item = &mempool_info[indx];
 		if (item->next_free != nullptr)
@@ -145,7 +148,7 @@ public:
 							+ " is deallocated");
 		}
 #endif
-		return reinterpret_cast<T*>(&(mempool[id][0]));
+		return reinterpret_cast<T*>(&(mempool[id]));
 	}
 
 	constexpr const T* getById(size_t id) const {
@@ -153,7 +156,7 @@ public:
 	}
 
 	constexpr size_t getId(const T *addr) const {
-		size_t id = (addr - reinterpret_cast<const T*>(&mempool[0][0]));
+		size_t id = (addr - reinterpret_cast<const T*>(&mempool[0]));
 #ifndef NDEBUG
 		if (mempool_info[id].next_free != nullptr) {
 			throw std::runtime_error(
@@ -168,11 +171,12 @@ public:
 	~DynamicMempool() {
 		// count free items
 		// and check if all items were removed before deleting of this mempool
-		if (m_first_free != &mempool_info.back()) {
+		if (m_first_free != nullptr) {
 			auto *item = m_first_free;
 			size_t cnt = 0;
-			while (item != &mempool_info.back()) {
+			while (item != nullptr) {
 				cnt++;
+				item = item->next_free;
 			}
 			if (cnt == ITEM_CNT)
 				return;

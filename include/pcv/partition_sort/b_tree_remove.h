@@ -78,7 +78,7 @@ public:
 			}
 			// Free the old root
 			tmp->clean_children();
-			delete tmp;
+			this->tree.node_allocator.release(tmp);
 		}
 		return current_root;
 	}
@@ -279,7 +279,7 @@ public:
 		node.set_key_cnt(node.key_cnt - 1);
 
 		sib->clean_children();
-		delete sib;
+		this->tree.node_allocator.release(sib);
 	}
 	// A function to fill child child(idx) which has less than MIN_DEGREE-1 keys
 	void fill(Node &node, unsigned idx) {

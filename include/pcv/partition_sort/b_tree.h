@@ -97,6 +97,8 @@ public:
 	 * @attention will delete the sub-tree recursively
 	 * */
 	void destroy_node(Node *n) {
+		if (!n)
+			return;
 		_BTreeNodeNavigator<_BTree<cfg>> nn(*this);
 		if (!n->is_leaf) {
 			for (uint8_t i = 0; i < n->key_cnt + 1; i++) {

@@ -35,7 +35,7 @@ public:
 
 		bool first = true;
 		for (size_t i = 0; i < unsigned(n.key_cnt) + 1; i++) {
-			auto c = this->child(n, i);
+			auto c = this->child_const(n, i);
 			if (c) {
 				if (!first) {
 					out << ", ";
@@ -63,7 +63,7 @@ public:
 		}
 		out << "     ]" << std::endl << "}";
 		for (size_t i = 0; i < unsigned(n.key_cnt) + 1; i++) {
-			auto c = this->child(n, i);
+			auto c = this->child_const(n, i);
 			if (c) {
 				nodes_to_json(*c, false);
 			}

@@ -89,7 +89,7 @@ public:
 		if (not n.is_leaf) {
 			// print child nodes
 			for (uint8_t i = 0; i < n.key_cnt + 1; i++) {
-				auto ch = this->child(n, i);
+				auto ch = this->child_const(n, i);
 				print_to_stream(str, *ch);
 			}
 			// print connections to them

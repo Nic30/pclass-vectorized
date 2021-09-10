@@ -60,7 +60,7 @@ void test_insert_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 }
 
 void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
-	typename BTree::NodeAllocator mem(1024 * 1024);
+	typename BTree::NodeAllocator mem(1024);
 	BTree t(mem);
 	size_t allocated_node_cnt_before = mem.size();
 	using rule_t = BTree::rule_spec_t;
@@ -119,7 +119,7 @@ void test_insert_remove_and_search(size_t STEP, size_t RANGE_SIZE, size_t N) {
 }
 
 BOOST_AUTO_TEST_CASE( simple_search ) {
-	typename BTree::NodeAllocator mem(1024 * 1024);
+	typename BTree::NodeAllocator mem(1024);
 	BTree t(mem);
 	t.root = mem.get();
 	BTree::KeyInfo k( { 4, 6 }, { 0, 10 }, BTree::INVALID_INDEX);
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE( simple_search ) {
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert ) {
-	typename BTree::NodeAllocator mem(1024 * 1024);
+	typename BTree::NodeAllocator mem(1024);
 	BTree t(mem);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE( simple_insert_unordered ) {
 }
 
 BOOST_AUTO_TEST_CASE( simple_insert_same ) {
-	typename BTree::NodeAllocator mem(1024 * 1024);
+	typename BTree::NodeAllocator mem(1024);
 	BTree t(mem);
 	using rule_t = BTree::rule_spec_t;
 	using R1d = BTree::key_range_t;

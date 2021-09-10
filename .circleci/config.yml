@@ -17,13 +17,13 @@ jobs:
       # - python/load-cache
       - run: sudo apt update
       - run: sudo apt install -y \
-      		build-essential\
-      		ninja-build\
-      		python3-pip\
-	        python3-setuptools\
-                libboost-all-dev\
-            	libunbound-dev\
-            	openssl
+              build-essential\
+              ninja-build\
+              python3-pip\
+              python3-setuptools\
+              libboost-all-dev\
+              libunbound-dev\
+              openssl
       - run:
           command: |
             sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10;
@@ -40,10 +40,9 @@ jobs:
       #- run:
       #    command: |
       #      echo export CXXFLAGS=\"$CXXFLAGS --param ggc-min-expand=1 --param ggc-min-heapsize=32768\" >> "$BASH_ENV"
-        - 
-  #- pushd benchmarks/ovs/
-  #- bash ovs_prepare.sh
-  #- popd
+      #- pushd benchmarks/ovs/
+      #- bash ovs_prepare.sh
+      #- popd
       - run:
           command: mkdir build; meson build; cd build
           #- meson configure -Dovs_test_app=true

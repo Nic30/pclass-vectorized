@@ -2,3 +2,5 @@ option('dpdk_test_app', type: 'boolean', value: false,
 	description: 'build also the dpdk test app')
 option('ovs_test_app', type: 'boolean', value: false,
 	description: 'build also the ovs test app')
+option('debug', type: 'boolean', value: true,
+	description: 'enables debug build (with additional checks, debug symbols etc.)')
